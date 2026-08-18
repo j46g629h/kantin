@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCI 餐廳回饋系統 — 連線測試</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <main class="card">
+    <h1>PCI 餐廳回饋系統</h1>
+    <p class="subtitle">第 1 階段 · 連線測試</p>
+
+    <form id="testForm">
+      <label for="empId">工號</label>
+      <input type="text" id="empId" placeholder="請輸入工號" required>
+
+      <label for="description">問題描述</label>
+      <textarea id="description" rows="4" placeholder="隨便打幾個字測試" required></textarea>
+
+      <button type="submit" id="submitBtn">送出</button>
+    </form>
+
+    <div id="result" class="result hidden"></div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    const form      = document.getElementById('testForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultBox = document.getElementById('result');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      // 防止連點造成重複送出
+      submitBtn.disabled = true;
+      submitBtn.textContent = '傳送中…';
+      showResult('', 'hidden');
+
+      const payload = {
+        emp_id:      document.getElementById('empId').value.trim(),
+        description: document.getElementById('description').value.trim()
+      };
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          // ⚠️ 一定要用 text/plain。
+          //    用 application/json 會觸發瀏覽器的預檢請求(preflight)，
+          //    而 Apps Script 不支援 doOptions，請求會被擋掉。
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+          showResult('✅ 送出成功！請到 Google Sheet 確認是否多了一列。', 'success');
+          form.reset();
+        } else {
+          showResult('❌ 後端回報錯誤：' + data.message, 'error');
+        }
+
+      } catch (err) {
+        // 這裡通常代表：API 網址填錯、或 Apps Script 部署權限沒設成「任何人」
+        showResult('❌ 連線失敗：' + err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '送出';
+      }
+    });
+
+    function showResult(message, type) {
+      resultBox.textContent = message;
+      resultBox.className = 'result ' + type;
+    }
+  </script>
+
+</body>
+</html>

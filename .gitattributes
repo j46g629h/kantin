@@ -1,0 +1,10 @@
+# 統一換行字元，避免 Windows 與 Mac 之間產生大量無意義的差異
+* text=auto eol=lf
+
+# 二進位檔案不做轉換
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.xlsx binary

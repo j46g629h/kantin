@@ -1,0 +1,110 @@
+/* PCI 餐廳回饋系統 — 基礎樣式
+   設計原則：手機優先、大字體、大按鈕（工廠現場、光線不佳、可能戴手套操作） */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  background: #f4f5f7;
+  color: #1f2328;
+  line-height: 1.6;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 480px;
+}
+
+h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+  margin: 16px 0 6px;
+}
+
+input,
+textarea {
+  width: 100%;
+  font-size: 16px;          /* 小於 16px 時 iOS 會自動放大畫面，務必保持 */
+  font-family: inherit;
+  padding: 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid #2563eb;
+  border-color: transparent;
+}
+
+button {
+  width: 100%;
+  margin-top: 24px;
+  padding: 16px;            /* 大按鈕，好按 */
+  font-size: 17px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:active {
+  background: #1d4ed8;
+}
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.result.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.result.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.hidden {
+  display: none;
+}

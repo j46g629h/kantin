@@ -1,0 +1,17 @@
+# 系統檔案
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 編輯器
+.vscode/
+.idea/
+
+# 暫存
+*.log
+*.tmp
+node_modules/
+
+# 敏感資料（員工名冊含個資，不要上傳到 GitHub）
+*.csv
+*.xlsx
