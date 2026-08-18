@@ -44,9 +44,13 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 
 | 層級 | 技術 | 位置 |
 |---|---|---|
-| 前端 | 原生 HTML / CSS / JavaScript（不用框架） | `web/` |
+| 前端 | 原生 HTML / CSS / JavaScript（不用框架） | **專案根目錄**（`index.html`、`css/`、`js/`） |
 | 後端 | Google Apps Script | `gas/`（線上編輯器的備份） |
 | 資料 | Google Sheet + Google Drive | 雲端 |
+
+⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
+GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
+根目錄的 `.nojekyll` 檔案不可刪除（用來關閉 Jekyll 處理）。
 
 **不要引入 React / Vue / 打包工具。** 使用者是初學者，維持原生、零建置流程是刻意的決定。
 
@@ -87,7 +91,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 刪列會讓列號位移。改標記 `is_deleted`。
 
-### 5. API 網址只寫在 `web/js/config.js`
+### 5. API 網址只寫在 `js/config.js`
 
 其他檔案一律引用它，不可寫死。
 
@@ -112,7 +116,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 ## 開發環境
 
 ```bash
-# 啟動本機開發伺服器（預覽 web/ 底下的頁面）
+# 啟動本機開發伺服器（預覽前端頁面）
 node tools/dev-server.js
 # → http://localhost:5500
 ```

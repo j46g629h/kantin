@@ -10,9 +10,10 @@ PCI adidas 工廠員工餐廳問題回報系統。
 
 | 路徑 | 說明 |
 |---|---|
-| `docs/` | 規格書、部署筆記 |
-| `web/` | 前端（發布到 GitHub Pages） |
+| `index.html` `css/` `js/` | 前端（GitHub Pages 直接發布根目錄） |
+| `docs/` | 規格書、部署筆記、開發進度 |
 | `gas/` | Google Apps Script 程式碼備份 |
+| `tools/` | 本機開發伺服器 |
 
 ## 文件
 

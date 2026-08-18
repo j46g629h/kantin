@@ -1,10 +1,10 @@
 // 本機開發用的簡易靜態伺服器（只在你電腦上跑，不會部署出去）
-// 用途：修改 web/ 底下的檔案後，可以在瀏覽器立即預覽
+// 用途：修改前端檔案後，可以在瀏覽器立即預覽
 const http = require('http');
 const fs   = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', 'web');
+const ROOT = path.join(__dirname, '..');
 const PORT = 5500;
 
 const MIME = {
@@ -23,7 +23,7 @@ http.createServer((req, res) => {
 
   const filePath = path.join(ROOT, urlPath);
 
-  // 防止讀取到 web/ 以外的檔案
+  // 防止讀取到專案資料夾以外的檔案
   if (!filePath.startsWith(ROOT)) {
     res.writeHead(403).end('Forbidden');
     return;
