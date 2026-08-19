@@ -56,6 +56,17 @@ const FEEDBACK_COLUMNS = [
 ];
 
 
+// ===== 問題分類 =====
+
+/**
+ * 問題分類最多可選幾項。
+ * 前端 js/config.js 也有同一個常數，兩邊要保持一致。
+ * 資料在 Sheet 裡以逗號分隔存於同一欄，例如 CAT_TASTE,CAT_HYGIENE，
+ * 第一個是使用者最先點選的，視為「主要分類」。
+ */
+const MAX_CATEGORIES = 2;
+
+
 // ===== 選項設定分頁的類型 =====
 
 const OPTION_TYPES = ['LOCATION', 'CATEGORY', 'STATUS', 'PRIORITY'];

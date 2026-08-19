@@ -74,15 +74,20 @@
     function renderFooter() {
       const rows = [];
 
-      if (SYSTEM_INFO.version) {
-        rows.push(`${t('footer.version')} ${SYSTEM_INFO.version}` +
-                  (SYSTEM_INFO.year ? ` · ${SYSTEM_INFO.year}` : ''));
-      }
-      if (SYSTEM_INFO.maintainer) {
-        rows.push(`${t('footer.maintainer')}: ${SYSTEM_INFO.maintainer}`);
+      // 維護單位依語言取對應寫法（config.js 裡是 { zh, id } 結構）
+      const maintainer = SYSTEM_INFO.maintainer
+        ? (SYSTEM_INFO.maintainer[getLang()] || SYSTEM_INFO.maintainer.zh || '')
+        : '';
+
+      if (maintainer) {
+        rows.push(`${t('footer.maintainer')}: ${maintainer}`);
       }
       if (SYSTEM_INFO.contact) {
         rows.push(`${t('footer.contact')}: ${SYSTEM_INFO.contact}`);
+      }
+      if (SYSTEM_INFO.version) {
+        rows.push(`${t('footer.version')} ${SYSTEM_INFO.version}` +
+                  (SYSTEM_INFO.year ? ` · ${SYSTEM_INFO.year}` : ''));
       }
 
       const footer = document.getElementById('siteFooter');

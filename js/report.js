@@ -8,7 +8,7 @@ const state = {
   options:  null,   // 從後端載入的選項清單
   employee: null,   // 驗證成功的員工 { emp_id, emp_name }
   empError: '',     // 工號驗證失敗的原因（i18n key），用來回報正確的錯誤訊息
-  category: '',     // 選中的問題分類代碼
+  categories: [],   // 選中的問題分類代碼（依點選順序，第一個視為主要分類）
   rating:   0,      // 選中的星數
   submitId: newSubmitId(),   // 這次填寫的提交識別碼（防重複用）
 };
@@ -24,6 +24,7 @@ const el = {
   empStatus:   document.getElementById('empStatus'),
   location:    document.getElementById('location'),
   categoryGrid:document.getElementById('categoryGrid'),
+  categoryHint:document.getElementById('categoryHint'),
   stars:       document.getElementById('stars'),
   ratingHint:  document.getElementById('ratingHint'),
   description: document.getElementById('description'),
@@ -105,6 +106,7 @@ function renderTexts() {
   });
   updateDescriptionTag();
   updateRatingHint();
+  updateCategoryHint();
 
   document.querySelectorAll('.lang-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.lang === getLang());
@@ -140,25 +142,56 @@ function renderLocations() {
 
 function renderCategories() {
   el.categoryGrid.innerHTML = '';
+  const isFull = state.categories.length >= MAX_CATEGORIES;
 
   state.options.CATEGORY.forEach((opt) => {
+    const selected = state.categories.includes(opt.code);
+
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'category-btn' + (state.category === opt.code ? ' selected' : '');
+    // 已經選滿時，其餘選項變灰——讓使用者一眼看出要先取消才能改選，
+    // 而不是按了沒反應卻不知道為什麼
+    btn.className = 'category-btn'
+      + (selected ? ' selected' : '')
+      + (!selected && isFull ? ' disabled' : '');
     btn.dataset.code = opt.code;
     btn.innerHTML =
       `<span class="category-icon">${CATEGORY_ICONS[opt.code] || CATEGORY_ICONS._default}</span>` +
       `<span class="category-label">${escapeHtml(optionLabel(opt))}</span>`;
 
-    btn.addEventListener('click', () => {
-      state.category = opt.code;
-      renderCategories();
-      updateDescriptionTag();
-      clearError();
-    });
+    btn.addEventListener('click', () => toggleCategory(opt.code));
 
     el.categoryGrid.appendChild(btn);
   });
+}
+
+/**
+ * 切換分類的選取狀態，最多 MAX_CATEGORIES 項。
+ * 陣列保留點選順序，第一個視為「主要分類」，供管理者派工與統計使用。
+ */
+function toggleCategory(code) {
+  const index = state.categories.indexOf(code);
+
+  if (index >= 0) {
+    state.categories.splice(index, 1);            // 再點一次 = 取消選取
+  } else if (state.categories.length < MAX_CATEGORIES) {
+    state.categories.push(code);
+  } else {
+    return;                                       // 已達上限，不做任何事
+  }
+
+  renderCategories();
+  updateCategoryHint();
+  updateDescriptionTag();
+  clearError();
+}
+
+/** 分類下方的提示：還可以選 / 已經選滿 */
+function updateCategoryHint() {
+  if (!el.categoryHint) return;
+  const isFull = state.categories.length >= MAX_CATEGORIES;
+  el.categoryHint.textContent = isFull ? t('form.categoryFull') : t('form.categoryHint');
+  el.categoryHint.classList.toggle('rated', isFull);
 }
 
 function renderStars() {
@@ -193,7 +226,7 @@ function updateRatingHint() {
 function updateDescriptionTag() {
   const tag = document.getElementById('tagDescription');
   if (!tag) return;
-  const required = state.category === 'CAT_OTHER';
+  const required = state.categories.includes('CAT_OTHER');
   tag.textContent = required ? t('form.required') : t('form.optional');
   tag.classList.toggle('tag-required', required);
 }
@@ -287,7 +320,7 @@ el.form.addEventListener('submit', async (event) => {
       emp_id:           state.employee.emp_id,
       lang:             getLang() === 'zh' ? 'ZH' : 'ID',
       location_code:    el.location.value,
-      category_code:    state.category,
+      category_code:    state.categories.join(','),
       description:      el.description.value.trim(),
       rating:           state.rating,
     });
@@ -318,9 +351,10 @@ function validate() {
   // 也可能是連線失敗或工號已停用，訊息不能一律說成查無此工號
   if (!state.employee)         return state.empError || 'err.EMP_NOT_FOUND';
   if (!el.location.value)      return 'err.LOCATION_REQUIRED';
-  if (!state.category)         return 'err.CATEGORY_REQUIRED';
+  if (state.categories.length === 0)              return 'err.CATEGORY_REQUIRED';
+  if (state.categories.length > MAX_CATEGORIES)   return 'err.CATEGORY_TOO_MANY';
   if (!state.rating)           return 'err.RATING_REQUIRED';
-  if (state.category === 'CAT_OTHER' && !el.description.value.trim()) {
+  if (state.categories.includes('CAT_OTHER') && !el.description.value.trim()) {
     return 'err.DESCRIPTION_REQUIRED';
   }
   return '';
@@ -343,8 +377,8 @@ function showSuccess(caseId) {
 
 /** 「再回報一則」：保留工號和姓名，其餘清空 */
 el.againBtn.addEventListener('click', () => {
-  state.category = '';
-  state.rating   = 0;
+  state.categories = [];
+  state.rating     = 0;
   state.submitId = newSubmitId();   // 新的一筆要有新的識別碼
 
   el.location.value    = '';
@@ -353,6 +387,7 @@ el.againBtn.addEventListener('click', () => {
 
   renderCategories();
   renderStars();
+  updateCategoryHint();
   updateDescriptionTag();
   applyLocationFromUrl();
 

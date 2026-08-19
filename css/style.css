@@ -292,6 +292,11 @@ textarea:focus {
   cursor: pointer;
 }
 
+.category-btn.disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
 .category-btn.selected {
   color: var(--brand-dark);
   background: var(--brand-light);

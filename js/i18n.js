@@ -38,6 +38,8 @@ const I18N = {
     'form.location':     '哪一間餐廳？',
     'form.selectPlaceholder': '請選擇餐廳',
     'form.category':     '是什麼問題？',
+    'form.categoryHint': '可以選 1～2 項',
+    'form.categoryFull': '已選 2 項（最多）',
     'form.rating':       '這餐還滿意嗎？',
     'form.ratingHint':   '請點選星星評分',
     'form.description':  '說得更詳細一點',
@@ -77,6 +79,7 @@ const I18N = {
     'err.DESCRIPTION_REQUIRED': '選「其他建議」的話，請描述一下內容',
     'err.LOCATION_INVALID':     '餐廳選項有誤，請重新選擇',
     'err.CATEGORY_INVALID':     '問題分類有誤，請重新選擇',
+    'err.CATEGORY_TOO_MANY':    '問題分類最多選 2 項',
     'err.DAILY_LIMIT_EXCEEDED': '今天回報的次數已達上限，請明天再來',
     'err.BUSY':                 '系統忙碌中，請稍等一下再試',
     'err.SERVER_ERROR':         '系統出了點問題，請稍後再試',
@@ -90,7 +93,7 @@ const I18N = {
 
   id: {
     // --- Umum ---
-    appName:        'Kantin PCI',
+    appName:        'Suara Karyawan · Kantin PCI',
     langName:       'Bahasa Indonesia',
     back:           'Kembali',
     loading:        'Sebentar ya…',
@@ -110,6 +113,8 @@ const I18N = {
     'form.location':     'Kantin Mana?',
     'form.selectPlaceholder': 'Pilih kantin',
     'form.category':     'Masalahnya Apa?',
+    'form.categoryHint': 'Boleh pilih 1 sampai 2',
+    'form.categoryFull': 'Sudah 2, maksimal segitu ya',
     'form.rating':       'Seberapa Puas?',
     'form.ratingHint':   'Ketuk bintangnya',
     'form.description':  'Ceritakan Lebih Detail',
@@ -149,6 +154,7 @@ const I18N = {
     'err.DESCRIPTION_REQUIRED': 'Kalau pilih "Saran Lain", tolong ceritakan ya',
     'err.LOCATION_INVALID':     'Pilihan kantin tidak valid, pilih ulang ya',
     'err.CATEGORY_INVALID':     'Pilihan masalah tidak valid, pilih ulang ya',
+    'err.CATEGORY_TOO_MANY':    'Maksimal pilih 2 masalah ya',
     'err.DAILY_LIMIT_EXCEEDED': 'Hari ini sudah lapor banyak, lanjut besok ya',
     'err.BUSY':                 'Sistem lagi sibuk, tunggu sebentar ya',
     'err.SERVER_ERROR':         'Ada gangguan sistem, coba lagi nanti ya',

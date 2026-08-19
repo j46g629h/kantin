@@ -21,20 +21,24 @@ function submitFeedback(params) {
   // ---------- 1. 基本欄位檢查 ----------
   const empId        = str(params.emp_id);
   const locationCode = str(params.location_code);
-  const categoryCode = str(params.category_code);
   const description  = str(params.description);
   const lang         = str(params.lang).toUpperCase() === 'ZH' ? 'ZH' : 'ID';
   const clientId     = str(params.client_submit_id);
   const rating       = Number(params.rating);
 
+  // 問題分類可複選，前端以逗號分隔送來（例如 CAT_TASTE,CAT_HYGIENE）
+  // 順序即點選順序，第一個視為主要分類
+  const categoryCodes = parseCategoryCodes(params.category_code);
+
   if (!clientId)     return fail('SUBMIT_ID_REQUIRED', '缺少提交識別碼');
   if (!empId)        return fail('EMP_ID_REQUIRED', '請輸入工號');
   if (!locationCode) return fail('LOCATION_REQUIRED', '請選擇餐廳地點');
-  if (!categoryCode) return fail('CATEGORY_REQUIRED', '請選擇問題分類');
+  if (categoryCodes.length === 0)              return fail('CATEGORY_REQUIRED', '請選擇問題分類');
+  if (categoryCodes.length > MAX_CATEGORIES)   return fail('CATEGORY_TOO_MANY', '問題分類最多選 ' + MAX_CATEGORIES + ' 項');
   if (!(rating >= 1 && rating <= 5)) return fail('RATING_REQUIRED', '請選擇滿意度評分');
 
   // 「其他建議」沒有既定分類可循，必須說明內容
-  if (categoryCode === 'CAT_OTHER' && !description) {
+  if (categoryCodes.indexOf('CAT_OTHER') >= 0 && !description) {
     return fail('DESCRIPTION_REQUIRED', '選擇「其他建議」時請填寫說明');
   }
 
@@ -57,8 +61,10 @@ function submitFeedback(params) {
   if (!hasOptionCode(options.LOCATION, locationCode)) {
     return fail('LOCATION_INVALID', '餐廳地點不正確');
   }
-  if (!hasOptionCode(options.CATEGORY, categoryCode)) {
-    return fail('CATEGORY_INVALID', '問題分類不正確');
+  for (let i = 0; i < categoryCodes.length; i++) {
+    if (!hasOptionCode(options.CATEGORY, categoryCodes[i])) {
+      return fail('CATEGORY_INVALID', '問題分類不正確');
+    }
   }
 
   // ---------- 5. 防灌水 ----------
@@ -82,7 +88,7 @@ function submitFeedback(params) {
       emp_name:         employee.name,
       lang:             lang,
       location_code:    locationCode,
-      category_code:    categoryCode,
+      category_code:    categoryCodes.join(','),
       description:      description,
       rating:           rating,
       priority:         'P_NORMAL',
@@ -226,6 +232,22 @@ function countTodaySubmissions(empId) {
     if (Utilities.formatDate(t, Session.getScriptTimeZone(), 'yyyy-MM-dd') === today) count++;
   }
   return count;
+}
+
+
+/**
+ * 把前端送來的分類字串拆成陣列。
+ * 順便去除空白與重複，但保留原本的點選順序（第一個是主要分類）。
+ */
+function parseCategoryCodes(raw) {
+  const parts = str(raw).split(',');
+  const result = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const code = str(parts[i]);
+    if (code && result.indexOf(code) === -1) result.push(code);
+  }
+  return result;
 }
 
 
