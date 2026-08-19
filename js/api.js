@@ -70,23 +70,74 @@ function errorMessage(result) {
 }
 
 
+// ===== 選項清單的快取 =====
+
+/**
+ * 快取鍵名帶版本號。選項的「結構」有變動時（例如新增一種類型）就把 v 往上加，
+ * 舊版快取會自動失效。
+ */
+const OPTIONS_CACHE_KEY = 'kantin_options_v2';
+
+/** 快取有效期。過期就重新跟後端要一次。 */
+const OPTIONS_CACHE_TTL_MS = 30 * 60 * 1000;   // 30 分鐘
+
+/**
+ * 表單一定要有的選項類型。
+ * 快取或後端回應少了其中任何一種，就視為資料不完整。
+ *
+ * 這是最重要的一道防護：新增選項類型時就算忘了改版本號，
+ * 這裡也會擋下來，不會讓使用者看到「有標題卻沒有按鈕」的空白區塊。
+ */
+const REQUIRED_OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY'];
+
+
 /**
  * 取得選項清單，並暫存在 sessionStorage。
  * 選項很少變動，換頁時不必每次都重新跟後端要。
  */
 async function loadOptions() {
-  const CACHE_KEY = 'kantin_options';
-
-  const cached = sessionStorage.getItem(CACHE_KEY);
-  if (cached) {
-    try { return JSON.parse(cached); } catch (e) { /* 壞掉就重抓 */ }
-  }
+  const cached = readOptionsCache();
+  if (cached) return cached;
 
   const result = await Api.getOptions();
   if (!result.ok) throw new Error(errorMessage(result));
 
-  sessionStorage.setItem(CACHE_KEY, JSON.stringify(result.data));
+  if (!hasAllRequiredOptions(result.data)) {
+    throw new Error('選項資料不完整，缺少必要的類型');
+  }
+
+  sessionStorage.setItem(OPTIONS_CACHE_KEY, JSON.stringify({
+    at:   Date.now(),
+    data: result.data,
+  }));
   return result.data;
+}
+
+
+/** 讀取快取；過期、格式不對、內容不完整都回傳 null（代表要重抓） */
+function readOptionsCache() {
+  try {
+    const raw = sessionStorage.getItem(OPTIONS_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.data) return null;
+    if (Date.now() - (parsed.at || 0) > OPTIONS_CACHE_TTL_MS) return null;
+    if (!hasAllRequiredOptions(parsed.data)) return null;
+
+    return parsed.data;
+  } catch (e) {
+    return null;   // 快取壞掉就當作沒有
+  }
+}
+
+
+/** 檢查必要的選項類型是否都存在且不是空的 */
+function hasAllRequiredOptions(data) {
+  if (!data) return false;
+  return REQUIRED_OPTION_TYPES.every(function (type) {
+    return Array.isArray(data[type]) && data[type].length > 0;
+  });
 }
 
 

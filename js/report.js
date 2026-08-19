@@ -292,9 +292,14 @@ function applyLocationFromUrl() {
 
 // ===== 工號驗證 =====
 
+/** 工號長度上限，與 report.html 的 maxlength 一致 */
+const EMP_ID_MAX_LENGTH = 20;
+
 let verifyTimer = null;
 
 el.empId.addEventListener('input', () => {
+  sanitizeEmpIdInput();
+
   state.employee = null;
   state.empError = '';
   clearTimeout(verifyTimer);
@@ -312,6 +317,29 @@ el.empId.addEventListener('input', () => {
   // 每打一個字就打一次 API 太浪費，停止輸入 500 毫秒後才查
   verifyTimer = setTimeout(() => verifyEmpId(value), 500);
 });
+
+/**
+ * 工號只允許數字與英文字母，英文一律轉成大寫。
+ *
+ * 在「打字當下」就過濾掉不合法的字元，而不是等送出才報錯——
+ * 使用者打了一堆才被拒絕，體驗會很差。
+ * 貼上的內容也會經過這裡（貼上一樣會觸發 input 事件）。
+ */
+function sanitizeEmpIdInput() {
+  const raw = el.empId.value;
+  const cleaned = raw.replace(/[^0-9a-zA-Z]/g, '').toUpperCase().slice(0, EMP_ID_MAX_LENGTH);
+  if (cleaned === raw) return;
+
+  // 保住游標位置，否則在字串中間修改時游標會跳到最後面
+  const caret = el.empId.selectionStart || 0;
+  const before = raw.slice(0, caret);
+  const removed = before.length - before.replace(/[^0-9a-zA-Z]/g, '').length;
+
+  el.empId.value = cleaned;
+  const pos = Math.max(0, caret - removed);
+  el.empId.setSelectionRange(pos, pos);
+}
+
 
 async function verifyEmpId(empId) {
   try {

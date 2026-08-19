@@ -24,7 +24,7 @@ const I18N = {
     loading:        '載入中…',
 
     // --- 首頁 ---
-    'home.tagline':     '您的意見，讓餐廳更好',
+    'home.tagline':     '幫我們一起把餐廳變更好',
     'home.report':      '提交回報',
     'home.reportDesc':  '有問題或建議，跟我們說',
     'home.query':       '查詢案件',
@@ -102,7 +102,7 @@ const I18N = {
     loading:        'Sebentar ya…',
 
     // --- Beranda ---
-    'home.tagline':     'Masukan kamu bikin kantin makin baik',
+    'home.tagline':     'Bantu kami bikin kantin lebih baik',
     'home.report':      'Lapor Masalah',
     'home.reportDesc':  'Ada masalah atau saran? Kasih tahu kami',
     'home.query':       'Cek Laporan',
