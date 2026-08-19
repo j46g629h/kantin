@@ -77,14 +77,33 @@ function submitFeedback(params) {
     return fail('DAILY_LIMIT_EXCEEDED', '今日回報次數已達上限，請明天再試');
   }
 
-  // ---------- 6. 產生編號並寫入（需要鎖）----------
+  // ---------- 6. 圖片檢查 ----------
+  const imageError = validateImages(params.images);
+  if (imageError) {
+    return fail(imageError, '圖片不符合規定');
+  }
+
+  // ---------- 7. 上傳圖片（刻意在取得鎖之前）----------
+  // 上傳可能要好幾秒，握著鎖做會讓其他人卡住，
+  // 而且執行過久時鎖會自動過期反而出錯。
+  let imageFiles = [];
+  try {
+    imageFiles = saveImagesToDrive(params.images, clientId);
+  } catch (err) {
+    logError('submitFeedback:image', empId, err, { count: (params.images || []).length });
+    return fail('IMAGE_UPLOAD_FAILED', '圖片上傳失敗，請稍後再試');
+  }
+
+  // ---------- 8. 產生編號並寫入（需要鎖）----------
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) {
+    deleteImageFiles(imageFiles);      // 沒有寫入案件就把圖片清掉，避免留下孤兒檔案
     return fail('BUSY', '系統忙碌中，請稍後再試');
   }
 
   try {
     const caseId = generateCaseId();
+    renameImageFiles(imageFiles, caseId);
 
     writeFeedbackRow({
       case_id:          caseId,
@@ -98,7 +117,7 @@ function submitFeedback(params) {
       description:      description,
       rating:           rating,
       priority:         'P_NORMAL',
-      image_urls:       '',
+      image_urls:       buildImageUrls(imageFiles),
       status_code:      'ST_NEW',
       handler:          '',
       response:         '',
