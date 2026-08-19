@@ -87,6 +87,10 @@ function setupSheets() {
       ['LOCATION', 'LOC_R3',       'R3廠餐廳',   'Kantin R3',       3, true],
       ['LOCATION', 'LOC_VIP',      'VIP餐廳',    'Kantin VIP',      4, true],
 
+      ['MEAL',     'MEAL_BREAKFAST', '早餐',      'Menu Sarapan',    1, true],
+      ['MEAL',     'MEAL_LUNCH',     '午餐',      'Menu Siang',      2, true],
+      ['MEAL',     'MEAL_DINNER',    '晚餐',      'Menu Sore',       3, true],
+
       ['CATEGORY', 'CAT_TASTE',    '菜單口味',   'Rasa Makanan',    1, true],
       ['CATEGORY', 'CAT_HYGIENE',  '衛生環境',   'Kebersihan',      2, true],
       ['CATEGORY', 'CAT_SERVICE',  '服務態度',   'Pelayanan',       3, true],
@@ -147,6 +151,106 @@ function setupSheets() {
 
   report.push('');
   report.push('建置完成。');
+
+  const text = report.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+
+/**
+ * 升級：新增「餐別」欄位與三餐選項。
+ *
+ * 給「已經建好 Sheet」的環境用的一次性升級程式。
+ * 重複執行是安全的：已經存在的東西會自動略過。
+ *
+ * 執行方式：上方函式下拉選單選 migrateAddMeal → 按執行 → 看執行紀錄
+ */
+function migrateAddMeal() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const report = [];
+
+  // --- 1. 回報資料：在「餐廳地點」右邊插入「餐別」欄 ---
+  const feedback = ss.getSheetByName(SHEETS.FEEDBACK);
+  const headers = feedback.getRange(1, 1, 1, feedback.getLastColumn()).getValues()[0];
+
+  if (headers.indexOf('餐別') === -1) {
+    const locIndex = headers.indexOf('餐廳地點');
+    if (locIndex === -1) throw new Error('找不到「餐廳地點」欄，請先確認分頁結構');
+
+    const newCol = locIndex + 2;                 // 插在餐廳地點的右邊
+    feedback.insertColumnAfter(locIndex + 1);
+
+    feedback.getRange(1, newCol).setValue('餐別');
+    feedback.getRange(1, newCol)
+      .setFontWeight('bold')
+      .setBackground('#e8eaed')
+      .setVerticalAlignment('middle');
+    feedback.setColumnWidth(newCol, 90);
+    feedback.getRange(2, newCol, feedback.getMaxRows() - 1, 1).setNumberFormat('@');
+
+    report.push('✔ 「' + SHEETS.FEEDBACK + '」已新增「餐別」欄（第 ' + newCol + ' 欄）');
+  } else {
+    report.push('－ 「' + SHEETS.FEEDBACK + '」已有「餐別」欄，略過');
+  }
+
+  // --- 2. 選項設定：加入三餐選項 ---
+  const options = ss.getSheetByName(SHEETS.OPTIONS);
+  const optionRows = options.getLastRow() - 1;
+  const existingCodes = optionRows > 0
+    ? options.getRange(2, 2, optionRows, 1).getValues().map(function (r) { return str(r[0]); })
+    : [];
+
+  const meals = [
+    ['MEAL', 'MEAL_BREAKFAST', '早餐', 'Menu Sarapan', 1, true],
+    ['MEAL', 'MEAL_LUNCH',     '午餐', 'Menu Siang',   2, true],
+    ['MEAL', 'MEAL_DINNER',    '晚餐', 'Menu Sore',    3, true],
+  ];
+
+  let addedMeals = 0;
+  meals.forEach(function (m) {
+    if (existingCodes.indexOf(m[1]) === -1) {
+      options.appendRow(m);
+      addedMeals++;
+    }
+  });
+  report.push(addedMeals > 0
+    ? '✔ 「' + SHEETS.OPTIONS + '」已新增 ' + addedMeals + ' 個餐別選項'
+    : '－ 「' + SHEETS.OPTIONS + '」已有餐別選項，略過');
+
+  // --- 3. 員工名冊：補兩筆含英文字母的測試工號 ---
+  // 工號可能含英文字，開發階段需要能測到這種情況。
+  // ⚠️ 正式名冊貼上時會一併覆蓋掉，不用手動刪。
+  const employees = ss.getSheetByName(SHEETS.EMPLOYEES);
+  const empRows = employees.getLastRow() - 1;
+  const existingEmps = empRows > 0
+    ? employees.getRange(2, 1, empRows, 1).getValues().map(function (r) { return str(r[0]).toUpperCase(); })
+    : [];
+
+  const testEmps = [
+    ['A1234',  '測試員工-英數混合', EMP_STATUS.ACTIVE],
+    ['TW0567', 'Test Alphanumeric', EMP_STATUS.ACTIVE],
+  ];
+
+  let addedEmps = 0;
+  testEmps.forEach(function (e) {
+    if (existingEmps.indexOf(e[0].toUpperCase()) === -1) {
+      const row = employees.getLastRow() + 1;
+      employees.getRange(row, 1, 1, 3).setNumberFormats([['@', '@', '@']]);
+      employees.getRange(row, 1, 1, 3).setValues([e]);
+      addedEmps++;
+    }
+  });
+  report.push(addedEmps > 0
+    ? '✔ 「' + SHEETS.EMPLOYEES + '」已新增 ' + addedEmps + ' 筆含英文字的測試工號'
+    : '－ 「' + SHEETS.EMPLOYEES + '」已有測試工號，略過');
+
+  // --- 4. 清掉選項快取，讓新選項立刻生效 ---
+  CacheService.getScriptCache().remove('options');
+  report.push('✔ 選項快取已清除');
+
+  report.push('');
+  report.push('升級完成。');
 
   const text = report.join('\n');
   Logger.log(text);

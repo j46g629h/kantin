@@ -49,6 +49,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/ui.js"></script>
   <script>
     /** 依目前語言把畫面上的文字換掉 */
     function render() {
@@ -62,40 +63,11 @@
       document.getElementById('queryTitle').textContent  = t('home.query');
       document.getElementById('queryDesc').textContent   = t('home.queryDesc');
 
-      renderFooter();
+      renderSystemFooter('siteFooter');
 
       // 標示目前選中的語言
       document.querySelectorAll('.lang-btn').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.lang === getLang());
-      });
-    }
-
-    /** 系統資訊區塊：SYSTEM_INFO 沒填的欄位就不顯示 */
-    function renderFooter() {
-      const rows = [];
-
-      // 維護單位依語言取對應寫法（config.js 裡是 { zh, id } 結構）
-      const maintainer = SYSTEM_INFO.maintainer
-        ? (SYSTEM_INFO.maintainer[getLang()] || SYSTEM_INFO.maintainer.zh || '')
-        : '';
-
-      if (maintainer) {
-        rows.push(`${t('footer.maintainer')}: ${maintainer}`);
-      }
-      if (SYSTEM_INFO.contact) {
-        rows.push(`${t('footer.contact')}: ${SYSTEM_INFO.contact}`);
-      }
-      if (SYSTEM_INFO.version) {
-        rows.push(`${t('footer.version')} ${SYSTEM_INFO.version}` +
-                  (SYSTEM_INFO.year ? ` · ${SYSTEM_INFO.year}` : ''));
-      }
-
-      const footer = document.getElementById('siteFooter');
-      footer.innerHTML = '';
-      rows.forEach((line) => {
-        const p = document.createElement('p');
-        p.textContent = line;   // 用 textContent 而非 innerHTML，避免內容被當成 HTML 執行
-        footer.appendChild(p);
       });
     }
 

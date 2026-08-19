@@ -26,10 +26,7 @@ const SYSTEM_INFO = {
   // 維護單位（依介面語言顯示對應版本）
   maintainer: {
     zh: 'PCI 總工務',
-    // ⚠️ 待補：印尼籍員工看中文會看不懂該找誰。
-    //    建議填印尼文或英文寫法，例如 'Teknik Umum PCI' 或 'PCI General Affairs'。
-    //    在補上之前先沿用中文，不影響系統運作。
-    id: 'PCI 總工務',
+    id: 'PCI GA',
   },
 
   // 聯絡分機（數字不需要翻譯）
@@ -39,6 +36,21 @@ const SYSTEM_INFO = {
 
 /**
  * 問題分類最多可選幾項。
- * 前端與後端都會用到這個數字，改這裡兩邊會一起生效。
+ * 後端 gas/Config.js 也有同一個常數，兩邊要保持一致。
  */
 const MAX_CATEGORIES = 2;
+
+
+/**
+ * 各餐供應時段，用來在表單自動預選「餐別」。
+ *
+ * from 含、to 不含（例如 5～10 表示 05:00～09:59 算早餐）。
+ * 提交時間不在任何區間內時就不預選，讓員工自己挑。
+ *
+ * ⚠️ 這裡是暫定值，請依實際供餐時間調整。
+ */
+const MEAL_TIME_RANGES = [
+  { code: 'MEAL_BREAKFAST', from: 5,  to: 10 },
+  { code: 'MEAL_LUNCH',     from: 10, to: 15 },
+  { code: 'MEAL_DINNER',    from: 15, to: 22 },
+];

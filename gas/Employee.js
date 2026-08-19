@@ -15,6 +15,7 @@
  * 失敗：{ ok:false, error:'EMP_NOT_FOUND', message:'查無此工號' }
  */
 function verifyEmployee(params) {
+  // 工號可能含英文字母，一律去除頭尾空白後比對（比對本身不分大小寫）
   const empId = str(params.empId || params.emp_id);
 
   if (!empId) {
@@ -53,7 +54,7 @@ function findEmployeeInSheet(empId) {
   const lastRow = sheet.getLastRow();
 
   if (lastRow < 2) {
-    return { exists: false, name: '', status: '' };
+    return { exists: false, id: '', name: '', status: '' };
   }
 
   // 只在工號欄（第 1 欄）搜尋，matchEntireCell 確保 123 不會比對到 1234
@@ -65,12 +66,16 @@ function findEmployeeInSheet(empId) {
     .findNext();
 
   if (!match) {
-    return { exists: false, name: '', status: '' };
+    return { exists: false, id: '', name: '', status: '' };
   }
 
   const row = sheet.getRange(match.getRow(), 1, 1, 3).getValues()[0];
   return {
     exists: true,
+    // 回傳「名冊上的寫法」而不是員工輸入的寫法。
+    // 比對是不分大小寫的，若直接沿用輸入值，
+    // 同一位員工打 a1234 和 A1234 會在資料庫留下兩種寫法，統計就會拆開。
+    id:     str(row[0]),
     name:   str(row[1]),
     status: str(row[2]).toUpperCase() || EMP_STATUS.ACTIVE,
   };
@@ -85,7 +90,7 @@ function buildEmployeeResult(empId, found) {
   if (found.status === EMP_STATUS.LEFT) {
     return fail('EMP_INACTIVE', '此工號已停用，請洽人事單位');
   }
-  return ok({ emp_id: empId, emp_name: found.name });
+  return ok({ emp_id: found.id || empId, emp_name: found.name });
 }
 
 

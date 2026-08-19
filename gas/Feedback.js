@@ -21,6 +21,7 @@ function submitFeedback(params) {
   // ---------- 1. 基本欄位檢查 ----------
   const empId        = str(params.emp_id);
   const locationCode = str(params.location_code);
+  const mealCode     = str(params.meal_code);
   const description  = str(params.description);
   const lang         = str(params.lang).toUpperCase() === 'ZH' ? 'ZH' : 'ID';
   const clientId     = str(params.client_submit_id);
@@ -33,6 +34,7 @@ function submitFeedback(params) {
   if (!clientId)     return fail('SUBMIT_ID_REQUIRED', '缺少提交識別碼');
   if (!empId)        return fail('EMP_ID_REQUIRED', '請輸入工號');
   if (!locationCode) return fail('LOCATION_REQUIRED', '請選擇餐廳地點');
+  if (!mealCode)     return fail('MEAL_REQUIRED', '請選擇餐別');
   if (categoryCodes.length === 0)              return fail('CATEGORY_REQUIRED', '請選擇問題分類');
   if (categoryCodes.length > MAX_CATEGORIES)   return fail('CATEGORY_TOO_MANY', '問題分類最多選 ' + MAX_CATEGORIES + ' 項');
   if (!(rating >= 1 && rating <= 5)) return fail('RATING_REQUIRED', '請選擇滿意度評分');
@@ -61,6 +63,9 @@ function submitFeedback(params) {
   if (!hasOptionCode(options.LOCATION, locationCode)) {
     return fail('LOCATION_INVALID', '餐廳地點不正確');
   }
+  if (!hasOptionCode(options.MEAL, mealCode)) {
+    return fail('MEAL_INVALID', '餐別不正確');
+  }
   for (let i = 0; i < categoryCodes.length; i++) {
     if (!hasOptionCode(options.CATEGORY, categoryCodes[i])) {
       return fail('CATEGORY_INVALID', '問題分類不正確');
@@ -84,10 +89,11 @@ function submitFeedback(params) {
     writeFeedbackRow({
       case_id:          caseId,
       submit_time:      new Date(),
-      emp_id:           empId,
+      emp_id:           employee.id || empId,   // 存名冊上的正確寫法，不是員工輸入的
       emp_name:         employee.name,
       lang:             lang,
       location_code:    locationCode,
+      meal_code:        mealCode,
       category_code:    categoryCodes.join(','),
       description:      description,
       rating:           rating,

@@ -40,6 +40,7 @@ const FEEDBACK_COLUMNS = [
   { code: 'emp_name',         name: '姓名',         width: 110, format: '@' },
   { code: 'lang',             name: '語言',         width:  60, format: '@' },
   { code: 'location_code',    name: '餐廳地點',     width: 100, format: '@' },
+  { code: 'meal_code',        name: '餐別',         width:  90, format: '@' },
   { code: 'category_code',    name: '問題分類',     width: 120, format: '@' },
   { code: 'description',      name: '問題描述',     width: 300, format: '@' },
   { code: 'rating',           name: '滿意度評分',   width:  90, format: '0' },
@@ -69,7 +70,7 @@ const MAX_CATEGORIES = 2;
 
 // ===== 選項設定分頁的類型 =====
 
-const OPTION_TYPES = ['LOCATION', 'CATEGORY', 'STATUS', 'PRIORITY'];
+const OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS', 'PRIORITY'];
 
 
 // ===== 快取秒數 =====

@@ -450,3 +450,38 @@ textarea:focus {
 .site-footer:empty {
   display: none;      /* SYSTEM_INFO 全部留空時不要留一條孤零零的線 */
 }
+
+
+/* ===== 餐別（單選）===== */
+
+.meal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.meal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 76px;
+  padding: 10px 4px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.meal-btn.selected {
+  color: var(--brand-dark);
+  background: var(--brand-light);
+  border-color: var(--brand);
+  font-weight: 600;
+}
+
+.meal-icon  { font-size: 24px; line-height: 1; }
+.meal-label { font-size: var(--fs-xs); text-align: center; line-height: 1.3; }

@@ -37,6 +37,7 @@ const I18N = {
     'form.checking':     '查詢中…',
     'form.location':     '哪一間餐廳？',
     'form.selectPlaceholder': '請選擇餐廳',
+    'form.meal':         '哪一餐？',
     'form.category':     '是什麼問題？',
     'form.categoryHint': '可以選 1～2 項',
     'form.categoryFull': '已選 2 項（最多）',
@@ -74,6 +75,8 @@ const I18N = {
     'err.EMP_NOT_FOUND':        '找不到這個工號，請再確認一下',
     'err.EMP_INACTIVE':         '這個工號已停用，請洽人事單位',
     'err.LOCATION_REQUIRED':    '請先選擇餐廳',
+    'err.MEAL_REQUIRED':        '請先選擇是哪一餐',
+    'err.MEAL_INVALID':         '餐別有誤，請重新選擇',
     'err.CATEGORY_REQUIRED':    '請先選擇是什麼問題',
     'err.RATING_REQUIRED':      '請先點星星評分',
     'err.DESCRIPTION_REQUIRED': '選「其他建議」的話，請描述一下內容',
@@ -112,6 +115,7 @@ const I18N = {
     'form.checking':     'Lagi dicari…',
     'form.location':     'Kantin Mana?',
     'form.selectPlaceholder': 'Pilih kantin',
+    'form.meal':         'Menu yang Mana?',
     'form.category':     'Masalahnya Apa?',
     'form.categoryHint': 'Boleh pilih 1 sampai 2',
     'form.categoryFull': 'Sudah 2, maksimal segitu ya',
@@ -149,6 +153,8 @@ const I18N = {
     'err.EMP_NOT_FOUND':        'NIK-nya tidak ketemu, coba cek lagi',
     'err.EMP_INACTIVE':         'NIK ini sudah tidak aktif, hubungi HRD ya',
     'err.LOCATION_REQUIRED':    'Pilih kantinnya dulu ya',
+    'err.MEAL_REQUIRED':        'Pilih dulu menu yang mana',
+    'err.MEAL_INVALID':         'Pilihan menu tidak valid, pilih ulang ya',
     'err.CATEGORY_REQUIRED':    'Pilih dulu masalahnya apa',
     'err.RATING_REQUIRED':      'Kasih bintang dulu ya',
     'err.DESCRIPTION_REQUIRED': 'Kalau pilih "Saran Lain", tolong ceritakan ya',
@@ -166,6 +172,15 @@ const I18N = {
     'footer.contact':    'Kontak',
   },
 
+};
+
+
+/** 餐別的圖示 */
+const MEAL_ICONS = {
+  MEAL_BREAKFAST: '🌅',
+  MEAL_LUNCH:     '☀️',
+  MEAL_DINNER:    '🌇',
+  _default:       '🍽️',
 };
 
 

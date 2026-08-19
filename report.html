@@ -36,7 +36,7 @@
             <span id="labelEmpId">NIK</span>
             <span class="tag tag-required" id="tagEmpId">harus diisi</span>
           </label>
-          <input type="text" id="empId" inputmode="numeric" autocomplete="off" required>
+          <input type="text" id="empId" autocomplete="off" autocorrect="off" spellcheck="false" required>
           <div id="empStatus" class="field-note"></div>
         </section>
 
@@ -47,6 +47,15 @@
             <span class="tag tag-required">harus diisi</span>
           </label>
           <select id="location" required></select>
+        </section>
+
+        <!-- 餐別 -->
+        <section class="field">
+          <span class="field-label">
+            <span id="labelMeal">Menu yang Mana?</span>
+            <span class="tag tag-required">harus diisi</span>
+          </span>
+          <div id="mealGrid" class="meal-grid"></div>
         </section>
 
         <!-- 問題分類 -->
@@ -103,10 +112,14 @@
       </div>
     </div>
 
+    <!-- 系統資訊（內容由 js/config.js 的 SYSTEM_INFO 決定）-->
+    <footer class="site-footer" id="siteFooter"></footer>
+
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/api.js"></script>
   <script src="js/report.js"></script>
 

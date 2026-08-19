@@ -8,6 +8,7 @@ const state = {
   options:  null,   // 從後端載入的選項清單
   employee: null,   // 驗證成功的員工 { emp_id, emp_name }
   empError: '',     // 工號驗證失敗的原因（i18n key），用來回報正確的錯誤訊息
+  meal:       '',   // 選中的餐別代碼
   categories: [],   // 選中的問題分類代碼（依點選順序，第一個視為主要分類）
   rating:   0,      // 選中的星數
   submitId: newSubmitId(),   // 這次填寫的提交識別碼（防重複用）
@@ -23,6 +24,7 @@ const el = {
   empId:       document.getElementById('empId'),
   empStatus:   document.getElementById('empStatus'),
   location:    document.getElementById('location'),
+  mealGrid:    document.getElementById('mealGrid'),
   categoryGrid:document.getElementById('categoryGrid'),
   categoryHint:document.getElementById('categoryHint'),
   stars:       document.getElementById('stars'),
@@ -51,9 +53,11 @@ async function init() {
   }
 
   renderLocations();
+  renderMeals();
   renderCategories();
   renderStars();
   applyLocationFromUrl();
+  applyDefaultMeal();
 
   el.loadingView.classList.add('hidden');
   el.formView.classList.remove('hidden');
@@ -70,6 +74,7 @@ function bindLanguageButtons() {
       // 選項的顯示文字也要跟著換語言
       if (state.options) {
         renderLocations();
+        renderMeals();
         renderCategories();
         renderStars();
       }
@@ -85,6 +90,7 @@ function renderTexts() {
   setText('pageTitle',       t('form.title'));
   setText('labelEmpId',      t('form.empId'));
   setText('labelLocation',   t('form.location'));
+  setText('labelMeal',       t('form.meal'));
   setText('labelCategory',   t('form.category'));
   setText('labelRating',     t('form.rating'));
   setText('labelDescription',t('form.description'));
@@ -138,6 +144,49 @@ function renderLocations() {
   });
 
   el.location.value = current;
+}
+
+function renderMeals() {
+  el.mealGrid.innerHTML = '';
+
+  (state.options.MEAL || []).forEach((opt) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'meal-btn' + (state.meal === opt.code ? ' selected' : '');
+    btn.dataset.code = opt.code;
+    btn.innerHTML =
+      `<span class="meal-icon">${MEAL_ICONS[opt.code] || MEAL_ICONS._default}</span>` +
+      `<span class="meal-label">${escapeHtml(optionLabel(opt))}</span>`;
+
+    btn.addEventListener('click', () => {
+      state.meal = opt.code;      // 單選，直接覆蓋
+      renderMeals();
+      clearError();
+    });
+
+    el.mealGrid.appendChild(btn);
+  });
+}
+
+/**
+ * 依目前時間預選餐別（早上預選早餐、中午預選中餐…）。
+ *
+ * 只是省一個動作，員工還是可以自己改——
+ * 有人會在下午才來反映早餐的問題，不能直接用時間決定。
+ * 時間不在任何供餐區間內就不預選。
+ */
+function applyDefaultMeal() {
+  if (state.meal) return;                       // 已經選過就不要蓋掉
+
+  const hour = new Date().getHours();
+  const match = MEAL_TIME_RANGES.find((r) => hour >= r.from && hour < r.to);
+  if (!match) return;
+
+  const exists = (state.options.MEAL || []).some((o) => o.code === match.code);
+  if (!exists) return;
+
+  state.meal = match.code;
+  renderMeals();
 }
 
 function renderCategories() {
@@ -320,6 +369,7 @@ el.form.addEventListener('submit', async (event) => {
       emp_id:           state.employee.emp_id,
       lang:             getLang() === 'zh' ? 'ZH' : 'ID',
       location_code:    el.location.value,
+      meal_code:        state.meal,
       category_code:    state.categories.join(','),
       description:      el.description.value.trim(),
       rating:           state.rating,
@@ -351,6 +401,7 @@ function validate() {
   // 也可能是連線失敗或工號已停用，訊息不能一律說成查無此工號
   if (!state.employee)         return state.empError || 'err.EMP_NOT_FOUND';
   if (!el.location.value)      return 'err.LOCATION_REQUIRED';
+  if (!state.meal)             return 'err.MEAL_REQUIRED';
   if (state.categories.length === 0)              return 'err.CATEGORY_REQUIRED';
   if (state.categories.length > MAX_CATEGORIES)   return 'err.CATEGORY_TOO_MANY';
   if (!state.rating)           return 'err.RATING_REQUIRED';
@@ -377,6 +428,7 @@ function showSuccess(caseId) {
 
 /** 「再回報一則」：保留工號和姓名，其餘清空 */
 el.againBtn.addEventListener('click', () => {
+  state.meal       = '';
   state.categories = [];
   state.rating     = 0;
   state.submitId = newSubmitId();   // 新的一筆要有新的識別碼
@@ -385,11 +437,13 @@ el.againBtn.addEventListener('click', () => {
   el.description.value = '';
   clearError();
 
+  renderMeals();
   renderCategories();
   renderStars();
   updateCategoryHint();
   updateDescriptionTag();
   applyLocationFromUrl();
+  applyDefaultMeal();
 
   el.successView.classList.add('hidden');
   el.formView.classList.remove('hidden');
@@ -413,12 +467,3 @@ function showLoadingError() {
     `<button type="button" class="btn-primary" onclick="location.reload()">${escapeHtml(t('fail.retry'))}</button>`;
 }
 
-
-// ===== 工具 =====
-
-/** 把使用者或 Sheet 來的文字安全地放進 HTML */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
