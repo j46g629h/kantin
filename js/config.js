@@ -49,6 +49,11 @@ const MAX_CATEGORIES = 2;
  *
  * ⚠️ 這裡是暫定值，請依實際供餐時間調整。
  */
+const IMAGE_MAX_COUNT = 2;      // 一筆回報最多幾張照片
+const IMAGE_MAX_EDGE  = 1600;   // 壓縮後長邊最大像素
+const IMAGE_QUALITY   = 0.8;    // JPEG 品質（0～1）
+
+
 const MEAL_TIME_RANGES = [
   { code: 'MEAL_BREAKFAST', from: 5,  to: 10 },
   { code: 'MEAL_LUNCH',     from: 10, to: 15 },

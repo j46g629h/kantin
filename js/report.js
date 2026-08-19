@@ -10,6 +10,7 @@ const state = {
   empError: '',     // 工號驗證失敗的原因（i18n key），用來回報正確的錯誤訊息
   meal:       '',   // 選中的餐別代碼
   categories: [],   // 選中的問題分類代碼（依點選順序，第一個視為主要分類）
+  photos:     [],   // 已壓縮的照片 { mimeType, data, size, previewUrl }
   rating:   0,      // 選中的星數
   submitId: newSubmitId(),   // 這次填寫的提交識別碼（防重複用）
 };
@@ -30,6 +31,10 @@ const el = {
   stars:       document.getElementById('stars'),
   ratingHint:  document.getElementById('ratingHint'),
   description: document.getElementById('description'),
+  photoList:   document.getElementById('photoList'),
+  photoInput:  document.getElementById('photoInput'),
+  addPhotoBtn: document.getElementById('addPhotoBtn'),
+  photoHint:   document.getElementById('photoHint'),
   formError:   document.getElementById('formError'),
   submitBtn:   document.getElementById('submitBtn'),
   caseId:      document.getElementById('caseId'),
@@ -94,6 +99,9 @@ function renderTexts() {
   setText('labelCategory',   t('form.category'));
   setText('labelRating',     t('form.rating'));
   setText('labelDescription',t('form.description'));
+  setText('labelPhoto',      t('form.photo'));
+  setText('addPhotoText',    t('form.photoAdd'));
+  setText('tagPhoto',        t('form.optional'));
   setText('loadingText',     t('loading'));
   setText('successTitle',    t('success.title'));
   setText('successThanks',   t('success.thanks'));
@@ -113,6 +121,7 @@ function renderTexts() {
   updateDescriptionTag();
   updateRatingHint();
   updateCategoryHint();
+  renderPhotos();
   renderSystemFooter('siteFooter');
 
   document.querySelectorAll('.lang-btn').forEach((btn) => {
@@ -370,6 +379,93 @@ async function verifyEmpId(empId) {
 }
 
 
+// ===== 照片 =====
+
+el.addPhotoBtn.addEventListener('click', () => el.photoInput.click());
+
+el.photoInput.addEventListener('change', async () => {
+  const files = Array.from(el.photoInput.files || []);
+  el.photoInput.value = '';           // 清空才能重複選同一個檔案
+  if (!files.length) return;
+
+  const slots = IMAGE_MAX_COUNT - state.photos.length;
+  if (slots <= 0) return;
+
+  setPhotoBusy(true);
+  clearError();
+
+  try {
+    // 一張一張處理。手機同時壓縮多張大圖容易吃光記憶體
+    for (const file of files.slice(0, slots)) {
+      state.photos.push(await compressImage(file));
+      renderPhotos();
+    }
+  } catch (err) {
+    showError(t('err.' + (err.message || 'IMAGE_READ_FAILED')));
+  } finally {
+    setPhotoBusy(false);
+  }
+});
+
+function renderPhotos() {
+  if (!el.photoList) return;
+  el.photoList.innerHTML = '';
+
+  state.photos.forEach((photo, index) => {
+    const item = document.createElement('div');
+    item.className = 'photo-item';
+
+    const img = document.createElement('img');
+    img.src = photo.previewUrl;
+    img.alt = '';
+
+    const size = document.createElement('span');
+    size.className = 'photo-size';
+    size.textContent = formatFileSize(photo.size);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'photo-remove';
+    remove.textContent = '×';
+    remove.setAttribute('aria-label', t('form.photoRemove'));
+    remove.addEventListener('click', () => removePhoto(index));
+
+    item.appendChild(img);
+    item.appendChild(size);
+    item.appendChild(remove);
+    el.photoList.appendChild(item);
+  });
+
+  updatePhotoControls();
+}
+
+function removePhoto(index) {
+  const photo = state.photos[index];
+  if (photo && photo.previewUrl) URL.revokeObjectURL(photo.previewUrl);   // 釋放記憶體
+  state.photos.splice(index, 1);
+  renderPhotos();
+}
+
+/** 已達張數上限就把「加照片」藏起來，而不是按了沒反應 */
+function updatePhotoControls() {
+  const isFull = state.photos.length >= IMAGE_MAX_COUNT;
+  el.addPhotoBtn.classList.toggle('hidden', isFull);
+  el.photoHint.textContent = isFull ? '' : t('form.photoHint');
+}
+
+function setPhotoBusy(busy) {
+  el.addPhotoBtn.disabled = busy;
+  setText('addPhotoText', busy ? t('form.photoWorking') : t('form.photoAdd'));
+}
+
+/** 清空所有照片並釋放預覽圖佔用的記憶體 */
+function clearPhotos() {
+  state.photos.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+  state.photos = [];
+  renderPhotos();
+}
+
+
 // ===== 提交 =====
 
 el.form.addEventListener('submit', async (event) => {
@@ -402,6 +498,7 @@ el.form.addEventListener('submit', async (event) => {
       category_code:    state.categories.join(','),
       description:      el.description.value.trim(),
       rating:           state.rating,
+      images:           state.photos.map((p) => ({ mimeType: p.mimeType, data: p.data })),
     });
 
     if (result.ok && result.data && result.data.case_id) {
@@ -464,6 +561,7 @@ el.againBtn.addEventListener('click', () => {
 
   el.location.value    = '';
   el.description.value = '';
+  clearPhotos();
   clearError();
 
   renderMeals();

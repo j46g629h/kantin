@@ -78,6 +78,21 @@
           <div id="ratingHint" class="field-note">Ketuk bintangnya</div>
         </section>
 
+        <!-- 照片 -->
+        <section class="field">
+          <span class="field-label">
+            <span id="labelPhoto">Foto</span>
+            <span class="tag" id="tagPhoto">boleh kosong</span>
+          </span>
+          <div id="photoList" class="photo-list"></div>
+          <button type="button" id="addPhotoBtn" class="photo-add">
+            <span class="photo-add-icon">📷</span>
+            <span id="addPhotoText">Tambah Foto</span>
+          </button>
+          <input type="file" id="photoInput" accept="image/*" multiple hidden>
+          <div id="photoHint" class="field-note">Maksimal 2 foto, boleh dari kamera atau galeri</div>
+        </section>
+
         <!-- 問題描述 -->
         <section class="field">
           <label class="field-label" for="description">
@@ -120,6 +135,7 @@
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/image.js"></script>
   <script src="js/api.js"></script>
   <script src="js/report.js"></script>
 
