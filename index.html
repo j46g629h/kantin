@@ -1,81 +1,77 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PCI 餐廳回饋系統 — 連線測試</title>
+  <title>PCI 餐廳回饋系統</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <main class="card">
-    <h1>PCI 餐廳回饋系統</h1>
-    <p class="subtitle">第 1 階段 · 連線測試</p>
+  <div class="page">
 
-    <form id="testForm">
-      <label for="empId">工號</label>
-      <input type="text" id="empId" placeholder="請輸入工號" required>
+    <!-- 語言切換 -->
+    <div class="lang-switch">
+      <button type="button" class="lang-btn" data-lang="id">Bahasa Indonesia</button>
+      <button type="button" class="lang-btn" data-lang="zh">中文</button>
+    </div>
 
-      <label for="description">問題描述</label>
-      <textarea id="description" rows="4" placeholder="隨便打幾個字測試" required></textarea>
+    <header class="hero">
+      <div class="hero-icon">🍽️</div>
+      <h1 id="appName">PCI 餐廳回饋系統</h1>
+      <p class="hero-tagline" id="tagline">您的意見，讓餐廳更好</p>
+    </header>
 
-      <button type="submit" id="submitBtn">送出</button>
-    </form>
+    <main class="menu">
+      <a href="report.html" class="menu-card menu-card-primary">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">
+          <span class="menu-title" id="reportTitle">提交回報</span>
+          <span class="menu-desc" id="reportDesc">反映問題或提出建議</span>
+        </span>
+        <span class="menu-arrow">›</span>
+      </a>
 
-    <div id="result" class="result hidden"></div>
-  </main>
+      <a href="query.html" class="menu-card">
+        <span class="menu-icon">🔍</span>
+        <span class="menu-text">
+          <span class="menu-title" id="queryTitle">查詢案件</span>
+          <span class="menu-desc" id="queryDesc">查看處理進度</span>
+        </span>
+        <span class="menu-arrow">›</span>
+      </a>
+    </main>
+
+  </div>
 
   <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
   <script>
-    const form      = document.getElementById('testForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const resultBox = document.getElementById('result');
+    /** 依目前語言把畫面上的文字換掉 */
+    function render() {
+      document.documentElement.lang = getLang() === 'zh' ? 'zh-Hant' : 'id';
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
+      document.getElementById('appName').textContent     = t('appName');
+      document.getElementById('tagline').textContent     = t('home.tagline');
+      document.getElementById('reportTitle').textContent = t('home.report');
+      document.getElementById('reportDesc').textContent  = t('home.reportDesc');
+      document.getElementById('queryTitle').textContent  = t('home.query');
+      document.getElementById('queryDesc').textContent   = t('home.queryDesc');
 
-      // 防止連點造成重複送出
-      submitBtn.disabled = true;
-      submitBtn.textContent = '傳送中…';
-      showResult('', 'hidden');
+      // 標示目前選中的語言
+      document.querySelectorAll('.lang-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.lang === getLang());
+      });
+    }
 
-      const payload = {
-        emp_id:      document.getElementById('empId').value.trim(),
-        description: document.getElementById('description').value.trim()
-      };
-
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          // ⚠️ 一定要用 text/plain。
-          //    用 application/json 會觸發瀏覽器的預檢請求(preflight)，
-          //    而 Apps Script 不支援 doOptions，請求會被擋掉。
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (data.ok) {
-          showResult('✅ 送出成功！請到 Google Sheet 確認是否多了一列。', 'success');
-          form.reset();
-        } else {
-          showResult('❌ 後端回報錯誤：' + data.message, 'error');
-        }
-
-      } catch (err) {
-        // 這裡通常代表：API 網址填錯、或 Apps Script 部署權限沒設成「任何人」
-        showResult('❌ 連線失敗：' + err.message, 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '送出';
-      }
+    document.querySelectorAll('.lang-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setLang(btn.dataset.lang);
+        render();
+      });
     });
 
-    function showResult(message, type) {
-      resultBox.textContent = message;
-      resultBox.className = 'result ' + type;
-    }
+    render();
   </script>
 
 </body>

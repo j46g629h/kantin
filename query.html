@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>查詢案件 · PCI 餐廳回饋系統</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="page">
+    <header class="topbar">
+      <a href="index.html" class="topbar-back" aria-label="back">‹</a>
+      <h1 class="topbar-title" id="pageTitle">查詢案件</h1>
+    </header>
+
+    <div class="state-box">
+      <div style="font-size:48px">🚧</div>
+      <p id="msg" style="margin-top:12px">此功能開發中，敬請期待</p>
+      <a href="index.html" class="btn-secondary" id="homeBtn">返回首頁</a>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script>
+    // 關卡 2-5 會把這個頁面換成正式的查詢功能
+    const TEXT = {
+      zh: { title: '查詢案件', msg: '此功能開發中，敬請期待', home: '返回首頁' },
+      id: { title: 'Cek Status', msg: 'Fitur ini sedang dikembangkan', home: 'Kembali ke Beranda' },
+    };
+    const text = TEXT[getLang()] || TEXT.id;
+    document.documentElement.lang = getLang() === 'zh' ? 'zh-Hant' : 'id';
+    document.getElementById('pageTitle').textContent = text.title;
+    document.getElementById('msg').textContent = text.msg;
+    document.getElementById('homeBtn').textContent = text.home;
+  </script>
+
+</body>
+</html>

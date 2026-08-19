@@ -154,6 +154,42 @@ function setupSheets() {
 }
 
 
+/**
+ * 清除所有測試資料（正式上線前執行一次）。
+ *
+ * 會清空「回報資料」的所有資料列、重置案件流水號、清空錯誤日誌。
+ * 分頁結構、員工名冊、選項設定都不會動到。
+ *
+ * ⚠️ 這是不可復原的操作。
+ *    為了避免誤觸，必須先把下面的 CONFIRM 改成 true 才會執行。
+ */
+function clearTestData() {
+  const CONFIRM = false;   // ← 確定要清除時改成 true，執行完再改回 false
+
+  if (!CONFIRM) {
+    Logger.log('未執行。請先把 clearTestData() 裡的 CONFIRM 改成 true。');
+    return;
+  }
+
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+
+  const feedback = ss.getSheetByName(SHEETS.FEEDBACK);
+  const feedbackRows = feedback.getLastRow() - 1;
+  if (feedbackRows > 0) feedback.deleteRows(2, feedbackRows);
+
+  const counters = ss.getSheetByName(SHEETS.COUNTERS);
+  const counterRows = counters.getLastRow() - 1;
+  if (counterRows > 0) counters.deleteRows(2, counterRows);
+
+  const logs = ss.getSheetByName(SHEETS.LOGS);
+  const logRows = logs.getLastRow() - 1;
+  if (logRows > 0) logs.deleteRows(2, logRows);
+
+  Logger.log('已清除 ' + feedbackRows + ' 筆回報資料、重置流水號、清空錯誤日誌。');
+  Logger.log('記得把 CONFIRM 改回 false。');
+}
+
+
 // ===== 輔助函式（只有這個檔案用得到）=====
 
 /** 取得分頁，不存在就建立 */

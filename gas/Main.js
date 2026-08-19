@@ -41,6 +41,7 @@ const ROUTES = {
   ping:           function (p) { return handlePing(p); },
   getOptions:     function (p) { return getOptions(p); },
   verifyEmployee: function (p) { return verifyEmployee(p); },
+  submitFeedback: function (p) { return submitFeedback(p); },
 };
 
 
