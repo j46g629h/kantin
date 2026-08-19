@@ -132,8 +132,18 @@ clasp.cmd redeploy <deploymentId> -d "說明"  # 更新部署（網址不變）
 clasp.cmd pull                             # 從線上拉回（很少用）
 ```
 
-⚠️ **Windows 上一定要用 `clasp.cmd`**，直接打 `clasp` 會被 PowerShell 的執行原則擋掉
-（`clasp.ps1` 未簽章）。macOS 上則直接用 `clasp`。
+⚠️ **Windows PowerShell 上要用 `clasp.cmd`**，直接打 `clasp` 會被執行原則擋掉
+（PowerShell 會優先選 `clasp.ps1`，而未簽章的 `.ps1` 被禁止執行）。macOS 上直接用 `clasp`。
+
+哪些指令要加 `.cmd`：
+
+| 指令 | PowerShell 實際執行 | 加 `.cmd`？ |
+|---|---|---|
+| `git` / `node` | `.exe` | 不用 |
+| `npm` / `clasp` | `.ps1` | **要加** |
+
+規則：**透過 npm 安裝的工具要加 `.cmd`。** 不確定時用 `Get-Command <指令>` 查，
+結尾是 `.ps1` 就要加。
 
 正式部署 ID 記錄在 `docs/部署筆記.md`。`redeploy` 會沿用同一組 ID，網址不會變。
 
