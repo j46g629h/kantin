@@ -113,6 +113,7 @@ function renderTexts() {
   updateDescriptionTag();
   updateRatingHint();
   updateCategoryHint();
+  renderSystemFooter('siteFooter');
 
   document.querySelectorAll('.lang-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.lang === getLang());
