@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PCI 餐廳回饋系統</title>
+  <title>Kantin PCI</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,16 +18,16 @@
 
     <header class="hero">
       <div class="hero-icon">🍽️</div>
-      <h1 id="appName">PCI 餐廳回饋系統</h1>
-      <p class="hero-tagline" id="tagline">您的意見，讓餐廳更好</p>
+      <h1 id="appName">Kantin PCI</h1>
+      <p class="hero-tagline" id="tagline">Masukan kamu bikin kantin makin baik</p>
     </header>
 
     <main class="menu">
       <a href="report.html" class="menu-card menu-card-primary">
         <span class="menu-icon">📝</span>
         <span class="menu-text">
-          <span class="menu-title" id="reportTitle">提交回報</span>
-          <span class="menu-desc" id="reportDesc">反映問題或提出建議</span>
+          <span class="menu-title" id="reportTitle">Lapor Masalah</span>
+          <span class="menu-desc" id="reportDesc">Ada masalah atau saran? Kasih tahu kami</span>
         </span>
         <span class="menu-arrow">›</span>
       </a>
@@ -35,12 +35,15 @@
       <a href="query.html" class="menu-card">
         <span class="menu-icon">🔍</span>
         <span class="menu-text">
-          <span class="menu-title" id="queryTitle">查詢案件</span>
-          <span class="menu-desc" id="queryDesc">查看處理進度</span>
+          <span class="menu-title" id="queryTitle">Cek Laporan</span>
+          <span class="menu-desc" id="queryDesc">Lihat laporan kamu sudah diproses belum</span>
         </span>
         <span class="menu-arrow">›</span>
       </a>
     </main>
+
+    <!-- 系統資訊（內容由 js/config.js 的 SYSTEM_INFO 決定）-->
+    <footer class="site-footer" id="siteFooter"></footer>
 
   </div>
 
@@ -49,7 +52,8 @@
   <script>
     /** 依目前語言把畫面上的文字換掉 */
     function render() {
-      document.documentElement.lang = getLang() === 'zh' ? 'zh-Hant' : 'id';
+      document.documentElement.lang = htmlLang();
+      document.title = t('appName');
 
       document.getElementById('appName').textContent     = t('appName');
       document.getElementById('tagline').textContent     = t('home.tagline');
@@ -58,9 +62,35 @@
       document.getElementById('queryTitle').textContent  = t('home.query');
       document.getElementById('queryDesc').textContent   = t('home.queryDesc');
 
+      renderFooter();
+
       // 標示目前選中的語言
       document.querySelectorAll('.lang-btn').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.lang === getLang());
+      });
+    }
+
+    /** 系統資訊區塊：SYSTEM_INFO 沒填的欄位就不顯示 */
+    function renderFooter() {
+      const rows = [];
+
+      if (SYSTEM_INFO.version) {
+        rows.push(`${t('footer.version')} ${SYSTEM_INFO.version}` +
+                  (SYSTEM_INFO.year ? ` · ${SYSTEM_INFO.year}` : ''));
+      }
+      if (SYSTEM_INFO.maintainer) {
+        rows.push(`${t('footer.maintainer')}: ${SYSTEM_INFO.maintainer}`);
+      }
+      if (SYSTEM_INFO.contact) {
+        rows.push(`${t('footer.contact')}: ${SYSTEM_INFO.contact}`);
+      }
+
+      const footer = document.getElementById('siteFooter');
+      footer.innerHTML = '';
+      rows.forEach((line) => {
+        const p = document.createElement('p');
+        p.textContent = line;   // 用 textContent 而非 innerHTML，避免內容被當成 HTML 執行
+        footer.appendChild(p);
       });
     }
 

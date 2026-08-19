@@ -78,7 +78,8 @@ function bindLanguageButtons() {
 
 /** 把畫面上所有固定文字換成目前語言 */
 function renderTexts() {
-  document.documentElement.lang = getLang() === 'zh' ? 'zh-Hant' : 'id';
+  document.documentElement.lang = htmlLang();
+  document.title = t('form.title') + ' · ' + t('appName');
 
   setText('pageTitle',       t('form.title'));
   setText('labelEmpId',      t('form.empId'));

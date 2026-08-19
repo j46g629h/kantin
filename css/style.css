@@ -2,6 +2,60 @@
    設計原則：手機優先、大字體、大按鈕
    （工廠現場、光線不佳、可能單手或戴手套操作） */
 
+
+/* ===== 設計基礎（所有顏色與尺寸都從這裡取，不要在下面寫死）=====
+   要調整整體風格時，改這一區就好，不必逐條找。 */
+
+:root {
+  /* 品牌色 */
+  --brand:        #2563eb;
+  --brand-dark:   #1d4ed8;
+  --brand-light:  #eff6ff;
+  --brand-border: #93c5fd;
+
+  /* 基本顏色 */
+  --bg:            #f4f5f7;
+  --surface:       #ffffff;
+  --surface-alt:   #f9fafb;
+  --text:          #1f2328;
+  --text-muted:    #6b7280;
+  --text-subtle:   #9ca3af;
+  --border:        #e5e7eb;
+  --border-strong: #d0d5dd;
+
+  /* 狀態色 */
+  --ok:          #047857;
+  --ok-bg:       #ecfdf5;
+  --ok-border:   #a7f3d0;
+  --danger:      #b91c1c;
+  --danger-bg:   #fef2f2;
+  --danger-border:#fecaca;
+  --danger-tag:  #fee2e2;
+  --warn:        #b45309;
+  --star:        #f59e0b;
+
+  /* 圓角 */
+  --radius-sm:   10px;
+  --radius:      12px;
+  --radius-lg:   14px;
+  --radius-pill: 999px;
+
+  /* 字級。--fs-input 不可小於 16px，否則 iOS 會自動放大畫面 */
+  --fs-xs:    12px;
+  --fs-sm:    14px;
+  --fs-body:  15px;
+  --fs-input: 16px;
+  --fs-lg:    18px;
+  --fs-title: 22px;
+
+  /* 觸控目標最小高度（工廠現場可能戴手套，不要小於 48px） */
+  --tap-min: 48px;
+
+  /* 間距 */
+  --gap:      12px;
+  --pad-card: 16px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,8 +64,8 @@
 
 body {
   font-family: "Noto Sans TC", "Segoe UI", system-ui, -apple-system, sans-serif;
-  background: #f4f5f7;
-  color: #1f2328;
+  background: var(--bg);
+  color: var(--text);
   line-height: 1.6;
   -webkit-text-size-adjust: 100%;
 }
@@ -24,8 +78,8 @@ body {
 }
 
 .hidden { display: none !important; }
-.muted  { color: #6b7280; font-size: 14px; }
-.hint   { color: #6b7280; font-size: 13px; margin-top: 12px; }
+.muted  { color: var(--text-muted); font-size: 14px; }
+.hint   { color: var(--text-muted); font-size: 13px; margin-top: 12px; }
 
 
 /* ===== 語言切換 ===== */
@@ -39,20 +93,21 @@ body {
 
 .lang-btn {
   flex: 0 0 auto;
+  min-height: 40px;
   padding: 8px 16px;
   font-size: 14px;
   font-family: inherit;
-  color: #4b5563;
-  background: #fff;
-  border: 1px solid #d0d5dd;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   cursor: pointer;
 }
 
 .lang-btn.active {
-  color: #fff;
-  background: #2563eb;
-  border-color: #2563eb;
+  color: var(--surface);
+  background: var(--brand);
+  border-color: var(--brand);
   font-weight: 600;
 }
 
@@ -75,7 +130,7 @@ body {
 }
 
 .hero-tagline {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 15px;
   margin-top: 6px;
 }
@@ -91,26 +146,26 @@ body {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   text-decoration: none;
   color: inherit;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
 }
 
-.menu-card:active { background: #f9fafb; }
+.menu-card:active { background: var(--surface-alt); }
 
 .menu-card-primary {
-  border-color: #2563eb;
+  border-color: var(--brand);
   border-width: 2px;
 }
 
 .menu-icon { font-size: 32px; line-height: 1; }
 .menu-text { flex: 1; display: flex; flex-direction: column; }
 .menu-title { font-size: 18px; font-weight: 600; }
-.menu-desc  { font-size: 14px; color: #6b7280; }
-.menu-arrow { font-size: 28px; color: #9ca3af; line-height: 1; }
+.menu-desc  { font-size: 14px; color: var(--text-muted); }
+.menu-arrow { font-size: 28px; color: var(--text-subtle); line-height: 1; }
 
 
 /* ===== 頁首（內頁）===== */
@@ -124,16 +179,16 @@ body {
 
 .topbar-back {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: var(--tap-min);
+  height: var(--tap-min);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28px;
   line-height: 1;
-  color: #374151;
-  background: #fff;
-  border: 1px solid #d0d5dd;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
   text-decoration: none;
 }
@@ -147,8 +202,8 @@ body {
 /* ===== 表單 ===== */
 
 .field {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
@@ -168,13 +223,13 @@ body {
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 999px;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--text-muted);
+  background: var(--surface-alt);
 }
 
 .tag-required {
-  color: #b91c1c;
-  background: #fee2e2;
+  color: var(--danger);
+  background: var(--danger-tag);
 }
 
 input[type="text"],
@@ -185,9 +240,9 @@ textarea {
   font-family: inherit;
   color: inherit;
   padding: 12px;
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
 }
 
 select { height: 46px; }
@@ -196,21 +251,21 @@ textarea { resize: vertical; }
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--brand);
   outline-offset: 1px;
   border-color: transparent;
 }
 
 .field-note {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-muted);
   margin-top: 8px;
   min-height: 20px;
 }
 
-.field-note.ok { color: #047857; font-weight: 600; }
-.field-note.ng { color: #b91c1c; }
-.field-note.rated { color: #b45309; font-weight: 600; }
+.field-note.ok { color: var(--ok); font-weight: 600; }
+.field-note.ng { color: var(--danger); }
+.field-note.rated { color: var(--warn); font-weight: 600; }
 
 
 /* ===== 問題分類 ===== */
@@ -223,24 +278,24 @@ textarea:focus {
 
 .category-btn {
   display: flex;
+  min-height: 88px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 84px;
   padding: 10px 4px;
   font-family: inherit;
-  color: #374151;
-  background: #fff;
-  border: 1.5px solid #e5e7eb;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
 }
 
 .category-btn.selected {
-  color: #1d4ed8;
-  background: #eff6ff;
-  border-color: #2563eb;
+  color: var(--brand-dark);
+  background: var(--brand-light);
+  border-color: var(--brand);
   font-weight: 600;
 }
 
@@ -260,13 +315,13 @@ textarea:focus {
   padding: 8px 0;
   font-size: 34px;
   line-height: 1;
-  color: #d1d5db;
+  color: var(--border-strong);
   background: none;
   border: none;
   cursor: pointer;
 }
 
-.star.on { color: #f59e0b; }
+.star.on { color: var(--star); }
 
 
 /* ===== 按鈕 ===== */
@@ -288,17 +343,17 @@ textarea:focus {
 }
 
 .btn-primary {
-  color: #fff;
-  background: #2563eb;
+  color: var(--surface);
+  background: var(--brand);
 }
 
-.btn-primary:active  { background: #1d4ed8; }
-.btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+.btn-primary:active  { background: var(--brand-dark); }
+.btn-primary:disabled { background: var(--text-subtle); cursor: not-allowed; }
 
 .btn-secondary {
-  color: #374151;
-  background: #fff;
-  border: 1px solid #d0d5dd;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
 }
 
 
@@ -312,9 +367,9 @@ textarea:focus {
 }
 
 .result.error {
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
 }
 
 
@@ -323,15 +378,15 @@ textarea:focus {
 .state-box {
   text-align: center;
   padding: 40px 20px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .spinner {
   width: 32px;
   height: 32px;
   margin: 0 auto 16px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #2563eb;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin .8s linear infinite;
 }
@@ -339,8 +394,8 @@ textarea:focus {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .success-box {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   color: inherit;
 }
@@ -355,21 +410,38 @@ textarea:focus {
 .case-box {
   margin: 24px 0 8px;
   padding: 18px;
-  background: #eff6ff;
-  border: 2px dashed #93c5fd;
+  background: var(--brand-light);
+  border: 2px dashed var(--brand-border);
   border-radius: 12px;
 }
 
 .case-label {
   font-size: 13px;
-  color: #1e40af;
+  color: var(--brand-dark);
 }
 
 .case-id {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: .5px;
-  color: #1e3a8a;
+  color: var(--brand-dark);
   margin-top: 4px;
   word-break: break-all;
+}
+
+
+/* ===== 頁尾系統資訊 ===== */
+
+.site-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+  line-height: 1.8;
+}
+
+.site-footer:empty {
+  display: none;      /* SYSTEM_INFO 全部留空時不要留一條孤零零的線 */
 }

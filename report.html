@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>提交回報 · PCI 餐廳回饋系統</title>
+  <title>Lapor Masalah · Kantin PCI</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <!-- 頁首 -->
     <header class="topbar">
       <a href="index.html" class="topbar-back" aria-label="back">‹</a>
-      <h1 class="topbar-title" id="pageTitle">提交回報</h1>
+      <h1 class="topbar-title" id="pageTitle">Lapor Masalah</h1>
       <div class="lang-switch lang-switch-compact">
         <button type="button" class="lang-btn" data-lang="id">ID</button>
         <button type="button" class="lang-btn" data-lang="zh">中</button>
@@ -23,7 +23,7 @@
     <!-- 載入中 -->
     <div id="loadingView" class="state-box">
       <div class="spinner"></div>
-      <p id="loadingText">載入中…</p>
+      <p id="loadingText">Sebentar ya…</p>
     </div>
 
     <!-- 表單 -->
@@ -33,8 +33,8 @@
         <!-- 工號 -->
         <section class="field">
           <label class="field-label" for="empId">
-            <span id="labelEmpId">工號</span>
-            <span class="tag tag-required" id="tagEmpId">必填</span>
+            <span id="labelEmpId">NIK</span>
+            <span class="tag tag-required" id="tagEmpId">harus diisi</span>
           </label>
           <input type="text" id="empId" inputmode="numeric" autocomplete="off" required>
           <div id="empStatus" class="field-note"></div>
@@ -43,8 +43,8 @@
         <!-- 餐廳地點 -->
         <section class="field">
           <label class="field-label" for="location">
-            <span id="labelLocation">餐廳地點</span>
-            <span class="tag tag-required">必填</span>
+            <span id="labelLocation">Kantin Mana?</span>
+            <span class="tag tag-required">harus diisi</span>
           </label>
           <select id="location" required></select>
         </section>
@@ -52,8 +52,8 @@
         <!-- 問題分類 -->
         <section class="field">
           <span class="field-label">
-            <span id="labelCategory">問題分類</span>
-            <span class="tag tag-required">必填</span>
+            <span id="labelCategory">Masalahnya Apa?</span>
+            <span class="tag tag-required">harus diisi</span>
           </span>
           <div id="categoryGrid" class="category-grid"></div>
         </section>
@@ -61,25 +61,25 @@
         <!-- 滿意度 -->
         <section class="field">
           <span class="field-label">
-            <span id="labelRating">用餐滿意度</span>
-            <span class="tag tag-required">必填</span>
+            <span id="labelRating">Seberapa Puas?</span>
+            <span class="tag tag-required">harus diisi</span>
           </span>
           <div id="stars" class="stars"></div>
-          <div id="ratingHint" class="field-note">請點選星星評分</div>
+          <div id="ratingHint" class="field-note">Ketuk bintangnya</div>
         </section>
 
         <!-- 問題描述 -->
         <section class="field">
           <label class="field-label" for="description">
-            <span id="labelDescription">問題描述</span>
-            <span class="tag" id="tagDescription">選填</span>
+            <span id="labelDescription">Ceritakan Lebih Detail</span>
+            <span class="tag" id="tagDescription">boleh kosong</span>
           </label>
           <textarea id="description" rows="4" maxlength="1000"></textarea>
         </section>
 
         <div id="formError" class="result error hidden"></div>
 
-        <button type="submit" id="submitBtn" class="btn-primary">提交回報</button>
+        <button type="submit" id="submitBtn" class="btn-primary">Kirim</button>
       </form>
     </main>
 
@@ -87,18 +87,18 @@
     <div id="successView" class="hidden">
       <div class="state-box success-box">
         <div class="success-icon">✅</div>
-        <h2 id="successTitle">提交成功</h2>
-        <p class="muted" id="successThanks">感謝您的回報，我們會盡快處理</p>
+        <h2 id="successTitle">Laporan Terkirim!</h2>
+        <p class="muted" id="successThanks">Makasih ya, laporan kamu segera kami proses</p>
 
         <div class="case-box">
-          <div class="case-label" id="caseLabel">您的案件編號</div>
+          <div class="case-label" id="caseLabel">Nomor Laporan Kamu</div>
           <div class="case-id" id="caseId">—</div>
         </div>
 
-        <p class="hint" id="caseRemember">請記下這組編號，日後可用它查詢處理進度</p>
+        <p class="hint" id="caseRemember">Simpan nomor ini ya, buat cek status laporan nanti</p>
 
-        <button type="button" id="againBtn" class="btn-primary">再回報一則</button>
-        <a href="index.html" class="btn-secondary" id="homeBtn">返回首頁</a>
+        <button type="button" id="againBtn" class="btn-primary">Lapor Lagi</button>
+        <a href="index.html" class="btn-secondary" id="homeBtn">Kembali ke Beranda</a>
       </div>
     </div>
 
