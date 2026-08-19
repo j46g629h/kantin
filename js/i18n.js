@@ -62,6 +62,20 @@ const I18N = {
     'rating.4': '不錯',
     'rating.5': '很棒',
 
+    // --- 查詢頁 ---
+    'query.title':       '查詢案件',
+    'query.keyword':     '案件編號或工號',
+    'query.placeholder': '例如 PCI-202608-001 或您的工號',
+    'query.hint':        '輸入案件編號查單筆，輸入工號可查全部紀錄',
+    'query.search':      '查詢',
+    'query.searching':   '查詢中…',
+    'query.needKeyword': '請先輸入案件編號或工號',
+    'query.found':       '找到 {n} 筆',
+    'query.noResult':    '查無資料，請確認輸入的內容',
+    'query.reply':       '管理者回覆',
+    'query.noReply':     '尚未回覆，我們正在處理中',
+    'query.photos':      '照片',
+
     // --- 提交成功 ---
     'success.title':    '送出成功',
     'success.thanks':   '謝謝您的回報，我們會盡快處理',
@@ -77,6 +91,8 @@ const I18N = {
     // --- 錯誤訊息（依後端回傳的錯誤代碼對應）---
     'err.NETWORK':              '連線有問題，請確認網路後再試一次',
     'err.EMP_ID_REQUIRED':      '請先輸入工號',
+    'err.CASE_ID_REQUIRED':     '請先輸入案件編號',
+    'err.CASE_NOT_FOUND':       '查無此案件編號，請確認後重新輸入',
     'err.EMP_NOT_FOUND':        '找不到這個工號，請再確認一下',
     'err.EMP_INACTIVE':         '這個工號已停用，請洽人事單位',
     'err.LOCATION_REQUIRED':    '請先選擇餐廳',
@@ -152,6 +168,20 @@ const I18N = {
     'rating.4': 'Bagus',
     'rating.5': 'Mantap!',
 
+    // --- Halaman cek laporan ---
+    'query.title':       'Cek Laporan',
+    'query.keyword':     'Nomor Laporan atau NIK',
+    'query.placeholder': 'Contoh PCI-202608-001 atau NIK kamu',
+    'query.hint':        'Isi nomor laporan untuk 1 laporan, atau NIK untuk semua',
+    'query.search':      'Cari',
+    'query.searching':   'Lagi dicari…',
+    'query.needKeyword': 'Isi nomor laporan atau NIK dulu ya',
+    'query.found':       'Ketemu {n} laporan',
+    'query.noResult':    'Tidak ketemu, coba cek lagi',
+    'query.reply':       'Balasan dari Pengelola',
+    'query.noReply':     'Belum dibalas, masih kami proses ya',
+    'query.photos':      'Foto',
+
     // --- Berhasil ---
     'success.title':    'Laporan Terkirim!',
     'success.thanks':   'Makasih ya, laporan kamu segera kami proses',
@@ -167,6 +197,8 @@ const I18N = {
     // --- Pesan kesalahan ---
     'err.NETWORK':              'Koneksi bermasalah, cek sinyal lalu coba lagi',
     'err.EMP_ID_REQUIRED':      'Isi NIK kamu dulu ya',
+    'err.CASE_ID_REQUIRED':     'Isi nomor laporan dulu ya',
+    'err.CASE_NOT_FOUND':       'Nomor laporan tidak ketemu, coba cek lagi',
     'err.EMP_NOT_FOUND':        'NIK-nya tidak ketemu, coba cek lagi',
     'err.EMP_INACTIVE':         'NIK ini sudah tidak aktif, hubungi HRD ya',
     'err.LOCATION_REQUIRED':    'Pilih kantinnya dulu ya',

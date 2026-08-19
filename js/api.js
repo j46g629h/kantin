@@ -52,6 +52,16 @@ const Api = {
     return this.post({ action: 'submitFeedback', ...data });
   },
 
+  /** 依案件編號查單筆 */
+  getCaseById(caseId) {
+    return this.get('getCaseById', { caseId });
+  },
+
+  /** 依工號查全部歷史案件 */
+  getCasesByEmpId(empId) {
+    return this.get('getCasesByEmpId', { empId });
+  },
+
 };
 
 
@@ -88,7 +98,7 @@ const OPTIONS_CACHE_TTL_MS = 30 * 60 * 1000;   // 30 分鐘
  * 這是最重要的一道防護：新增選項類型時就算忘了改版本號，
  * 這裡也會擋下來，不會讓使用者看到「有標題卻沒有按鈕」的空白區塊。
  */
-const REQUIRED_OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY'];
+const REQUIRED_OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS'];
 
 
 /**

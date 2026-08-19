@@ -42,6 +42,8 @@ const ROUTES = {
   getOptions:     function (p) { return getOptions(p); },
   verifyEmployee: function (p) { return verifyEmployee(p); },
   submitFeedback: function (p) { return submitFeedback(p); },
+  getCaseById:     function (p) { return getCaseById(p); },
+  getCasesByEmpId: function (p) { return getCasesByEmpId(p); },
 };
 
 
