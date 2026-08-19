@@ -115,14 +115,42 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 ## 開發環境
 
+### 前端預覽
+
 ```bash
-# 啟動本機開發伺服器（預覽前端頁面）
 node tools/dev-server.js
 # → http://localhost:5500
 ```
 
-跨電腦作業（Windows 公司電腦 ↔ macOS 私人電腦），透過 GitHub 同步。
+### 後端同步（clasp）
+
+後端程式碼放在 `gas/`，用 clasp 直接推到 Apps Script，**不要用複製貼上**。
+
+```bash
+clasp.cmd push -f                          # 推送程式碼
+clasp.cmd redeploy <deploymentId> -d "說明"  # 更新部署（網址不變）
+clasp.cmd pull                             # 從線上拉回（很少用）
+```
+
+⚠️ **Windows 上一定要用 `clasp.cmd`**，直接打 `clasp` 會被 PowerShell 的執行原則擋掉
+（`clasp.ps1` 未簽章）。macOS 上則直接用 `clasp`。
+
+正式部署 ID 記錄在 `docs/部署筆記.md`。`redeploy` 會沿用同一組 ID，網址不會變。
+
+### 修改後端的標準流程
+
+1. 改 `gas/` 底下的檔案
+2. 串接檢查（模擬 Apps Script 共用全域範圍，可抓出重複宣告）：
+   `cat gas/Config.js gas/Utils.js gas/Main.js gas/*.js > /tmp/all.js && node --check /tmp/all.js`
+3. `clasp.cmd push -f`
+4. `clasp.cmd redeploy <deploymentId> -d "說明"`
+5. 用 curl 打 API 驗證
+
+### 跨電腦
+
+Windows 公司電腦 ↔ macOS 私人電腦，透過 GitHub 同步。
 `.gitattributes` 已設定換行字元正規化。
+換電腦後 clasp 需要重新 `clasp login`（憑證存在使用者家目錄，不在專案裡）。
 
 ---
 

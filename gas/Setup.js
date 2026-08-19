@@ -1,59 +1,16 @@
 /**
- * PCI 餐廳回饋系統 — 一次性建置腳本
+ * 一次性建置腳本
  *
  * 用途：自動建立所有 Sheet 分頁、表頭、格式、初始資料，以及 Drive 圖片資料夾。
  *
- * ⚠️ 這支程式只需要執行一次。執行方式見檔案最下方的說明。
- * ⚠️ 這個檔案沒有重新宣告 SHEET_ID，它會直接使用 Code.gs 裡的那一個。
- *    （Apps Script 的所有 .gs 檔案共用同一個全域範圍）
+ * ⚠️ 這支程式只需要執行一次，已經跑過就不用再跑。
+ *    重複執行是安全的：已存在的分頁只會略過，不會被覆蓋。
+ *
+ * 分頁名稱與欄位定義都放在 Config.js，這裡只負責建立。
  */
 
 
-// ===== 分頁與欄位定義 =====
-
-/** 回報資料分頁的欄位（順序即欄位順序） */
-const FEEDBACK_COLUMNS = [
-  { code: 'case_id',          name: '案件編號',     width: 140, format: '@' },
-  { code: 'submit_time',      name: '提交時間',     width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
-  { code: 'emp_id',           name: '工號',         width: 100, format: '@' },  // ← 純文字，保住前導零
-  { code: 'emp_name',         name: '姓名',         width: 110, format: '@' },
-  { code: 'lang',             name: '語言',         width:  60, format: '@' },
-  { code: 'location_code',    name: '餐廳地點',     width: 100, format: '@' },
-  { code: 'category_code',    name: '問題分類',     width: 120, format: '@' },
-  { code: 'description',      name: '問題描述',     width: 300, format: '@' },
-  { code: 'rating',           name: '滿意度評分',   width:  90, format: '0' },
-  { code: 'priority',         name: '優先層級',     width:  90, format: '@' },
-  { code: 'image_urls',       name: '圖片連結',     width: 200, format: '@' },
-  { code: 'status_code',      name: '處理狀態',     width:  90, format: '@' },
-  { code: 'handler',          name: '處理者',       width: 100, format: '@' },
-  { code: 'response',         name: '處理回覆',     width: 300, format: '@' },
-  { code: 'response_time',    name: '處理時間',     width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
-  { code: 'last_updated_at',  name: '最後更新時間', width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
-  { code: 'last_updated_by',  name: '最後更新者',   width: 100, format: '@' },
-  { code: 'client_submit_id', name: '提交識別碼',   width: 180, format: '@' },
-  { code: 'is_deleted',       name: '已刪除',       width:  70, format: '@' },
-];
-
-/** 分頁名稱（其他程式一律引用這裡，不要各自寫字串） */
-const SHEETS = {
-  FEEDBACK:  '回報資料',
-  EMPLOYEES: '員工名冊',
-  OPTIONS:   '選項設定',
-  COUNTERS:  '系統計數',
-  LOGS:      '錯誤日誌',
-};
-
-/** Drive 資料夾名稱 */
-const DRIVE_ROOT_FOLDER  = 'PCI餐廳回饋系統';
-const DRIVE_IMAGE_FOLDER = '圖片';
-
-
-// ===== 主程式 =====
-
-/**
- * 一鍵建立所有分頁與資料夾。
- * 重複執行是安全的：已存在的分頁不會被覆蓋，只會略過。
- */
+/** 一鍵建立所有分頁與資料夾 */
 function setupSheets() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const report = [];
@@ -75,11 +32,9 @@ function setupSheets() {
     const headers = FEEDBACK_COLUMNS.map(function (c) { return c.name; });
     feedback.getRange(1, 1, 1, headers.length).setValues([headers]);
 
-    // 逐欄設定格式與寬度
     FEEDBACK_COLUMNS.forEach(function (col, i) {
       const colIndex = i + 1;
       feedback.setColumnWidth(colIndex, col.width);
-      // 從第 2 列開始套用格式（第 1 列是表頭）
       feedback.getRange(2, colIndex, feedback.getMaxRows() - 1, 1).setNumberFormat(col.format);
     });
 
@@ -94,21 +49,20 @@ function setupSheets() {
   const employees = getOrCreateSheet(ss, SHEETS.EMPLOYEES);
   if (employees.getLastRow() === 0) {
     employees.getRange(1, 1, 1, 3).setValues([['工號', '姓名', '狀態']]);
-    // 整欄設純文字，之後貼上 8000 筆真名冊時前導零才不會被吃掉
     employees.getRange(2, 1, employees.getMaxRows() - 1, 1).setNumberFormat('@');
     employees.getRange(2, 2, employees.getMaxRows() - 1, 1).setNumberFormat('@');
 
     const dummy = [
-      ['0012345', 'Budi Santoso',      'ACTIVE'],
-      ['0012346', 'Siti Rahayu',       'ACTIVE'],
-      ['0012347', 'Ahmad Fauzi',       'ACTIVE'],
-      ['0023456', 'Dewi Lestari',      'ACTIVE'],
-      ['0023457', 'Rizki Pratama',     'ACTIVE'],
-      ['0034567', 'Nurul Hidayah',     'ACTIVE'],
-      ['0034568', 'Agus Setiawan',     'ACTIVE'],
-      ['8372',    'Ken Wang',          'ACTIVE'],
-      ['9001',    '測試員工-已離職',    'LEFT'],
-      ['9002',    '測試員工-備用',      'ACTIVE'],
+      ['0012345', 'Budi Santoso',      EMP_STATUS.ACTIVE],
+      ['0012346', 'Siti Rahayu',       EMP_STATUS.ACTIVE],
+      ['0012347', 'Ahmad Fauzi',       EMP_STATUS.ACTIVE],
+      ['0023456', 'Dewi Lestari',      EMP_STATUS.ACTIVE],
+      ['0023457', 'Rizki Pratama',     EMP_STATUS.ACTIVE],
+      ['0034567', 'Nurul Hidayah',     EMP_STATUS.ACTIVE],
+      ['0034568', 'Agus Setiawan',     EMP_STATUS.ACTIVE],
+      ['8372',    'Ken Wang',          EMP_STATUS.ACTIVE],
+      ['9001',    '測試員工-已離職',    EMP_STATUS.LEFT],
+      ['9002',    '測試員工-備用',      EMP_STATUS.ACTIVE],
     ];
     employees.getRange(2, 1, dummy.length, 3).setValues(dummy);
 
@@ -190,10 +144,9 @@ function setupSheets() {
   report.push('');
   report.push('✔ Drive 圖片資料夾已就緒');
   report.push('    資料夾 ID：' + imageFolder.getId());
-  report.push('    ↑ 請把這串 ID 複製起來，關卡 2-4 上傳圖片時會用到');
 
   report.push('');
-  report.push('建置完成。請切回 Google Sheet 檢查各分頁。');
+  report.push('建置完成。');
 
   const text = report.join('\n');
   Logger.log(text);
@@ -201,7 +154,7 @@ function setupSheets() {
 }
 
 
-// ===== 輔助函式 =====
+// ===== 輔助函式（只有這個檔案用得到）=====
 
 /** 取得分頁，不存在就建立 */
 function getOrCreateSheet(ss, name) {
@@ -219,23 +172,11 @@ function styleHeader(sheet, columnCount) {
 
 /** 建立 Drive 資料夾結構：PCI餐廳回饋系統/圖片，回傳圖片資料夾 */
 function getOrCreateDriveFolder() {
-  const root = findOrCreateFolder(DriveApp.getRootFolder(), DRIVE_ROOT_FOLDER);
-  return findOrCreateFolder(root, DRIVE_IMAGE_FOLDER);
+  const root = findOrCreateFolder(DriveApp.getRootFolder(), DRIVE_ROOT_FOLDER_NAME);
+  return findOrCreateFolder(root, DRIVE_IMAGE_FOLDER_NAME);
 }
 
 function findOrCreateFolder(parent, name) {
   const found = parent.getFoldersByName(name);
   return found.hasNext() ? found.next() : parent.createFolder(name);
 }
-
-
-/* ============================================================
-   執行方式
-   ------------------------------------------------------------
-   1. 上方函式下拉選單選「setupSheets」
-   2. 按「執行」
-   3. 第一次會要求授權（因為新增了 Drive 權限）：
-      審查權限 → 選帳號 → 進階 → 前往...（不安全）→ 允許
-   4. 執行完畢後，看下方「執行紀錄」的輸出，
-      裡面有 Drive 圖片資料夾的 ID，請複製起來
-   ============================================================ */
