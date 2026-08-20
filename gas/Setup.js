@@ -61,7 +61,7 @@ function setupSheets() {
       ['0034567', 'Nurul Hidayah',     EMP_STATUS.ACTIVE],
       ['0034568', 'Agus Setiawan',     EMP_STATUS.ACTIVE],
       ['8372',    'Ken Wang',          EMP_STATUS.ACTIVE],
-      ['9001',    '測試員工-已離職',    EMP_STATUS.LEFT],
+      ['9001',    '測試員工-已停用',    EMP_STATUS.INACTIVE],
       ['9002',    '測試員工-備用',      EMP_STATUS.ACTIVE],
     ];
     employees.getRange(2, 1, dummy.length, 3).setValues(dummy);
@@ -511,14 +511,15 @@ function checkEmployeeRoster() {
     const st = String(row[2] === null || row[2] === undefined ? '' : row[2]).trim().toUpperCase();
     if (!st) blankStatus++;
     else if (st === EMP_STATUS.ACTIVE) activeCount++;
-    else if (st === EMP_STATUS.LEFT) leftCount++;
+    else if (isInactiveStatus(st)) leftCount++;
     else otherStatus++;
   });
 
   report.push('【狀態欄】');
   report.push('  ACTIVE：' + activeCount + ' 筆');
-  report.push('  LEFT（已停用）：' + leftCount + ' 筆');
-  report.push('  空白：' + blankStatus + ' 筆　（空白會被視為在職，屬正常）');
+  report.push('  INACTIVE（停用）：' + leftCount + ' 筆');
+  report.push('  空白：' + blankStatus + ' 筆'
+    + (blankStatus > 0 ? '　⚠️ 建議執行 normalizeEmployeeStatus() 補成 ACTIVE' : '  ✅'));
   if (otherStatus > 0) report.push('  ⚠️ 無法辨識的狀態：' + otherStatus + ' 筆');
   report.push('');
 
@@ -538,6 +539,93 @@ function checkEmployeeRoster() {
     if (id) cache.remove('emp:' + id);
   });
   report.push('（已清除工號查詢快取，新名冊立即生效）');
+
+  const text = report.join(String.fromCharCode(10));
+  Logger.log(text);
+  return text;
+}
+
+
+/**
+ * 整理員工名冊的狀態欄。
+ *
+ * 做三件事：
+ *   1. 空白的狀態補成 ACTIVE（在職）
+ *   2. 舊的 LEFT 一律換成 INACTIVE
+ *   3. 在狀態欄加上下拉選單，之後手動修改時不會打錯字
+ *
+ * 每次匯入新名冊之後執行一次即可。重複執行是安全的。
+ *
+ * 🔒 不會輸出任何姓名或工號。
+ */
+function normalizeEmployeeStatus() {
+  const sheet = getSheet(SHEETS.EMPLOYEES);
+  const lastRow = sheet.getLastRow();
+  const report = [];
+
+  report.push('=== 整理員工狀態欄 ===');
+  report.push('');
+
+  if (lastRow < 2) {
+    report.push('名冊是空的，沒有需要處理的資料。');
+    Logger.log(report.join(String.fromCharCode(10)));
+    return;
+  }
+
+  const count = lastRow - 1;
+  const range = sheet.getRange(2, 3, count, 1);
+  const values = range.getValues();
+
+  let filled = 0;      // 空白補成 ACTIVE
+  let converted = 0;   // LEFT 換成 INACTIVE
+  let untouched = 0;   // 本來就正確
+  let unknown = 0;     // 認不得的值，保留原樣不動
+
+  const updated = values.map(function (row) {
+    const current = str(row[0]).toUpperCase();
+
+    if (!current)                        { filled++;    return [EMP_STATUS.ACTIVE]; }
+    if (current === 'LEFT')              { converted++; return [EMP_STATUS.INACTIVE]; }
+    if (current === EMP_STATUS.ACTIVE ||
+        current === EMP_STATUS.INACTIVE) { untouched++; return [current]; }
+
+    // 認不得的值不要自作主張改掉，讓管理者自己判斷
+    unknown++;
+    return [row[0]];
+  });
+
+  range.setValues(updated);
+
+  report.push('空白補成 ACTIVE：' + filled + ' 筆');
+  report.push('LEFT 換成 INACTIVE：' + converted + ' 筆');
+  report.push('本來就正確：' + untouched + ' 筆');
+  report.push('無法辨識而保留原樣：' + unknown + ' 筆'
+    + (unknown > 0 ? '  ⚠️ 請自行確認這些列' : ''));
+  report.push('');
+
+  // --- 加上下拉選單，避免手動修改時打錯字 ---
+  // 刻意允許不符合的值（setAllowInvalid(true)）：
+  // 若設成「拒絕輸入」，日後貼上 11,000 筆名冊時會整批被擋下來。
+  // 這裡只要「打錯字時看得出來」就夠了。
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList([EMP_STATUS.ACTIVE, EMP_STATUS.INACTIVE], true)
+    .setAllowInvalid(true)
+    .setHelpText('在職請選 ACTIVE，離職或異常請選 INACTIVE')
+    .build();
+
+  sheet.getRange(2, 3, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+  report.push('✔ 狀態欄已加上下拉選單（ACTIVE / INACTIVE）');
+  report.push('  貼上新名冊時不會被擋，但打錯字會出現紅色標記');
+  report.push('');
+
+  // 狀態改變會影響能不能提交回報，快取要一併清掉
+  const empIds = sheet.getRange(2, 1, count, 1).getValues();
+  const cache = CacheService.getScriptCache();
+  empIds.forEach(function (row) {
+    const id = str(row[0]);
+    if (id) cache.remove('emp:' + id);
+  });
+  report.push('✔ 已清除工號查詢快取，變更立即生效');
 
   const text = report.join(String.fromCharCode(10));
   Logger.log(text);

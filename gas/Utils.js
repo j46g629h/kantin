@@ -130,6 +130,12 @@ function logError(source, empId, error, payload) {
 
 // ===== 其他 =====
 
+/** 判斷員工狀態是否為停用（空白、ACTIVE、無法辨識的值都算在職） */
+function isInactiveStatus(status) {
+  return EMP_STATUS_INACTIVE_CODES.indexOf(str(status).toUpperCase()) !== -1;
+}
+
+
 /** 安全地轉成去頭尾空白的字串（null / undefined 會變成空字串） */
 function str(value) {
   return (value === null || value === undefined) ? '' : String(value).trim();

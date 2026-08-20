@@ -55,7 +55,7 @@ function submitFeedback(params) {
   // ---------- 3. 驗證工號 ----------
   const employee = findEmployeeInSheet(empId);
   if (!employee.exists)                      return fail('EMP_NOT_FOUND', '查無此工號，請確認後重新輸入');
-  if (employee.status === EMP_STATUS.LEFT)   return fail('EMP_INACTIVE', '此工號已停用，請洽人事單位');
+  if (isInactiveStatus(employee.status))     return fail('EMP_INACTIVE', '此工號已停用，請洽人事單位');
 
   // ---------- 4. 驗證選項代碼 ----------
   // 不能直接相信前端送來的代碼，否則有人改網頁原始碼就能塞任意值進資料庫

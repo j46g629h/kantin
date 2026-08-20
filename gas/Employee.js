@@ -87,7 +87,7 @@ function buildEmployeeResult(empId, found) {
   if (!found.exists) {
     return fail('EMP_NOT_FOUND', '查無此工號，請確認後重新輸入');
   }
-  if (found.status === EMP_STATUS.LEFT) {
+  if (isInactiveStatus(found.status)) {
     return fail('EMP_INACTIVE', '此工號已停用，請洽人事單位');
   }
   return ok({ emp_id: found.id || empId, emp_name: found.name });

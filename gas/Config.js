@@ -88,9 +88,20 @@ const CACHE_TTL = {
 // ===== 員工狀態 =====
 
 const EMP_STATUS = {
-  ACTIVE: 'ACTIVE',
-  LEFT:   'LEFT',
+  ACTIVE:   'ACTIVE',    // 在職，可以提交回報
+  INACTIVE: 'INACTIVE',  // 離職或異常，無法提交回報（但歷史案件仍保留）
 };
+
+/**
+ * 視為「停用」的狀態代碼。
+ * 保留 LEFT 是為了相容早期資料，新資料一律用 INACTIVE。
+ *
+ * ⚠️ 刻意採「認不得就當作在職」：
+ *    狀態欄若打錯字（例如 ACTIVEE），寧可讓員工還能回報，
+ *    也不要無聲無息地把人擋在外面卻不知道為什麼。
+ *    打錯的部分由 checkEmployeeRoster() 檢查出來。
+ */
+const EMP_STATUS_INACTIVE_CODES = ['INACTIVE', 'LEFT'];
 
 
 // ===== Setup 用的 Drive 資料夾名稱 =====
