@@ -116,6 +116,54 @@ const I18N = {
     'err.SERVER_ERROR':         '系統出了點問題，請稍後再試',
     'err.UNKNOWN':              '發生未預期的問題，請稍後再試',
 
+    // --- 管理端：登入 ---
+    'admin.entry':          '管理者登入',
+    'admin.login.title':    '管理者登入',
+    'admin.login.hint':     '這個頁面只給餐廳管理者使用',
+    'admin.account':        '帳號',
+    'admin.accountPh':      '請輸入帳號',
+    'admin.password':       '密碼',
+    'admin.passwordPh':     '請輸入密碼',
+    'admin.loginBtn':       '登入',
+    'admin.loggingIn':      '登入中…',
+    'admin.attemptsLeft':   '（還可以試 {n} 次）',
+
+    // --- 管理端：變更密碼 ---
+    'admin.changePw.title': '變更密碼',
+    'admin.changePw.force': '這是你第一次登入，請先設定自己的密碼',
+    'admin.oldPassword':    '目前密碼',
+    'admin.newPassword':    '新密碼',
+    'admin.confirmPw':      '再輸入一次新密碼',
+    'admin.pwRule':         '至少 8 個字，要有英文字母和數字',
+    'admin.pwMismatch':     '兩次輸入的新密碼不一樣',
+    'admin.changeBtn':      '儲存新密碼',
+    'admin.changing':       '儲存中…',
+    'admin.changed':        '密碼已更新',
+
+    // --- 管理端：共用 ---
+    'admin.hello':          '你好，{name}',
+    'admin.role.SUPER':     '超級管理者',
+    'admin.role.ADMIN':     '管理者',
+    'admin.logout':         '登出',
+    'admin.checking':       '確認登入狀態…',
+    'admin.cases.title':    '案件列表',
+    'admin.cases.soon':     '案件列表正在開發中（關卡 3-3）。目前能登入就代表這一關已經完成。',
+
+    // --- 管理端錯誤 ---
+    'err.LOGIN_REQUIRED':       '請輸入帳號與密碼',
+    'err.LOGIN_FAILED':         '帳號或密碼錯誤',
+    'err.LOGIN_LOCKED':         '嘗試次數太多，請等 15 分鐘後再試',
+    'err.ACCOUNT_DISABLED':     '這個帳號已停用，請洽系統管理者',
+    'err.ACCOUNT_NOT_FOUND':    '查無此帳號',
+    'err.UNAUTHORIZED':         '登入已逾時，請重新登入',
+    'err.FORBIDDEN':            '你的帳號沒有這個權限',
+    'err.PASSWORD_REQUIRED':    '請輸入目前密碼與新密碼',
+    'err.PASSWORD_TOO_SHORT':   '新密碼至少要 8 個字',
+    'err.PASSWORD_NEEDS_LETTER':'新密碼裡要有英文字母',
+    'err.PASSWORD_NEEDS_DIGIT': '新密碼裡要有數字',
+    'err.PASSWORD_SAME':        '新密碼不可以跟目前的密碼一樣',
+    'err.OLD_PASSWORD_WRONG':   '目前密碼不正確',
+
     // --- 頁尾系統資訊 ---
     'footer.version':    '系統版本',
     'footer.maintainer': '維護單位',
@@ -221,6 +269,54 @@ const I18N = {
     'err.BUSY':                 'Sistem lagi sibuk, tunggu sebentar ya',
     'err.SERVER_ERROR':         'Ada gangguan sistem, coba lagi nanti ya',
     'err.UNKNOWN':              'Ada yang tidak beres, coba lagi nanti ya',
+
+    // --- Admin: masuk ---
+    'admin.entry':          'Login Admin',
+    'admin.login.title':    'Login Admin',
+    'admin.login.hint':     'Halaman ini khusus untuk pengelola kantin',
+    'admin.account':        'Akun',
+    'admin.accountPh':      'Masukkan akun kamu',
+    'admin.password':       'Kata Sandi',
+    'admin.passwordPh':     'Masukkan kata sandi',
+    'admin.loginBtn':       'Masuk',
+    'admin.loggingIn':      'Sedang masuk…',
+    'admin.attemptsLeft':   ' (sisa {n} percobaan)',
+
+    // --- Admin: ganti kata sandi ---
+    'admin.changePw.title': 'Ganti Kata Sandi',
+    'admin.changePw.force': 'Ini login pertama kamu, silakan buat kata sandi sendiri dulu',
+    'admin.oldPassword':    'Kata sandi sekarang',
+    'admin.newPassword':    'Kata sandi baru',
+    'admin.confirmPw':      'Ulangi kata sandi baru',
+    'admin.pwRule':         'Minimal 8 karakter, harus ada huruf dan angka',
+    'admin.pwMismatch':     'Kata sandi baru yang kamu isi tidak sama',
+    'admin.changeBtn':      'Simpan kata sandi baru',
+    'admin.changing':       'Menyimpan…',
+    'admin.changed':        'Kata sandi sudah diperbarui',
+
+    // --- Admin: umum ---
+    'admin.hello':          'Halo, {name}',
+    'admin.role.SUPER':     'Admin Utama',
+    'admin.role.ADMIN':     'Admin',
+    'admin.logout':         'Keluar',
+    'admin.checking':       'Mengecek status login…',
+    'admin.cases.title':    'Daftar Laporan',
+    'admin.cases.soon':     'Daftar laporan masih dalam pengembangan (tahap 3-3). Kalau kamu bisa masuk ke sini, berarti tahap ini sudah selesai.',
+
+    // --- Pesan kesalahan admin ---
+    'err.LOGIN_REQUIRED':       'Isi akun dan kata sandi dulu ya',
+    'err.LOGIN_FAILED':         'Akun atau kata sandi salah',
+    'err.LOGIN_LOCKED':         'Terlalu banyak percobaan, tunggu 15 menit ya',
+    'err.ACCOUNT_DISABLED':     'Akun ini sudah dinonaktifkan, hubungi admin utama',
+    'err.ACCOUNT_NOT_FOUND':    'Akun tidak ditemukan',
+    'err.UNAUTHORIZED':         'Sesi kamu sudah habis, silakan masuk lagi',
+    'err.FORBIDDEN':            'Akun kamu tidak punya akses untuk ini',
+    'err.PASSWORD_REQUIRED':    'Isi kata sandi sekarang dan kata sandi baru',
+    'err.PASSWORD_TOO_SHORT':   'Kata sandi baru minimal 8 karakter',
+    'err.PASSWORD_NEEDS_LETTER':'Kata sandi baru harus ada hurufnya',
+    'err.PASSWORD_NEEDS_DIGIT': 'Kata sandi baru harus ada angkanya',
+    'err.PASSWORD_SAME':        'Kata sandi baru tidak boleh sama dengan yang sekarang',
+    'err.OLD_PASSWORD_WRONG':   'Kata sandi sekarang tidak cocok',
 
     // --- Info sistem ---
     'footer.version':    'Versi',

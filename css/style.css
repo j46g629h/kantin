@@ -233,6 +233,7 @@ body {
 }
 
 input[type="text"],
+input[type="password"],
 select,
 textarea {
   width: 100%;
@@ -762,3 +763,83 @@ textarea:focus {
 }
 
 .no-scroll { overflow: hidden; }
+
+
+/* ===== 管理端 ===== */
+
+/* 登入頁比員工端窄一些，看起來才像一張「表單」而不是一整頁 */
+.page-narrow { max-width: 420px; }
+
+/* 登入 / 改密碼畫面上方的大圖示 */
+.admin-badge {
+  font-size: 44px;
+  line-height: 1;
+  text-align: center;
+  margin: 20px 0 8px;
+}
+
+.admin-title {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.admin-lead {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 登入後顯示「你好，某某」與登出按鈕 */
+.admin-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 10px 14px;
+  margin-bottom: var(--gap);
+  background: var(--brand-light);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+}
+
+.admin-bar-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;               /* 姓名太長時才會正確截斷而不是撐破版面 */
+}
+
+.admin-bar-who > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-bar-logout {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.admin-bar-logout:active { background: var(--surface-alt); }
+
+/* 員工端首頁角落的低調管理者入口 */
+.admin-entry {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+  text-decoration: none;
+}
+
+.admin-entry:active { color: var(--text-muted); }

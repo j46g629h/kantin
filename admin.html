@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 管理端不需要被搜尋引擎收錄 -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Login Admin · Kantin PCI</title>
+  <link rel="stylesheet" href="css/style.css?v=1.2">
+</head>
+<body>
+
+  <div class="page page-narrow">
+
+    <!-- 頁首 -->
+    <header class="topbar">
+      <a href="index.html" class="topbar-back" aria-label="back">‹</a>
+      <h1 class="topbar-title" id="pageTitle">Login Admin</h1>
+      <div class="lang-switch lang-switch-compact">
+        <button type="button" class="lang-btn" data-lang="id">ID</button>
+        <button type="button" class="lang-btn" data-lang="zh">中</button>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- 檢查登入狀態中（避免已登入的人看到登入表單閃一下）-->
+      <div id="bootView" class="state-box">
+        <div class="spinner"></div>
+        <p id="bootText">Mengecek status login…</p>
+      </div>
+
+      <!-- ===== 登入 ===== -->
+      <form id="loginView" class="hidden" novalidate>
+        <div class="admin-badge">🔐</div>
+        <p class="admin-lead" id="loginHint">Halaman ini khusus untuk pengelola kantin</p>
+
+        <div class="field">
+          <label class="field-label" for="account"><span id="labelAccount">Akun</span></label>
+          <input type="text" id="account" autocomplete="username"
+                 autocapitalize="off" autocorrect="off" spellcheck="false" required>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password"><span id="labelPassword">Kata Sandi</span></label>
+          <input type="password" id="password" autocomplete="current-password" required>
+        </div>
+
+        <div id="loginError" class="result error hidden"></div>
+
+        <button type="submit" id="loginBtn" class="btn-primary">Masuk</button>
+      </form>
+
+      <!-- ===== 變更密碼 ===== -->
+      <form id="changeView" class="hidden" novalidate>
+        <div class="admin-badge">🔑</div>
+        <h2 class="admin-title" id="changeTitle">Ganti Kata Sandi</h2>
+        <p class="admin-lead" id="changeHint">Ini login pertama kamu, silakan buat kata sandi sendiri dulu</p>
+
+        <div class="field">
+          <label class="field-label" for="oldPassword"><span id="labelOldPw">Kata sandi sekarang</span></label>
+          <input type="password" id="oldPassword" autocomplete="current-password" required>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="newPassword"><span id="labelNewPw">Kata sandi baru</span></label>
+          <input type="password" id="newPassword" autocomplete="new-password" required>
+          <div class="field-note" id="pwRule">Minimal 8 karakter, harus ada huruf dan angka</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="confirmPassword"><span id="labelConfirmPw">Ulangi kata sandi baru</span></label>
+          <input type="password" id="confirmPassword" autocomplete="new-password" required>
+        </div>
+
+        <div id="changeError" class="result error hidden"></div>
+
+        <button type="submit" id="changeBtn" class="btn-primary">Simpan kata sandi baru</button>
+        <button type="button" id="cancelChangeBtn" class="btn-secondary">Keluar</button>
+      </form>
+
+    </main>
+
+    <footer class="site-footer" id="siteFooter"></footer>
+
+  </div>
+
+  <script src="js/config.js?v=1.2"></script>
+  <script src="js/i18n.js?v=1.2"></script>
+  <script src="js/ui.js?v=1.2"></script>
+  <script src="js/api.js?v=1.2"></script>
+  <script src="js/admin-session.js?v=1.2"></script>
+  <script src="js/admin-login.js?v=1.2"></script>
+
+</body>
+</html>

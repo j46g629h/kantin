@@ -17,11 +17,19 @@ function ok(data) {
 
 /**
  * 失敗的回應。
+ *
  * @param {string} code    錯誤代碼，給程式判斷用（如 EMP_NOT_FOUND）
  * @param {string} message 錯誤訊息，給人看的
+ * @param {Object} extra   選填的補充資料（如剩餘嘗試次數）。
+ *
+ * 為什麼要有 extra：前端顯示的文字是用 error 代碼查 i18n 翻譯的，
+ * 後端的中文 message 不會直接給印尼文使用者看。
+ * 「還可以試 3 次」這種帶數字的訊息，數字必須另外傳，前端才能填進自己的譯文。
  */
-function fail(code, message) {
-  return { ok: false, error: code, message: message || '' };
+function fail(code, message, extra) {
+  const result = { ok: false, error: code, message: message || '' };
+  if (extra) result.data = extra;
+  return result;
 }
 
 /** 把回應物件包成 Apps Script 的 JSON 輸出 */
@@ -61,18 +69,59 @@ function getSheet(name) {
  * @return {Object} 例如 { case_id: 1, submit_time: 2, ... }
  */
 function getFeedbackColumnMap() {
-  const sheet = getSheet(SHEETS.FEEDBACK);
+  return buildColumnMap(SHEETS.FEEDBACK, FEEDBACK_COLUMNS);
+}
+
+/** 管理者名單的「欄位代碼 → 欄號」對照表 */
+function getAdminColumnMap() {
+  return buildColumnMap(SHEETS.ADMINS, ADMIN_COLUMNS);
+}
+
+/**
+ * 依表頭建立「欄位代碼 → 欄號」對照表（各分頁共用）。
+ *
+ * @param {string} sheetName  分頁名稱，用 SHEETS.XXX
+ * @param {Array}  columnDefs 欄位定義，用 Config.js 裡的 XXX_COLUMNS
+ * @return {Object} 例如 { case_id: 1, submit_time: 2, ... }
+ */
+function buildColumnMap(sheetName, columnDefs) {
+  const sheet = getSheet(sheetName);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
   const map = {};
-  FEEDBACK_COLUMNS.forEach(function (col) {
+  columnDefs.forEach(function (col) {
     const index = headers.indexOf(col.name);
     if (index === -1) {
-      throw new Error('「' + SHEETS.FEEDBACK + '」分頁缺少欄位：' + col.name);
+      throw new Error('「' + sheetName + '」分頁缺少欄位：' + col.name);
     }
     map[col.code] = index + 1;  // Sheet 的欄號從 1 開始
   });
   return map;
+}
+
+
+/**
+ * 依欄位定義把一整列寫進 Sheet。
+ *
+ * ⚠️ 順序很重要：一定要先設格式再寫值。
+ *    直接寫值的話，Sheet 會自己判斷型別——
+ *    工號 0012345 會變成 12345，64 位數的密碼雜湊會變成科學記號。
+ *
+ * @param {Sheet}  sheet      目標分頁
+ * @param {number} row        列號（1 起算）
+ * @param {Array}  columnDefs 欄位定義
+ * @param {Object} data       { 欄位代碼: 值 }，沒給的欄位留空字串
+ */
+function writeRowByColumns(sheet, row, columnDefs, data) {
+  const values  = columnDefs.map(function (c) {
+    const v = data[c.code];
+    return (v === undefined || v === null) ? '' : v;
+  });
+  const formats = columnDefs.map(function (c) { return c.format; });
+
+  const range = sheet.getRange(row, 1, 1, columnDefs.length);
+  range.setNumberFormats([formats]);   // 先設格式
+  range.setValues([values]);           // 再寫值
 }
 
 

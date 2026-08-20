@@ -62,6 +62,39 @@ const Api = {
     return this.get('getCasesByEmpId', { empId });
   },
 
+
+  // ===== 管理端 =====
+  //
+  // ⚠️ 管理端一律用 POST，就算只是讀資料也一樣。
+  //    因為 token 不能放進網址（會留在瀏覽器歷史紀錄與伺服器日誌），
+  //    也不能放進 header（Apps Script 不支援 doOptions，會被 CORS 擋下）。
+  //    剩下唯一的選項就是放進 POST 的 body。
+
+  /** 帳號密碼登入 */
+  adminLogin(account, password) {
+    return this.post({ action: 'adminLogin', account, password });
+  },
+
+  /** 登出（讓伺服器端的 token 失效）*/
+  adminLogout(token) {
+    return this.post({ action: 'adminLogout', token });
+  },
+
+  /** 確認 token 還有效，並取回姓名與角色 */
+  getAdminProfile(token) {
+    return this.post({ action: 'getAdminProfile', token });
+  },
+
+  /** 變更自己的密碼 */
+  adminChangePassword(token, oldPassword, newPassword) {
+    return this.post({
+      action:       'adminChangePassword',
+      token,
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
+  },
+
 };
 
 

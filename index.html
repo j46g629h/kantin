@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=1.1">
+  <link rel="stylesheet" href="css/style.css?v=1.2">
 </head>
 <body>
 
@@ -43,13 +43,23 @@
     </main>
 
     <!-- 系統資訊（內容由 js/config.js 的 SYSTEM_INFO 決定）-->
-    <footer class="site-footer" id="siteFooter"></footer>
+    <footer class="site-footer">
+      <div id="siteFooter"></div>
+      <!--
+        管理者入口（規格 §6.4）。
+        刻意放在這裡而不是藏起來：前端原始碼在 GitHub 上是公開的，
+        任何人都找得到 admin.html，「藏」並不會比較安全——
+        真正的安全來自密碼雜湊、token 與登入失敗鎖定。
+        放出來反而讓 6 位管理者不必記網址。
+      -->
+      <a href="admin.html" class="admin-entry" id="adminEntry">Login Admin</a>
+    </footer>
 
   </div>
 
-  <script src="js/config.js?v=1.1"></script>
-  <script src="js/i18n.js?v=1.1"></script>
-  <script src="js/ui.js?v=1.1"></script>
+  <script src="js/config.js?v=1.2"></script>
+  <script src="js/i18n.js?v=1.2"></script>
+  <script src="js/ui.js?v=1.2"></script>
   <script>
     /** 依目前語言把畫面上的文字換掉 */
     function render() {
@@ -64,6 +74,7 @@
       document.getElementById('queryDesc').textContent   = t('home.queryDesc');
 
       renderSystemFooter('siteFooter');
+      document.getElementById('adminEntry').textContent = t('admin.entry');
 
       // 標示目前選中的語言
       document.querySelectorAll('.lang-btn').forEach((btn) => {

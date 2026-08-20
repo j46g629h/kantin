@@ -48,6 +48,21 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 | 後端 | Google Apps Script | `gas/`（線上編輯器的備份） |
 | 資料 | Google Sheet + Google Drive | 雲端 |
 
+**頁面一覽**
+
+| 檔案 | 給誰用 | 內容 |
+|---|---|---|
+| `index.html` | 員工 | 首頁，兩個入口 + 頁尾的管理者登入小連結 |
+| `report.html` | 員工 | 回報表單 |
+| `query.html` | 員工 | 查詢案件進度 |
+| `admin.html` | 管理者 | 登入 + 強制變更初始密碼（同一頁，避免按上一頁繞過） |
+| `admin-cases.html` | 管理者 | 案件列表（關卡 3-3 施工中） |
+
+**Sheet 分頁**：`回報資料`、`員工名冊`、`管理者名單`、`選項設定`、`回覆範本`、`系統計數`、`錯誤日誌`
+
+**後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Main`（路由）/ `Auth`（登入與權限）/
+`Options` / `Employee` / `Feedback` / `Image` / `Query` / `Setup`（一次性腳本與維運工具）
+
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
 根目錄的 `.nojekyll` 檔案不可刪除（用來關閉 Jekyll 處理）。
@@ -93,19 +108,20 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 ### 5. 改前端檔案後，一定要更新資源版本號
 
-`index.html` / `report.html` / `query.html` 引用 CSS 與 JS 時都帶 `?v=1.1`。
+**五個 HTML 檔**（`index.html` / `report.html` / `query.html` / `admin.html` / `admin-cases.html`）
+引用 CSS 與 JS 時都帶 `?v=1.2`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
 畫面會用「錯誤的方式」壞掉——曾經因為 API 欄位改名，
 使用者點下去整個清單消失且不顯示任何訊息。
 
-**改法：** 三個 HTML 檔一起把 `?v=` 後面的數字往上加，
+**改法：** 五個 HTML 檔一起把 `?v=` 後面的數字往上加，
 建議與 `js/config.js` 的 `SYSTEM_INFO.version` 保持一致。
 
 ```bash
-# 例如從 1.1 改成 1.2
-sed -i 's/?v=1\.1/?v=1.2/g' index.html report.html query.html
+# 例如從 1.2 改成 1.3
+sed -i 's/?v=1\.2/?v=1.3/g' index.html report.html query.html admin.html admin-cases.html
 ```
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
@@ -120,6 +136,39 @@ sed -i 's/?v=1\.1/?v=1.2/g' index.html report.html query.html
 ### 7. 選項清單讀 Sheet，不可寫死
 
 餐廳地點、問題分類都從 `選項設定` 分頁讀取，讓管理者自己就能新增。
+
+### 8. 管理端 API 一律用 `withAuth()` 包起來
+
+需要登入的 API 不要各自寫一次「檢查 token」——總有一支會忘記。
+在 `gas/Main.js` 的路由表統一包：
+
+```js
+updateCase: function (p) { return withAuth(p, function (s) { return updateCase(p, s); }); },
+// 只有 SUPER 能做的加第三個參數 true：
+manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin(p, s); }, true); },
+```
+
+### 9. token 放 POST body，且管理端一律用 POST
+
+放網址會留在瀏覽器歷史與伺服器日誌；放 header 會觸發 CORS 預檢，
+而 Apps Script 不支援 `doOptions`（見約定第 2 條）。所以只剩 body 這條路。
+**就算只是讀資料，管理端也用 POST。**
+
+前端 token 存 `sessionStorage`（不是 `localStorage`）：關掉分頁就失效，
+共用電腦上處理完直接關視窗，下一個人打不開。
+
+### 10. 任何密碼都不可以寫進程式碼
+
+`gas/` 會跟著 git 上傳到 GitHub，寫在裡面就等於公開貼在網路上。
+建立帳號時由 `generateInitialPassword()` 隨機產生，印在 Apps Script 的「執行紀錄」上，
+登入後強制使用者改掉。
+
+### 11. 寫進 Sheet 的字串欄一律「先設格式，再寫值」
+
+用 `writeRowByColumns()` 或 `setTextCell()`（都在 `gas/Utils.js` / `gas/Auth.js`）。
+直接 `setValue()` 的話 Sheet 會自作主張判斷型別：
+工號 `0012345` 變 `12345`，64 位十六進位的密碼雜湊若剛好整串是數字會變成科學記號，
+那個帳號從此永遠登不進去。
 
 ---
 

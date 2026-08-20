@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Daftar Laporan · Kantin PCI</title>
+  <link rel="stylesheet" href="css/style.css?v=1.2">
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- 頁首：顯示登入者與登出 -->
+    <header class="topbar">
+      <h1 class="topbar-title" id="pageTitle">Daftar Laporan</h1>
+      <div class="lang-switch lang-switch-compact">
+        <button type="button" class="lang-btn" data-lang="id">ID</button>
+        <button type="button" class="lang-btn" data-lang="zh">中</button>
+      </div>
+    </header>
+
+    <!-- 登入者資訊列 -->
+    <div id="adminBar" class="admin-bar hidden">
+      <span class="admin-bar-who">
+        <span id="adminName"></span>
+        <span id="adminRole" class="tag"></span>
+      </span>
+      <button type="button" id="logoutBtn" class="admin-bar-logout">Keluar</button>
+    </div>
+
+    <main>
+      <!-- 驗證登入狀態中 -->
+      <div id="loadingView" class="state-box">
+        <div class="spinner"></div>
+        <p id="loadingText">Mengecek status login…</p>
+      </div>
+
+      <div id="errorView" class="result error hidden"></div>
+
+      <!-- 關卡 3-3 會把案件列表放進這裡 -->
+      <div id="mainView" class="hidden">
+        <div class="result" id="placeholder"></div>
+      </div>
+    </main>
+
+    <footer class="site-footer" id="siteFooter"></footer>
+
+  </div>
+
+  <script src="js/config.js?v=1.2"></script>
+  <script src="js/i18n.js?v=1.2"></script>
+  <script src="js/ui.js?v=1.2"></script>
+  <script src="js/api.js?v=1.2"></script>
+  <script src="js/admin-session.js?v=1.2"></script>
+  <script src="js/admin-cases.js?v=1.2"></script>
+
+</body>
+</html>

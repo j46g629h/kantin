@@ -20,7 +20,9 @@ const DRIVE_IMAGE_FOLDER_ID = '1Re_ua0-cEed27kKc91-pAOwNv8zZnKuk';
 const SHEETS = {
   FEEDBACK:  '回報資料',
   EMPLOYEES: '員工名冊',
+  ADMINS:    '管理者名單',
   OPTIONS:   '選項設定',
+  TEMPLATES: '回覆範本',
   COUNTERS:  '系統計數',
   LOGS:      '錯誤日誌',
 };
@@ -108,3 +110,86 @@ const EMP_STATUS_INACTIVE_CODES = ['INACTIVE', 'LEFT'];
 
 const DRIVE_ROOT_FOLDER_NAME  = 'PCI餐廳回饋系統';
 const DRIVE_IMAGE_FOLDER_NAME = '圖片';
+
+
+// ===== 管理者名單的欄位定義 =====
+
+/**
+ * 與 FEEDBACK_COLUMNS 同樣的規則：程式一律用 code 存取，
+ * Sheet 上的中文表頭改了也不會壞（見 Utils.js 的 getAdminColumnMap）。
+ *
+ * ⚠️ 密碼雜湊與鹽值的格式一定要是純文字 '@'。
+ *    雜湊是 64 個十六進位字元，剛好整串都是數字時（機率很低但存在），
+ *    Sheet 會把它當成數字存成 1.23457E+63，密碼從此永遠對不起來。
+ */
+const ADMIN_COLUMNS = [
+  { code: 'name',           name: '姓名',         width: 110, format: '@' },
+  { code: 'account',        name: '帳號',         width: 200, format: '@' },
+  { code: 'email',          name: 'Email',        width: 200, format: '@' },
+  { code: 'password_hash',  name: '密碼雜湊',     width: 260, format: '@' },
+  { code: 'password_salt',  name: '密碼鹽值',     width: 140, format: '@' },
+  { code: 'role',           name: '角色',         width:  80, format: '@' },
+  { code: 'status',         name: '狀態',         width:  90, format: '@' },
+  { code: 'must_change_pw', name: '需重設密碼',   width:  90, format: '@' },
+  { code: 'created_at',     name: '建立時間',     width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
+  { code: 'last_login_at',  name: '最後登入時間', width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
+];
+
+
+// ===== 回覆範本的欄位定義 =====
+
+const TEMPLATE_COLUMNS = [
+  { code: 'code',       name: '代碼',       width: 100, format: '@' },
+  { code: 'category',   name: '分類',       width: 120, format: '@' },
+  { code: 'content_zh', name: '中文內容',   width: 360, format: '@' },
+  { code: 'content_id', name: '印尼文內容', width: 360, format: '@' },
+];
+
+
+// ===== 管理者角色與狀態 =====
+
+const ADMIN_ROLES = {
+  SUPER: 'SUPER',   // 超級管理者：可管理帳號
+  ADMIN: 'ADMIN',   // 一般管理者：只能處理案件
+};
+
+const ADMIN_STATUS = {
+  ACTIVE:   'ACTIVE',     // 可登入
+  DISABLED: 'DISABLED',   // 停用（離職不刪除，保留歷史處理紀錄）
+};
+
+
+// ===== 登入與密碼機制 =====
+
+const AUTH = {
+  /**
+   * 密碼雜湊的迭代次數（規格 §5.1）。
+   * 迭代的用意是讓「拿到 Sheet 的人暴力猜密碼」變慢 1000 倍。
+   * 每次登入約多花數十毫秒，使用者感覺不出來。
+   */
+  HASH_ITERATIONS: 1000,
+
+  /** 鹽值長度（每人不同的隨機字串） */
+  SALT_LENGTH: 16,
+
+  /**
+   * token 效期（秒）。6 小時 = 21600 秒，
+   * 剛好是 CacheService 允許的最大值，不能再往上加。
+   */
+  TOKEN_TTL: 21600,
+
+  /** 連續登入失敗幾次就鎖定 */
+  MAX_LOGIN_FAILS: 5,
+
+  /** 鎖定多久（秒） */
+  LOCKOUT_SECONDS: 900,   // 15 分鐘
+
+  /** 密碼最短長度 */
+  MIN_PASSWORD_LENGTH: 8,
+};
+
+/** 快取鍵前綴（避免和選項快取之類的鍵撞名） */
+const CACHE_KEYS = {
+  TOKEN:      'admin_token_',
+  LOGIN_FAIL: 'admin_fail_',
+};

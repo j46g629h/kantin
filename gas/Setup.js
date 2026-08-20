@@ -294,6 +294,238 @@ function clearTestData() {
 }
 
 
+/**
+ * 升級：建立第 3 階段（管理者端）需要的兩個分頁。
+ *
+ *   - 管理者名單：帳號、密碼雜湊、角色、狀態
+ *   - 回覆範本：管理者回覆案件時可一鍵帶入的常用句
+ *
+ * 重複執行是安全的：已存在的分頁只會略過，不會覆蓋。
+ *
+ * 執行方式：上方函式下拉選單選 setupAdminSheets → 按執行 → 看執行紀錄
+ */
+function setupAdminSheets() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const report = [];
+
+  // --- 1. 管理者名單 ---
+  const admins = getOrCreateSheet(ss, SHEETS.ADMINS);
+  if (admins.getLastRow() === 0) {
+    const headers = ADMIN_COLUMNS.map(function (c) { return c.name; });
+    admins.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+    ADMIN_COLUMNS.forEach(function (col, i) {
+      const colIndex = i + 1;
+      admins.setColumnWidth(colIndex, col.width);
+      admins.getRange(2, colIndex, admins.getMaxRows() - 1, 1).setNumberFormat(col.format);
+    });
+
+    styleHeader(admins, headers.length);
+
+    // 角色與狀態加下拉選單，手動編輯時不會打錯字
+    const colMap = getAdminColumnMap();
+    setDropdown(admins, colMap.role,           [ADMIN_ROLES.SUPER, ADMIN_ROLES.ADMIN]);
+    setDropdown(admins, colMap.status,         [ADMIN_STATUS.ACTIVE, ADMIN_STATUS.DISABLED]);
+    setDropdown(admins, colMap.must_change_pw, ['TRUE', 'FALSE']);
+
+    report.push('✔ 建立「' + SHEETS.ADMINS + '」（' + headers.length + ' 欄）');
+    report.push('    密碼雜湊與鹽值欄已設為純文字，不會被存成科學記號');
+  } else {
+    report.push('－ 「' + SHEETS.ADMINS + '」已存在，略過');
+  }
+
+  // --- 2. 回覆範本 ---
+  const templates = getOrCreateSheet(ss, SHEETS.TEMPLATES);
+  if (templates.getLastRow() === 0) {
+    const headers = TEMPLATE_COLUMNS.map(function (c) { return c.name; });
+    templates.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+    TEMPLATE_COLUMNS.forEach(function (col, i) {
+      const colIndex = i + 1;
+      templates.setColumnWidth(colIndex, col.width);
+      templates.getRange(2, colIndex, templates.getMaxRows() - 1, 1).setNumberFormat(col.format);
+    });
+
+    styleHeader(templates, headers.length);
+
+    // 規格 §3.5 的初始範本。管理者日後自己在這張表增修，不需要改程式
+    const seed = [
+      ['TPL_01', 'CAT_TASTE',    '已轉知廚房調整口味，感謝您的建議。',
+       'Sudah disampaikan ke dapur untuk perbaikan rasa. Terima kasih atas sarannya.'],
+      ['TPL_02', 'CAT_HYGIENE',  '已加強該區域清潔頻率。',
+       'Frekuensi pembersihan area tersebut sudah ditingkatkan.'],
+      ['TPL_03', 'CAT_FACILITY', '已安排維修，預計三日內完成。',
+       'Perbaikan sudah dijadwalkan, diperkirakan selesai dalam 3 hari.'],
+    ];
+    templates.getRange(2, 1, seed.length, headers.length).setValues(seed);
+
+    report.push('✔ 建立「' + SHEETS.TEMPLATES + '」並帶入 ' + seed.length + ' 筆初始範本');
+  } else {
+    report.push('－ 「' + SHEETS.TEMPLATES + '」已存在，略過');
+  }
+
+  report.push('');
+  report.push('完成。下一步請執行 createSuperAdmin() 建立你自己的管理者帳號。');
+
+  const text = report.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+
+/**
+ * 建立超級管理者帳號（第一個管理者，只需執行一次）。
+ *
+ * ⚠️ 初始密碼是「程式隨機產生」的，執行後會印在下方的執行紀錄裡。
+ *    刻意不讓你把密碼打在程式碼中——這個檔案會跟著 git 上傳到 GitHub，
+ *    寫在這裡就等於公開。
+ *
+ * 使用步驟：
+ *   1. 把下面的 ACCOUNT / NAME / EMAIL 改成你自己的
+ *   2. 上方函式下拉選單選 createSuperAdmin → 按執行
+ *   3. 從執行紀錄複製那組隨機密碼
+ *   4. 到 admin.html 登入，系統會強制你立刻改成自己的密碼
+ */
+function createSuperAdmin() {
+  // ← 改這三行（都不是機密，可以安心留在程式碼裡）
+  const ACCOUNT = 'j46g629h@gmail.com';
+  const NAME    = '系統管理者';
+  const EMAIL   = 'j46g629h@gmail.com';
+
+  return addAdminAccount(ACCOUNT, NAME, EMAIL, ADMIN_ROLES.SUPER);
+}
+
+
+/**
+ * 新增一個管理者帳號，並回報隨機產生的初始密碼。
+ *
+ * 第 3-5 關做完帳號管理頁之後，日常新增管理者請用網頁介面，
+ * 這支函式留著當作「超級管理者把自己鎖在門外」時的救援管道。
+ *
+ * @return {string} 執行報告（含初始密碼）
+ */
+function addAdminAccount(account, name, email, role) {
+  const sheet = getSheet(SHEETS.ADMINS);
+  const acct  = str(account).toLowerCase();
+
+  if (!acct) throw new Error('帳號不可空白');
+
+  if (findAdminByAccount(acct)) {
+    const msg = '帳號「' + acct + '」已存在，沒有重複建立。\n'
+              + '忘記密碼請改執行 resetAdminPassword()。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const password = generateInitialPassword();
+  const salt     = generateSalt();
+  const row      = sheet.getLastRow() + 1;
+
+  writeRowByColumns(sheet, row, ADMIN_COLUMNS, {
+    name:           str(name) || acct,
+    account:        acct,
+    email:          str(email),
+    password_hash:  hashPassword(password, salt),
+    password_salt:  salt,
+    role:           normalizeRole(role),
+    status:         ADMIN_STATUS.ACTIVE,
+    must_change_pw: 'TRUE',          // 首次登入強制改密碼（規格 §5.5）
+    created_at:     new Date(),
+    last_login_at:  '',
+  });
+
+  const msg = [
+    '✔ 已建立管理者帳號',
+    '',
+    '  帳號：' + acct,
+    '  角色：' + normalizeRole(role),
+    '  初始密碼：' + password,
+    '',
+    '⚠️ 請立刻用這組密碼登入 admin.html，系統會要求你馬上改掉。',
+    '   密碼只會出現在這一次的執行紀錄，關掉就看不到了（Sheet 裡只存雜湊，查不回來）。',
+    '   若沒記下來，重新執行 resetAdminPassword() 產生一組新的即可。',
+  ].join('\n');
+
+  Logger.log(msg);
+  return msg;
+}
+
+
+/**
+ * 重設某個管理者的密碼（救援用）。
+ *
+ * 適用情境：忘記密碼、或連續輸錯被鎖住又等不及 15 分鐘。
+ * 會產生一組新的隨機密碼，並要求對方下次登入立刻改掉。
+ */
+function resetAdminPassword() {
+  const ACCOUNT = 'j46g629h@gmail.com';   // ← 改成要重設的帳號
+
+  const admin = findAdminByAccount(ACCOUNT);
+  if (!admin) {
+    const msg = '查無帳號「' + ACCOUNT + '」。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const password = generateInitialPassword();
+  setAdminPassword(admin.row, password, true);   // true = 下次登入強制改密碼
+
+  // 順便解除登入鎖定，不必再等 15 分鐘
+  clearLoginFailures(str(ACCOUNT).toLowerCase());
+
+  const msg = [
+    '✔ 已重設密碼',
+    '',
+    '  帳號：' + str(admin.account),
+    '  新密碼：' + password,
+    '',
+    '登入鎖定也一併解除了。這組密碼只會出現這一次。',
+  ].join('\n');
+
+  Logger.log(msg);
+  return msg;
+}
+
+
+/**
+ * 產生一組隨機初始密碼。
+ *
+ * 12 碼，一定含英文字母與數字（符合規格 §5.5 的密碼規則）。
+ * 字元集刻意排除 0 O 1 l I，避免抄下來時看錯而登不進去。
+ */
+function generateInitialPassword() {
+  const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  const DIGITS  = '23456789';
+  const ALL     = LETTERS + DIGITS;
+
+  // 先各放一個，確保一定同時含字母與數字
+  const chars = [pickRandom(LETTERS), pickRandom(DIGITS)];
+  for (let i = 0; i < 10; i++) chars.push(pickRandom(ALL));
+
+  // 洗牌，否則開頭永遠是「字母 + 數字」的固定樣式
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
+  }
+  return chars.join('');
+}
+
+/** 從字串裡隨機挑一個字元 */
+function pickRandom(source) {
+  return source.charAt(Math.floor(Math.random() * source.length));
+}
+
+
+/** 把某一欄設成下拉選單（第 2 列以下） */
+function setDropdown(sheet, col, values) {
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(values, true)
+    .setAllowInvalid(false)
+    .build();
+  sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+}
+
+
 // ===== 輔助函式（只有這個檔案用得到）=====
 
 /** 取得分頁，不存在就建立 */
