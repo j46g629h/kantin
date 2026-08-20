@@ -61,7 +61,8 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 **Sheet 分頁**：`回報資料`、`員工名冊`、`管理者名單`、`選項設定`、`回覆範本`、`系統計數`、`錯誤日誌`
 
 **後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Main`（路由）/ `Auth`（登入與權限）/
-`Options` / `Employee` / `Feedback` / `Image` / `Query` / `Setup`（一次性腳本與維運工具）
+`Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
+`Setup`（一次性腳本與維運工具）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -217,6 +218,19 @@ clasp.cmd pull                             # 從線上拉回（很少用）
 結尾是 `.ps1` 就要加。
 
 正式部署 ID 記錄在 `docs/部署筆記.md`。`redeploy` 會沿用同一組 ID，網址不會變。
+
+### 後端邏輯的本機測試
+
+```bash
+node tools/test-cases-api.js
+```
+
+用假的 Apps Script 服務（`SpreadsheetApp` / `Utilities` / `Session`）在 Node 裡跑 `getCaseList`，
+不必部署、不必登入就能驗證篩選、排序、統計、逾期判斷。改到 `gas/Cases.js` 就順手跑一次。
+
+⚠️ 假資料裡的 `Date` 必須在 sandbox **裡面**建立。在外面建立的話，
+sandbox 裡的 `x instanceof Date` 會是 false（跨 realm 的建構子不同），
+程式會誤判提交時間不是日期。這是測試環境的限制，真實 Apps Script 沒這問題。
 
 ### 修改後端的標準流程
 

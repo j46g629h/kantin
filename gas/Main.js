@@ -57,6 +57,7 @@ const ROUTES = {
   // --- 管理端：需要 token ---
   getAdminProfile:     function (p) { return withAuth(p, function (s) { return getAdminProfile(p, s); }); },
   adminChangePassword: function (p) { return withAuth(p, function (s) { return adminChangePassword(p, s); }); },
+  getCaseList:         function (p) { return withAuth(p, function (s) { return getCaseList(p, s); }); },
 };
 
 

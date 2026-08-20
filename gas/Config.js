@@ -193,3 +193,20 @@ const CACHE_KEYS = {
   TOKEN:      'admin_token_',
   LOGIN_FAIL: 'admin_fail_',
 };
+
+
+// ===== 管理端案件列表 =====
+
+const CASE_LIST = {
+  /** 一次回傳幾筆（前端沒指定時） */
+  DEFAULT_LIMIT: 100,
+
+  /** 一次最多回傳幾筆。防止有人把 limit 填成 99999 把 Apps Script 撐爆 */
+  MAX_LIMIT: 300,
+
+  /**
+   * 逾期天數（規格 §6.5）。
+   * 狀態仍是「未處理」且已超過這個天數的案件，在列表上整列標紅。
+   */
+  OVERDUE_DAYS: 3,
+};

@@ -1,78 +1,303 @@
 /**
  * 管理者案件列表頁
  *
- * 目前只做到「確認登入狀態並顯示登入者」，
- * 案件列表本體是關卡 3-3 的工作，會接在 renderCases() 裡。
+ * 規格 §6.5：篩選、預設提交時間倒序、逾期標紅、頂端統計卡片。
  *
- * 這一頁存在的意義是驗證整條路徑真的通了：
- * 登入 → 拿到 token → 用 token 打到一支需要授權的 API → 讀得到資料。
+ * ⚠️ Apps Script 每次回應要 3～8 秒，所以刻意「按下查詢才送出請求」，
+ *    不做「改一個下拉就自動重查」——那樣每動一次就要等好幾秒，很難用。
  */
 
-const view = {
-  loading:     document.getElementById('loadingView'),
-  loadingText: document.getElementById('loadingText'),
-  error:       document.getElementById('errorView'),
-  main:        document.getElementById('mainView'),
-  placeholder: document.getElementById('placeholder'),
+
+// ===== 狀態 =====
+
+const state = {
+  profile: null,   // 目前登入者
+  options: null,   // 代碼 → 顯示文字的對照
+  cases:   [],
+  total:   0,
+  stats:   null,
+  openId:  '',     // 目前展開的案件編號
+  loading: false,
+  loaded:  false,  // 是否已經成功載入過一次（用來分辨「還沒查」與「查無資料」）
+};
+
+/** 目前套用中的篩選條件 */
+const filters = {
+  keyword: '', status_code: '', location_code: '', category_code: '',
+  date_from: '', date_to: '',
+};
+
+
+const el = {
+  bootView:  document.getElementById('bootView'),
+  bootText:  document.getElementById('bootText'),
+  errorView: document.getElementById('errorView'),
+  mainView:  document.getElementById('mainView'),
 
   adminBar:  document.getElementById('adminBar'),
   adminName: document.getElementById('adminName'),
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
-
   pageTitle: document.getElementById('pageTitle'),
+
+  statNew:   document.getElementById('statNew'),
+  statProc:  document.getElementById('statProc'),
+  statMonth: document.getElementById('statMonth'),
+  statNewLabel:   document.getElementById('statNewLabel'),
+  statProcLabel:  document.getElementById('statProcLabel'),
+  statMonthLabel: document.getElementById('statMonthLabel'),
+  overdueNote:    document.getElementById('overdueNote'),
+
+  filterToggle:     document.getElementById('filterToggle'),
+  filterToggleText: document.getElementById('filterToggleText'),
+  filterActiveTag:  document.getElementById('filterActiveTag'),
+  filterArrow:      document.getElementById('filterArrow'),
+  filterForm:       document.getElementById('filterForm'),
+
+  fKeyword:  document.getElementById('fKeyword'),
+  fStatus:   document.getElementById('fStatus'),
+  fLocation: document.getElementById('fLocation'),
+  fCategory: document.getElementById('fCategory'),
+  fDateFrom: document.getElementById('fDateFrom'),
+  fDateTo:   document.getElementById('fDateTo'),
+
+  searchBtn: document.getElementById('searchBtn'),
+  resetBtn:  document.getElementById('resetBtn'),
+
+  labelKeyword:  document.getElementById('labelKeyword'),
+  labelStatus:   document.getElementById('labelStatus'),
+  labelLocation: document.getElementById('labelLocation'),
+  labelCategory: document.getElementById('labelCategory'),
+  labelDateFrom: document.getElementById('labelDateFrom'),
+  labelDateTo:   document.getElementById('labelDateTo'),
+
+  resultInfo:  document.getElementById('resultInfo'),
+  refreshBtn:  document.getElementById('refreshBtn'),
+  cappedNote:  document.getElementById('cappedNote'),
+  listLoading: document.getElementById('listLoading'),
+  listLoadingText: document.getElementById('listLoadingText'),
+  listError:   document.getElementById('listError'),
+  caseList:    document.getElementById('caseList'),
 };
 
-/** 目前登入者的資料（通過驗證後才會有值） */
-let profile = null;
 
+// ===== 啟動 =====
 
-/**
- * 進入頁面：先確認 token 還有效，通過才把內容畫出來。
- * 沒通過的話 requireAdmin() 已經在導回登入頁，這裡直接結束。
- */
+boot();
+
 async function boot() {
   try {
-    profile = await requireAdmin();
-    if (!profile) return;   // 正在導回登入頁
+    state.profile = await requireAdmin();
+    if (!state.profile) return;      // 正在導回登入頁
 
-    view.loading.classList.add('hidden');
-    view.adminBar.classList.remove('hidden');
-    view.main.classList.remove('hidden');
-    render();
+    // 選項清單是公開 API 且有快取，跟案件列表一起要，不必等對方
+    const [options] = await Promise.all([
+      loadOptions(),
+      loadCases(),
+    ]);
+    state.options = options;
 
-  } catch (e) {
-    // 網路問題：留在這一頁顯示錯誤，不要把人踢回登入頁
-    // （重新登入一樣會失敗，只是多繞一圈）
-    view.loading.classList.add('hidden');
-    view.error.textContent = e.message || t('err.NETWORK');
-    view.error.classList.remove('hidden');
+    el.bootView.classList.add('hidden');
+    el.adminBar.classList.remove('hidden');
+    el.mainView.classList.remove('hidden');
+
+    buildFilterSelects();
+    renderAll();
+
+  } catch (err) {
+    // 網路問題就留在這一頁顯示錯誤，不要把人踢回登入頁——
+    // 重新登入一樣會失敗，只是多繞一圈
+    el.bootView.classList.add('hidden');
+    el.errorView.textContent = err.message || t('err.NETWORK');
+    el.errorView.classList.remove('hidden');
   }
 }
 
 
-view.logoutBtn.addEventListener('click', () => {
-  adminLogout();
+// ===== 讀取案件 =====
+
+/**
+ * 跟後端要案件列表。
+ * 失敗時不清空既有清單——寧可讓管理者看著舊資料，也不要整頁變空白。
+ */
+async function loadCases() {
+  if (state.loading) return;
+
+  state.loading = true;
+  setLoading(true);
+  hide(el.listError);
+
+  try {
+    const result = await Api.getCaseList(AdminSession.token(), filters);
+
+    if (!result.ok) {
+      if (result.error === 'UNAUTHORIZED') {
+        AdminSession.clear();
+        location.replace('admin.html');
+        return;
+      }
+      show(el.listError, errorMessage(result));
+      return;
+    }
+
+    state.cases  = result.data.cases || [];
+    state.total  = result.data.total || 0;
+    state.stats  = result.data.stats || null;
+    state.openId = '';
+    state.loaded = true;
+
+  } catch (err) {
+    show(el.listError, t('err.NETWORK'));
+  } finally {
+    state.loading = false;
+    setLoading(false);
+  }
+}
+
+
+function setLoading(loading) {
+  el.listLoading.classList.toggle('hidden', !loading);
+  el.searchBtn.disabled  = loading;
+  el.refreshBtn.disabled = loading;
+  el.searchBtn.textContent = loading ? t('admin.filter.searching') : t('admin.filter.search');
+}
+
+
+// ===== 篩選 =====
+
+/** 把選項清單填進三個下拉選單（第一項固定是「全部」） */
+function buildFilterSelects() {
+  fillSelect(el.fStatus,   'STATUS',   filters.status_code);
+  fillSelect(el.fLocation, 'LOCATION', filters.location_code);
+  fillSelect(el.fCategory, 'CATEGORY', filters.category_code);
+}
+
+function fillSelect(select, type, selected) {
+  select.innerHTML = '';
+
+  const all = document.createElement('option');
+  all.value = '';
+  all.textContent = t('admin.filter.all');
+  select.appendChild(all);
+
+  ((state.options && state.options[type]) || []).forEach((option) => {
+    const node = document.createElement('option');
+    node.value = option.code;
+    node.textContent = optionLabel(option);
+    select.appendChild(node);
+  });
+
+  select.value = selected || '';
+}
+
+
+el.filterForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  readFilterInputs();
+  await loadCases();
+  renderAll();
 });
 
 
-/** 依目前語言重畫文字 */
-function render() {
+el.resetBtn.addEventListener('click', async () => {
+  Object.keys(filters).forEach((key) => { filters[key] = ''; });
+  writeFilterInputs();
+  await loadCases();
+  renderAll();
+});
+
+
+el.refreshBtn.addEventListener('click', async () => {
+  await loadCases();
+  renderAll();
+});
+
+
+/** 統計卡片點一下就依該狀態篩選；再點一次取消 */
+document.querySelectorAll('.stat-card').forEach((card) => {
+  card.addEventListener('click', async () => {
+    const status = card.dataset.status;
+    filters.status_code = (filters.status_code === status) ? '' : status;
+    writeFilterInputs();
+    await loadCases();
+    renderAll();
+  });
+});
+
+
+el.filterToggle.addEventListener('click', () => {
+  el.filterForm.classList.toggle('hidden');
+  renderFilterToggle();
+});
+
+
+/** 把畫面上的輸入值收進 filters */
+function readFilterInputs() {
+  filters.keyword       = el.fKeyword.value.trim();
+  filters.status_code   = el.fStatus.value;
+  filters.location_code = el.fLocation.value;
+  filters.category_code = el.fCategory.value;
+  filters.date_from     = el.fDateFrom.value;
+  filters.date_to       = el.fDateTo.value;
+}
+
+/** 把 filters 寫回畫面（重設、或從統計卡片改變狀態時用） */
+function writeFilterInputs() {
+  el.fKeyword.value  = filters.keyword;
+  el.fStatus.value   = filters.status_code;
+  el.fLocation.value = filters.location_code;
+  el.fCategory.value = filters.category_code;
+  el.fDateFrom.value = filters.date_from;
+  el.fDateTo.value   = filters.date_to;
+}
+
+/** 目前有沒有套用任何篩選條件 */
+function hasActiveFilter() {
+  return Object.keys(filters).some((key) => filters[key]);
+}
+
+
+// ===== 畫面 =====
+
+function renderAll() {
+  renderTexts();
+  renderStats();
+  renderList();
+}
+
+
+function renderTexts() {
   document.documentElement.lang = htmlLang();
   document.title = t('admin.cases.title') + ' · ' + t('appName');
 
-  view.pageTitle.textContent   = t('admin.cases.title');
-  view.loadingText.textContent = t('admin.checking');
-  view.logoutBtn.textContent   = t('admin.logout');
+  el.pageTitle.textContent = t('admin.cases.title');
+  el.bootText.textContent  = t('admin.checking');
+  el.logoutBtn.textContent = t('admin.logout');
 
-  if (profile) {
-    view.adminName.textContent = t('admin.hello').replace('{name}', profile.name || profile.account);
-    view.adminRole.textContent = adminRoleLabel(profile.role);
+  if (state.profile) {
+    el.adminName.textContent = t('admin.hello')
+      .replace('{name}', state.profile.name || state.profile.account);
+    el.adminRole.textContent = adminRoleLabel(state.profile.role);
   }
 
-  // 關卡 3-3 會把這段換成真正的案件列表
-  view.placeholder.textContent = t('admin.cases.soon');
+  el.statNewLabel.textContent   = t('admin.stats.new');
+  el.statProcLabel.textContent  = t('admin.stats.processing');
+  el.statMonthLabel.textContent = t('admin.stats.thisMonth');
 
+  el.labelKeyword.textContent  = t('admin.filter.keyword');
+  el.labelStatus.textContent   = t('admin.filter.status');
+  el.labelLocation.textContent = t('admin.filter.location');
+  el.labelCategory.textContent = t('admin.filter.category');
+  el.labelDateFrom.textContent = t('admin.filter.dateFrom');
+  el.labelDateTo.textContent   = t('admin.filter.dateTo');
+  el.fKeyword.placeholder      = t('admin.filter.keywordPh');
+
+  el.resetBtn.textContent      = t('admin.filter.reset');
+  el.refreshBtn.textContent    = t('admin.refresh');
+  el.listLoadingText.textContent = t('admin.list.loading');
+  if (!state.loading) el.searchBtn.textContent = t('admin.filter.search');
+
+  renderFilterToggle();
   renderSystemFooter('siteFooter');
 
   document.querySelectorAll('.lang-btn').forEach((btn) => {
@@ -81,12 +306,314 @@ function render() {
 }
 
 
+function renderFilterToggle() {
+  const open = !el.filterForm.classList.contains('hidden');
+  el.filterToggleText.textContent = open ? t('admin.filter.hide') : t('admin.filter.show');
+  el.filterArrow.textContent = open ? '▴' : '▾';
+
+  // 收起來的時候，用一個小標記提醒「現在看到的不是全部」
+  el.filterActiveTag.textContent = t('admin.filter.active');
+  el.filterActiveTag.classList.toggle('hidden', !hasActiveFilter());
+}
+
+
+function renderStats() {
+  const stats = state.stats;
+  if (!stats) return;
+
+  el.statNew.textContent   = stats.new;
+  el.statProc.textContent  = stats.processing;
+  el.statMonth.textContent = stats.this_month;
+
+  // 目前依哪個狀態篩選，那張卡片就highlight
+  document.querySelectorAll('.stat-card').forEach((card) => {
+    const active = !!card.dataset.status && card.dataset.status === filters.status_code;
+    card.classList.toggle('active', active);
+  });
+
+  if (stats.overdue > 0) {
+    el.overdueNote.textContent = '⚠️ ' + t('admin.stats.overdue').replace('{n}', stats.overdue);
+    el.overdueNote.classList.remove('hidden');
+  } else {
+    el.overdueNote.classList.add('hidden');
+  }
+}
+
+
+/**
+ * 畫出案件清單。
+ *
+ * ⚠️ 整段包在 try/catch 裡：這個函式一開始就會清空清單，
+ *    中途出錯的話畫面會變成「東西全部消失且沒有任何訊息」，
+ *    使用者完全不知道發生什麼事。（查詢頁曾經因為快取到舊版 JS 而踩過。）
+ */
+function renderList() {
+  try {
+    renderListInner();
+  } catch (err) {
+    console.error('[BUG] 顯示案件清單時發生錯誤：', err);
+    el.caseList.innerHTML = '';
+    show(el.listError, t('err.UNKNOWN'));
+  }
+}
+
+function renderListInner() {
+  el.caseList.innerHTML = '';
+
+  const shown = state.cases.length;
+
+  el.resultInfo.textContent = state.loaded
+    ? t('admin.list.showing').replace('{n}', shown).replace('{total}', state.total)
+    : '';
+
+  // 後端有回傳上限，超過時要講清楚，不能讓人以為「全部就這些」
+  if (state.loaded && state.total > shown) {
+    el.cappedNote.textContent = t('admin.list.capped').replace('{n}', shown);
+    el.cappedNote.classList.remove('hidden');
+  } else {
+    el.cappedNote.classList.add('hidden');
+  }
+
+  if (!shown) {
+    if (state.loaded) {
+      const empty = document.createElement('div');
+      empty.className = 'state-box';
+      empty.textContent = hasActiveFilter() ? t('admin.list.empty') : t('admin.list.emptyAll');
+      el.caseList.appendChild(empty);
+    }
+    return;
+  }
+
+  state.cases.forEach((item) => {
+    el.caseList.appendChild(buildCaseCard(item));
+  });
+}
+
+
+function buildCaseCard(item) {
+  const isOpen = state.openId === item.case_id;
+
+  const card = document.createElement('div');
+  card.className = 'case-card'
+    + (isOpen ? ' open' : '')
+    + (item.is_overdue ? ' overdue' : '');   // 逾期整張卡片標紅（規格 §6.5）
+
+  const head = document.createElement('button');
+  head.type = 'button';
+  head.className = 'case-head';
+  head.innerHTML =
+    `<div class="case-head-main">` +
+      `<div class="case-no">${escapeHtml(item.case_id)}` +
+        (item.is_overdue
+          ? `<span class="overdue-tag">${escapeHtml(t('admin.case.overdue').replace('{n}', item.days_open))}</span>`
+          : '') +
+      `</div>` +
+      `<div class="case-meta">${escapeHtml(item.submit_time)}</div>` +
+      `<div class="case-meta">${escapeHtml(labelOf('LOCATION', item.location_code))}` +
+        ` · ${escapeHtml(labelOf('MEAL', item.meal_code))}` +
+        ` · ${escapeHtml(item.emp_name || item.emp_id)}</div>` +
+      `<div class="case-meta">${categoryChips(item)}` +
+        `<span class="case-stars">${starText(item.rating)}</span></div>` +
+    `</div>` +
+    `<div class="case-head-side">` +
+      statusBadge(item.status_code) +
+      `<span class="case-arrow">${isOpen ? '▴' : '▾'}</span>` +
+    `</div>`;
+
+  head.addEventListener('click', () => {
+    state.openId = isOpen ? '' : item.case_id;   // 再點一次收合
+    renderList();
+  });
+
+  card.appendChild(head);
+  if (isOpen) card.appendChild(buildCaseDetail(item));
+  return card;
+}
+
+
+function buildCaseDetail(item) {
+  const box = document.createElement('div');
+  box.className = 'case-detail';
+
+  // 回報人：管理端才看得到工號與姓名（員工端查詢刻意不回傳）
+  box.appendChild(detailRow(t('admin.case.employee'),
+    escapeHtml(item.emp_name || '—') + ` <span class="case-emp-id">${escapeHtml(item.emp_id)}</span>`, true));
+
+  // 員工用哪個語言回報的，提示該用哪個語言回覆（規格 §6.6）
+  box.appendChild(detailRow(t('admin.case.lang'),
+    item.lang === 'ZH' ? t('admin.case.langZH') : t('admin.case.langID'), false));
+
+  box.appendChild(detailRow(t('form.category'), categoryChips(item), true));
+
+  box.appendChild(detailRow(t('form.rating'),
+    `<span class="case-stars">${starText(item.rating)}</span> ` +
+    escapeHtml(t('rating.' + item.rating) || ''), true));
+
+  if (item.description) {
+    box.appendChild(detailRow(t('form.description'), escapeHtml(item.description), true));
+  }
+
+  // 照片。用 || [] 防禦：後端若因版本不一致少給欄位，
+  // 頂多少顯示一段，不會讓整個畫面掛掉
+  const images = item.images || [];
+  if (images.length) {
+    const row = detailRow(t('query.photos'), '', true);
+    row.querySelector('.case-row-value').appendChild(buildThumbs(images));
+    box.appendChild(row);
+  }
+
+  box.appendChild(detailRow(t('admin.case.handler'),
+    item.handler || t('admin.case.noHandler'), false));
+
+  // 回覆
+  const replyBox = document.createElement('div');
+  replyBox.className = 'case-reply' + (item.response ? '' : ' empty');
+  replyBox.innerHTML = item.response
+    ? `<div class="case-reply-title">${escapeHtml(t('admin.case.reply'))}` +
+      (item.response_time ? ` <span class="case-reply-time">${escapeHtml(item.response_time)}</span>` : '') +
+      `</div><div>${escapeHtml(item.response)}</div>`
+    : `<div>${escapeHtml(t('admin.case.noReply'))}</div>`;
+  box.appendChild(replyBox);
+
+  // 關卡 3-4 會把回覆表單接在這裡
+  const soon = document.createElement('div');
+  soon.className = 'case-soon';
+  soon.textContent = t('admin.case.editSoon');
+  box.appendChild(soon);
+
+  return box;
+}
+
+
+// ===== 小工具（與查詢頁同一套寫法）=====
+
+function categoryChips(item) {
+  return (item.category_codes || [])
+    .map((code) => `<span class="chip">${escapeHtml(labelOf('CATEGORY', code))}</span>`)
+    .join('');
+}
+
+function starText(rating) {
+  const n = Number(rating) || 0;
+  return '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n));
+}
+
+function detailRow(label, value, isHtml) {
+  const row = document.createElement('div');
+  row.className = 'case-row';
+
+  const l = document.createElement('div');
+  l.className = 'case-row-label';
+  l.textContent = label;
+
+  const v = document.createElement('div');
+  v.className = 'case-row-value';
+  if (isHtml) v.innerHTML = value; else v.textContent = value;
+
+  row.appendChild(l);
+  row.appendChild(v);
+  return row;
+}
+
+/** 狀態徽章：未處理紅、處理中黃、已結案綠 */
+function statusBadge(code) {
+  const cls = { ST_NEW: 'new', ST_PROC: 'proc', ST_DONE: 'done' }[code] || 'new';
+  return `<span class="status-badge ${cls}">${escapeHtml(labelOf('STATUS', code))}</span>`;
+}
+
+/** 把代碼翻成目前語言的顯示文字；查不到就原樣顯示代碼 */
+function labelOf(type, code) {
+  if (!code) return '—';
+  const list = (state.options && state.options[type]) || [];
+  const found = list.find((o) => o.code === code);
+  return found ? optionLabel(found) : code;
+}
+
+
+/** 照片縮圖。點一下在本頁全螢幕放大，不會跳到 Google Drive */
+function buildThumbs(images) {
+  const wrap = document.createElement('div');
+  wrap.className = 'case-thumbs';
+
+  images.forEach((image, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'case-thumb';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openLightbox(image.preview_url);
+    });
+
+    const img = document.createElement('img');
+    img.src = image.preview_url;
+    img.alt = '';
+
+    // 萬一圖片載不出來，退回顯示連結，不要留一個破圖
+    img.addEventListener('error', () => {
+      const link = document.createElement('a');
+      link.className = 'case-photo';
+      link.href = image.view_url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = '📷 ' + (index + 1);
+      btn.replaceWith(link);
+    });
+
+    btn.appendChild(img);
+    wrap.appendChild(btn);
+  });
+
+  return wrap;
+}
+
+
+function openLightbox(url) {
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox';
+
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = '';
+  overlay.appendChild(img);
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+    document.body.classList.remove('no-scroll');
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('no-scroll');
+}
+
+
+// ===== 訊息 =====
+
+function show(box, message) {
+  box.textContent = message;
+  box.classList.remove('hidden');
+}
+
+function hide(box) {
+  box.textContent = '';
+  box.classList.add('hidden');
+}
+
+
+// ===== 事件 =====
+
+el.logoutBtn.addEventListener('click', () => {
+  adminLogout();
+});
+
 document.querySelectorAll('.lang-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     setLang(btn.dataset.lang);
-    render();
+    buildFilterSelects();   // 下拉選單的文字也要跟著換語言
+    renderAll();
   });
 });
-
-
-boot();

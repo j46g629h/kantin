@@ -843,3 +843,230 @@ textarea:focus {
 }
 
 .admin-entry:active { color: var(--text-muted); }
+
+
+/* ===== 管理端：案件列表 ===== */
+
+/* 案件列表資訊量大，比員工端寬一些 */
+.page-wide { max-width: 760px; }
+
+/* --- 統計卡片 --- */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: var(--gap);
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  font-family: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.stat-card:active { background: var(--surface-alt); }
+
+/* 目前正依這個狀態篩選 */
+.stat-card.active {
+  border-color: var(--brand);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+.stat-num {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.stat-new  .stat-num { color: var(--danger); }
+.stat-proc .stat-num { color: var(--warn); }
+.stat-month .stat-num { color: var(--brand); }
+
+.overdue-note {
+  padding: 10px 14px;
+  margin-bottom: var(--gap);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius);
+}
+
+/* --- 篩選區 --- */
+
+.filter-box {
+  margin-bottom: var(--gap);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px var(--pad-card);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.filter-arrow {
+  margin-left: auto;
+  color: var(--text-subtle);
+  font-size: 14px;
+}
+
+.tag-active {
+  color: var(--brand);
+  background: var(--brand-light);
+}
+
+.filter-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap);
+  padding: 0 var(--pad-card) var(--pad-card);
+  border-top: 1px solid var(--border);
+  padding-top: var(--pad-card);
+}
+
+.filter-field { display: flex; flex-direction: column; gap: 6px; }
+
+/* 關鍵字欄位佔滿一整列 */
+.filter-field-wide { grid-column: 1 / -1; }
+
+.filter-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* 日期欄位在 iOS 上預設高度會跟其他欄位對不齊 */
+input[type="date"] {
+  width: 100%;
+  height: 46px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: var(--fs-input);
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.filter-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+/* 篩選區裡的按鈕不要像主要按鈕那樣佔滿整行 */
+.btn-inline {
+  flex: 1;
+  margin-top: 0;
+  padding: 12px;
+  font-size: var(--fs-body);
+}
+
+/* --- 清單上方的資訊列 --- */
+
+.list-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-bottom: 8px;
+}
+
+.list-count {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.list-refresh {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.list-refresh:disabled { opacity: .5; cursor: not-allowed; }
+
+.result.warn {
+  color: var(--warn);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  margin-bottom: var(--gap);
+}
+
+/* --- 逾期案件（規格 §6.5：未處理超過 3 天整列標紅）--- */
+
+.case-card.overdue {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.case-card.overdue.open { border-color: var(--danger); }
+
+.overdue-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  background: var(--danger-tag);
+  border-radius: var(--radius-pill);
+  vertical-align: middle;
+}
+
+/* 工號用等寬字，前導零看得比較清楚 */
+.case-emp-id {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.case-soon {
+  margin-top: 10px;
+  padding: 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+  text-align: center;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+/* 桌機上篩選欄位排三欄比較不浪費空間 */
+@media (min-width: 640px) {
+  .filter-body { grid-template-columns: repeat(3, 1fr); }
+}

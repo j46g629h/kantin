@@ -85,6 +85,23 @@ const Api = {
     return this.post({ action: 'getAdminProfile', token });
   },
 
+  /**
+   * 取得案件列表。
+   * @param {string} token
+   * @param {Object} filters 篩選條件（status_code / location_code / category_code /
+   *                         date_from / date_to / keyword），空字串的會被拿掉
+   */
+  getCaseList(token, filters = {}) {
+    const payload = { action: 'getCaseList', token };
+
+    // 空字串代表「不篩這一項」，不要送出去佔位
+    Object.keys(filters).forEach((key) => {
+      if (filters[key]) payload[key] = filters[key];
+    });
+
+    return this.post(payload);
+  },
+
   /** 變更自己的密碼 */
   adminChangePassword(token, oldPassword, newPassword) {
     return this.post({

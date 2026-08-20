@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Daftar Laporan · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=1.2">
+  <link rel="stylesheet" href="css/style.css?v=1.3">
 </head>
 <body>
 
-  <div class="page">
+  <div class="page page-wide">
 
-    <!-- 頁首：顯示登入者與登出 -->
+    <!-- 頁首 -->
     <header class="topbar">
       <h1 class="topbar-title" id="pageTitle">Daftar Laporan</h1>
       <div class="lang-switch lang-switch-compact">
@@ -31,16 +31,96 @@
 
     <main>
       <!-- 驗證登入狀態中 -->
-      <div id="loadingView" class="state-box">
+      <div id="bootView" class="state-box">
         <div class="spinner"></div>
-        <p id="loadingText">Mengecek status login…</p>
+        <p id="bootText">Mengecek status login…</p>
       </div>
 
       <div id="errorView" class="result error hidden"></div>
 
-      <!-- 關卡 3-3 會把案件列表放進這裡 -->
       <div id="mainView" class="hidden">
-        <div class="result" id="placeholder"></div>
+
+        <!-- 統計卡片：點一下就依該狀態篩選 -->
+        <div class="stat-row">
+          <button type="button" class="stat-card stat-new" data-status="ST_NEW">
+            <span class="stat-num" id="statNew">–</span>
+            <span class="stat-label" id="statNewLabel">Belum Diproses</span>
+          </button>
+          <button type="button" class="stat-card stat-proc" data-status="ST_PROC">
+            <span class="stat-num" id="statProc">–</span>
+            <span class="stat-label" id="statProcLabel">Sedang Diproses</span>
+          </button>
+          <button type="button" class="stat-card stat-month" data-status="">
+            <span class="stat-num" id="statMonth">–</span>
+            <span class="stat-label" id="statMonthLabel">Bulan Ini</span>
+          </button>
+        </div>
+
+        <!-- 有逾期案件時才出現 -->
+        <div id="overdueNote" class="overdue-note hidden"></div>
+
+        <!-- 篩選 -->
+        <div class="filter-box">
+          <button type="button" id="filterToggle" class="filter-toggle">
+            <span id="filterToggleText">Filter</span>
+            <span id="filterActiveTag" class="tag tag-active hidden"></span>
+            <span id="filterArrow" class="filter-arrow">▾</span>
+          </button>
+
+          <form id="filterForm" class="filter-body hidden" novalidate>
+            <div class="filter-field filter-field-wide">
+              <label class="filter-label" for="fKeyword" id="labelKeyword">Kata kunci</label>
+              <input type="text" id="fKeyword" autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="filter-field">
+              <label class="filter-label" for="fStatus" id="labelStatus">Status</label>
+              <select id="fStatus"></select>
+            </div>
+
+            <div class="filter-field">
+              <label class="filter-label" for="fLocation" id="labelLocation">Kantin</label>
+              <select id="fLocation"></select>
+            </div>
+
+            <div class="filter-field">
+              <label class="filter-label" for="fCategory" id="labelCategory">Kategori</label>
+              <select id="fCategory"></select>
+            </div>
+
+            <div class="filter-field">
+              <label class="filter-label" for="fDateFrom" id="labelDateFrom">Dari tanggal</label>
+              <input type="date" id="fDateFrom">
+            </div>
+
+            <div class="filter-field">
+              <label class="filter-label" for="fDateTo" id="labelDateTo">Sampai tanggal</label>
+              <input type="date" id="fDateTo">
+            </div>
+
+            <div class="filter-actions">
+              <button type="submit" id="searchBtn" class="btn-primary btn-inline">Cari</button>
+              <button type="button" id="resetBtn" class="btn-secondary btn-inline">Hapus filter</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 結果資訊列 -->
+        <div class="list-bar">
+          <span id="resultInfo" class="list-count"></span>
+          <button type="button" id="refreshBtn" class="list-refresh">Muat ulang</button>
+        </div>
+
+        <div id="cappedNote" class="result warn hidden"></div>
+
+        <!-- 載入中 -->
+        <div id="listLoading" class="state-box hidden">
+          <div class="spinner"></div>
+          <p id="listLoadingText">Memuat laporan…</p>
+        </div>
+
+        <div id="listError" class="result error hidden"></div>
+        <div id="caseList"></div>
       </div>
     </main>
 
@@ -48,12 +128,12 @@
 
   </div>
 
-  <script src="js/config.js?v=1.2"></script>
-  <script src="js/i18n.js?v=1.2"></script>
-  <script src="js/ui.js?v=1.2"></script>
-  <script src="js/api.js?v=1.2"></script>
-  <script src="js/admin-session.js?v=1.2"></script>
-  <script src="js/admin-cases.js?v=1.2"></script>
+  <script src="js/config.js?v=1.3"></script>
+  <script src="js/i18n.js?v=1.3"></script>
+  <script src="js/ui.js?v=1.3"></script>
+  <script src="js/api.js?v=1.3"></script>
+  <script src="js/admin-session.js?v=1.3"></script>
+  <script src="js/admin-cases.js?v=1.3"></script>
 
 </body>
 </html>

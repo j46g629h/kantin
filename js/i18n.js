@@ -147,7 +147,49 @@ const I18N = {
     'admin.logout':         '登出',
     'admin.checking':       '確認登入狀態…',
     'admin.cases.title':    '案件列表',
-    'admin.cases.soon':     '案件列表正在開發中（關卡 3-3）。目前能登入就代表這一關已經完成。',
+
+    // --- 管理端：統計卡片 ---
+    'admin.stats.new':        '未處理',
+    'admin.stats.processing': '處理中',
+    'admin.stats.thisMonth':  '本月',
+    'admin.stats.overdue':    '逾期 {n} 件',
+    'admin.stats.unit':       '件',
+
+    // --- 管理端：篩選 ---
+    'admin.filter.show':     '篩選條件',
+    'admin.filter.hide':     '收起篩選',
+    'admin.filter.keyword':  '關鍵字',
+    'admin.filter.keywordPh':'案件編號 / 工號 / 姓名 / 內容',
+    'admin.filter.status':   '處理狀態',
+    'admin.filter.location': '餐廳地點',
+    'admin.filter.category': '問題分類',
+    'admin.filter.dateFrom': '起始日期',
+    'admin.filter.dateTo':   '結束日期',
+    'admin.filter.all':      '全部',
+    'admin.filter.search':   '查詢',
+    'admin.filter.searching':'查詢中…',
+    'admin.filter.reset':    '清除條件',
+    'admin.filter.active':   '篩選中',
+
+    // --- 管理端：列表 ---
+    'admin.list.showing':  '顯示 {n} 筆，共 {total} 筆',
+    'admin.list.capped':   '筆數較多，只顯示最新的 {n} 筆。請用篩選條件縮小範圍。',
+    'admin.list.empty':    '沒有符合條件的案件',
+    'admin.list.emptyAll': '目前還沒有任何回報',
+    'admin.list.loading':  '載入案件中…',
+    'admin.refresh':       '重新整理',
+
+    // --- 管理端：案件內容 ---
+    'admin.case.overdue':   '已 {n} 天未處理',
+    'admin.case.employee':  '回報人',
+    'admin.case.handler':   '處理者',
+    'admin.case.noHandler': '尚未指派',
+    'admin.case.lang':      '員工語言',
+    'admin.case.langZH':    '中文',
+    'admin.case.langID':    '印尼文',
+    'admin.case.reply':     '回覆內容',
+    'admin.case.noReply':   '尚未回覆',
+    'admin.case.editSoon':  '回覆與結案功能在關卡 3-4 開放',
 
     // --- 管理端錯誤 ---
     'err.LOGIN_REQUIRED':       '請輸入帳號與密碼',
@@ -301,7 +343,49 @@ const I18N = {
     'admin.logout':         'Keluar',
     'admin.checking':       'Mengecek status login…',
     'admin.cases.title':    'Daftar Laporan',
-    'admin.cases.soon':     'Daftar laporan masih dalam pengembangan (tahap 3-3). Kalau kamu bisa masuk ke sini, berarti tahap ini sudah selesai.',
+
+    // --- Admin: kartu statistik ---
+    'admin.stats.new':        'Belum Diproses',
+    'admin.stats.processing': 'Sedang Diproses',
+    'admin.stats.thisMonth':  'Bulan Ini',
+    'admin.stats.overdue':    '{n} laporan terlambat',
+    'admin.stats.unit':       '',
+
+    // --- Admin: filter ---
+    'admin.filter.show':     'Filter',
+    'admin.filter.hide':     'Tutup filter',
+    'admin.filter.keyword':  'Kata kunci',
+    'admin.filter.keywordPh':'Nomor laporan / NIK / nama / isi',
+    'admin.filter.status':   'Status',
+    'admin.filter.location': 'Kantin',
+    'admin.filter.category': 'Kategori masalah',
+    'admin.filter.dateFrom': 'Dari tanggal',
+    'admin.filter.dateTo':   'Sampai tanggal',
+    'admin.filter.all':      'Semua',
+    'admin.filter.search':   'Cari',
+    'admin.filter.searching':'Mencari…',
+    'admin.filter.reset':    'Hapus filter',
+    'admin.filter.active':   'Terfilter',
+
+    // --- Admin: daftar ---
+    'admin.list.showing':  'Menampilkan {n} dari {total} laporan',
+    'admin.list.capped':   'Laporan terlalu banyak, hanya {n} terbaru yang ditampilkan. Pakai filter untuk mempersempit.',
+    'admin.list.empty':    'Tidak ada laporan yang cocok',
+    'admin.list.emptyAll': 'Belum ada laporan sama sekali',
+    'admin.list.loading':  'Memuat laporan…',
+    'admin.refresh':       'Muat ulang',
+
+    // --- Admin: isi laporan ---
+    'admin.case.overdue':   'Sudah {n} hari belum diproses',
+    'admin.case.employee':  'Pelapor',
+    'admin.case.handler':   'Ditangani oleh',
+    'admin.case.noHandler': 'Belum ditugaskan',
+    'admin.case.lang':      'Bahasa pelapor',
+    'admin.case.langZH':    'Mandarin',
+    'admin.case.langID':    'Bahasa Indonesia',
+    'admin.case.reply':     'Balasan',
+    'admin.case.noReply':   'Belum dibalas',
+    'admin.case.editSoon':  'Fitur balas dan tutup laporan dibuka di tahap 3-4',
 
     // --- Pesan kesalahan admin ---
     'err.LOGIN_REQUIRED':       'Isi akun dan kata sandi dulu ya',
