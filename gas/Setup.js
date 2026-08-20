@@ -320,3 +320,89 @@ function findOrCreateFolder(parent, name) {
   const found = parent.getFoldersByName(name);
   return found.hasNext() ? found.next() : parent.createFolder(name);
 }
+
+
+/**
+ * 效能實測：11,000 筆員工名冊的查詢速度。
+ *
+ * 會自動建立一個暫存分頁、灌入假資料、實測查詢耗時，最後把暫存分頁刪掉。
+ * **完全不會動到你的「員工名冊」分頁。**
+ *
+ * 執行方式：函式下拉選單選 benchmarkEmployeeLookup → 執行 → 看執行紀錄
+ */
+function benchmarkEmployeeLookup() {
+  const ROWS = 11000;
+  const TEMP_SHEET = '_效能測試_暫存';
+
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const report = [];
+
+  // 上次跑到一半殘留的暫存分頁先清掉
+  const leftover = ss.getSheetByName(TEMP_SHEET);
+  if (leftover) ss.deleteSheet(leftover);
+
+  const sheet = ss.insertSheet(TEMP_SHEET);
+
+  try {
+    report.push('建立 ' + ROWS + ' 筆測試名冊…');
+
+    sheet.getRange(1, 1, 1, 3).setValues([['工號', '姓名', '狀態']]);
+    sheet.getRange(2, 1, ROWS, 1).setNumberFormat('@');
+
+    const data = [];
+    for (let i = 1; i <= ROWS; i++) {
+      data.push(['E' + String(i).padStart(6, '0'), 'Karyawan ' + i, EMP_STATUS.ACTIVE]);
+    }
+
+    let t = new Date().getTime();
+    sheet.getRange(2, 1, ROWS, 3).setValues(data);
+    SpreadsheetApp.flush();
+    report.push('  寫入耗時：' + (new Date().getTime() - t) + ' ms（只有匯入名冊時會發生）');
+    report.push('');
+
+    // --- 作法一：Sheet 內建搜尋（目前系統用的）---
+    // 查最後一筆 = 最壞情況
+    const worstCase = 'E' + String(ROWS).padStart(6, '0');
+
+    t = new Date().getTime();
+    const found = sheet.getRange(2, 1, ROWS, 1)
+      .createTextFinder(worstCase)
+      .matchEntireCell(true)
+      .matchCase(false)
+      .findNext();
+    const finderMs = new Date().getTime() - t;
+
+    report.push('【目前系統的作法】Sheet 內建搜尋 TextFinder');
+    report.push('  查詢第 ' + ROWS + ' 筆（最壞情況）：' + finderMs + ' ms');
+    report.push('  找到了嗎：' + (found ? '是（第 ' + found.getRow() + ' 列）' : '否'));
+    report.push('');
+
+    // --- 作法二：全部讀進程式再比對（對照組，我們沒有用）---
+    t = new Date().getTime();
+    const all = sheet.getRange(2, 1, ROWS, 1).getValues();
+    let hit = -1;
+    for (let i = 0; i < all.length; i++) {
+      if (String(all[i][0]).trim().toUpperCase() === worstCase) { hit = i + 2; break; }
+    }
+    const scanMs = new Date().getTime() - t;
+
+    report.push('【對照組】把 ' + ROWS + ' 筆全部讀進程式再逐筆比對');
+    report.push('  耗時：' + scanMs + ' ms' + (hit > 0 ? '（第 ' + hit + ' 列）' : ''));
+    report.push('');
+
+    report.push('結論：');
+    report.push('  單次查詢約 ' + finderMs + ' ms，相較之下 Apps Script 本身的啟動就要 1000～3000 ms，');
+    report.push('  所以 11,000 筆名冊對速度幾乎沒有影響。');
+    report.push('  而且查過的工號會快取 1 小時，同一個人再查是即時的。');
+
+  } finally {
+    // 不管成功失敗都要把暫存分頁刪掉，不留垃圾
+    ss.deleteSheet(sheet);
+    report.push('');
+    report.push('暫存分頁已刪除。');
+  }
+
+  const text = report.join(String.fromCharCode(10));
+  Logger.log(text);
+  return text;
+}

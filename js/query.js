@@ -215,11 +215,10 @@ function buildCaseDetail(item) {
   }
 
   // 照片
-  if (item.image_urls.length) {
-    const links = item.image_urls
-      .map((url, i) => `<a class="case-photo" href="${escapeHtml(url)}" target="_blank" rel="noopener">📷 ${i + 1}</a>`)
-      .join('');
-    box.appendChild(detailRow(t('query.photos'), links, true));
+  if (item.images.length) {
+    const row = detailRow(t('query.photos'), '', true);
+    row.querySelector('.case-row-value').appendChild(buildThumbs(item.images));
+    box.appendChild(row);
   }
 
   // 管理者回覆
@@ -251,6 +250,70 @@ function detailRow(label, valueHtml, isHtml) {
   row.appendChild(v);
   return row;
 }
+
+/**
+ * 照片縮圖。點一下在本頁全螢幕放大，不會跳到 Google Drive。
+ */
+function buildThumbs(images) {
+  const wrap = document.createElement('div');
+  wrap.className = 'case-thumbs';
+
+  images.forEach((image, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'case-thumb';
+    btn.addEventListener('click', () => openLightbox(image.preview_url));
+
+    const img = document.createElement('img');
+    img.src = image.preview_url;
+    img.alt = '';
+    // 不用 loading="lazy"：一次最多只顯示 2 張，延遲載入沒有好處，
+    // 反而遇過瀏覽器判定「不在畫面內」而始終不發出請求，看起來像壞掉
+
+    // 萬一圖片載不出來（Drive 端點改變、網路問題），
+    // 退回顯示連結，不要留一個破圖讓使用者不知所措
+    img.addEventListener('error', () => {
+      const link = document.createElement('a');
+      link.className = 'case-photo';
+      link.href = image.view_url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = '📷 ' + (index + 1);
+      btn.replaceWith(link);
+    });
+
+    btn.appendChild(img);
+    wrap.appendChild(btn);
+  });
+
+  return wrap;
+}
+
+
+/** 全螢幕檢視照片：點任何地方或按 Esc 關閉 */
+function openLightbox(url) {
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox';
+
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = '';
+  overlay.appendChild(img);
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+    document.body.classList.remove('no-scroll');
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('no-scroll');   // 放大時背景不要跟著捲動
+}
+
 
 /** 狀態徽章：未處理紅、處理中黃、已結案綠 */
 function statusBadge(code) {

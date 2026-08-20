@@ -108,7 +108,7 @@ function buildPublicCase(values, colMap) {
     status_code:     str(values[colMap.status_code - 1]) || 'ST_NEW',
     response:        str(values[colMap.response - 1]),
     response_time:   formatCellTime(values[colMap.response_time - 1]),
-    image_urls:      splitImageUrls(values[colMap.image_urls - 1]),
+    images:          buildImageList(values[colMap.image_urls - 1]),
   };
 }
 
@@ -120,10 +120,39 @@ function formatCellTime(value) {
 }
 
 
-/** 圖片連結在儲存格裡以換行分隔 */
-function splitImageUrls(value) {
+/**
+ * 把儲存格裡的圖片連結整理成前端好用的格式。
+ *
+ * ⚠️ Sheet 裡存的是 Drive 的「檢視網頁」網址（.../file/d/{ID}/view）。
+ *    那是一個 HTML 頁面，放進 <img> 顯示不出來，點下去還會跳離本系統。
+ *
+ *    這裡從網址取出檔案 ID，另外組出「圖片端點」的網址，
+ *    前端就能直接內嵌顯示，使用者不必跳到 Google Drive。
+ *
+ * @return {Array} [{ preview_url, view_url }]
+ */
+function buildImageList(value) {
   return str(value)
-    .split('\n')
+    .split(String.fromCharCode(10))          // 換行分隔
     .map(function (u) { return u.trim(); })
-    .filter(function (u) { return u; });
+    .filter(function (u) { return u; })
+    .map(function (url) {
+      const fileId = extractDriveFileId(url);
+      return {
+        // 直接回傳圖片內容，可放進 <img>。
+        // sz=w1600 與前端壓縮後的尺寸一致，不會再被縮小
+        preview_url: fileId
+          ? 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600'
+          : url,
+        // 保留原始網址：圖片載入失敗時可退回用連結開啟
+        view_url: url,
+      };
+    });
+}
+
+
+/** 從 Drive 網址取出檔案 ID（.../file/d/{ID}/view） */
+function extractDriveFileId(url) {
+  const match = str(url).match(new RegExp('/d/([a-zA-Z0-9_-]+)'));
+  return match ? match[1] : '';
 }
