@@ -141,7 +141,27 @@ function setSearching(busy) {
 
 // ===== 結果 =====
 
+/**
+ * 畫出查詢結果。
+ *
+ * ⚠️ 整個包在 try/catch 裡是有原因的：
+ *    這個函式一開始會清空清單，如果中途出錯，使用者看到的是
+ *    「東西全部消失而且沒有任何訊息」，完全不知道發生什麼事。
+ *    （曾經因為後端改了欄位名稱、而使用者瀏覽器還快取著舊版程式，
+ *      就發生過這個狀況。）
+ */
 function renderResults() {
+  try {
+    renderResultsInner();
+  } catch (err) {
+    console.error('[BUG] 顯示查詢結果時發生錯誤：', err);
+    el.resultList.innerHTML = '';
+    el.resultInfo.classList.add('hidden');
+    showError(t('err.UNKNOWN'));
+  }
+}
+
+function renderResultsInner() {
   el.resultList.innerHTML = '';
 
   if (!state.cases.length) {
@@ -198,8 +218,9 @@ function buildCaseDetail(item) {
   const box = document.createElement('div');
   box.className = 'case-detail';
 
-  // 問題分類
-  const categories = item.category_codes
+  // 問題分類。用 || [] 防禦：後端若因版本不一致少給欄位，
+  // 頂多少顯示一段，不會讓整個畫面掛掉
+  const categories = (item.category_codes || [])
     .map((code) => `<span class="chip">${escapeHtml(labelOf('CATEGORY', code))}</span>`)
     .join('');
   box.appendChild(detailRow(t('form.category'), categories, true));
@@ -215,9 +236,10 @@ function buildCaseDetail(item) {
   }
 
   // 照片
-  if (item.images.length) {
+  const images = item.images || [];
+  if (images.length) {
     const row = detailRow(t('query.photos'), '', true);
-    row.querySelector('.case-row-value').appendChild(buildThumbs(item.images));
+    row.querySelector('.case-row-value').appendChild(buildThumbs(images));
     box.appendChild(row);
   }
 
