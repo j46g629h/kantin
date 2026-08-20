@@ -42,6 +42,15 @@ const MAX_CATEGORIES = 2;
 
 
 /**
+ * 照片設定。
+ * 手機照片一張 3～8 MB，壓成長邊 1600px / JPEG 0.8 後約 200～400 KB。
+ */
+const IMAGE_MAX_COUNT = 2;      // 一筆回報最多幾張照片
+const IMAGE_MAX_EDGE  = 1600;   // 壓縮後長邊最大像素
+const IMAGE_QUALITY   = 0.8;    // JPEG 品質（0～1）
+
+
+/**
  * 各餐供應時段，用來在表單自動預選「餐別」。
  *
  * from 含、to 不含（例如 5～10 表示 05:00～09:59 算早餐）。
@@ -49,11 +58,6 @@ const MAX_CATEGORIES = 2;
  *
  * ⚠️ 這裡是暫定值，請依實際供餐時間調整。
  */
-const IMAGE_MAX_COUNT = 2;      // 一筆回報最多幾張照片
-const IMAGE_MAX_EDGE  = 1600;   // 壓縮後長邊最大像素
-const IMAGE_QUALITY   = 0.8;    // JPEG 品質（0～1）
-
-
 const MEAL_TIME_RANGES = [
   { code: 'MEAL_BREAKFAST', from: 5,  to: 10 },
   { code: 'MEAL_LUNCH',     from: 10, to: 15 },
