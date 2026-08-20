@@ -406,3 +406,140 @@ function benchmarkEmployeeLookup() {
   Logger.log(text);
   return text;
 }
+
+
+/**
+ * 檢查員工名冊的資料品質。
+ *
+ * 匯入名冊後執行一次，確認格式正確、沒有重複或空白。
+ *
+ * 🔒 這支程式**不會輸出任何姓名或工號**，只回報數量與列號，
+ *    所以執行結果可以安心分享給別人看。
+ *
+ * 執行方式：函式下拉選單選 checkEmployeeRoster → 執行 → 看執行紀錄
+ */
+function checkEmployeeRoster() {
+  const sheet = getSheet(SHEETS.EMPLOYEES);
+  const lastRow = sheet.getLastRow();
+  const report = [];
+
+  report.push('=== 員工名冊檢查 ===');
+  report.push('');
+
+  if (lastRow < 2) {
+    report.push('名冊是空的（只有標題列）。');
+    Logger.log(report.join(String.fromCharCode(10)));
+    return;
+  }
+
+  const count = lastRow - 1;
+  const range = sheet.getRange(2, 1, count, 3);
+  const values = range.getValues();
+  const formats = sheet.getRange(2, 1, count, 1).getNumberFormats();
+
+  report.push('總筆數：' + count + ' 筆');
+  report.push('');
+
+  // --- 1. 工號欄位型別（前導零是否安全）---
+  // 儲存格若是「數字」型別，0012345 會被存成 12345
+  let numericCells = 0;
+  let nonTextFormat = 0;
+  const idLengths = {};
+  const emptyIdRows = [];
+  const spacedIdRows = [];
+  const seen = {};
+  const duplicateRows = [];
+
+  values.forEach(function (row, i) {
+    const rowNo = i + 2;
+    const raw = row[0];
+
+    if (typeof raw === 'number') numericCells++;
+    if (formats[i][0] !== '@') nonTextFormat++;
+
+    const id = String(raw === null || raw === undefined ? '' : raw);
+    if (!id.trim()) {
+      emptyIdRows.push(rowNo);
+      return;
+    }
+    if (id !== id.trim()) spacedIdRows.push(rowNo);
+
+    const key = id.trim().toUpperCase();
+    idLengths[key.length] = (idLengths[key.length] || 0) + 1;
+
+    if (seen[key]) duplicateRows.push(rowNo + '（與第 ' + seen[key] + ' 列重複）');
+    else seen[key] = rowNo;
+  });
+
+  report.push('【工號格式】');
+  report.push('  被存成「數字」的儲存格：' + numericCells + ' 個'
+    + (numericCells > 0 ? '  ⚠️ 前導零可能已經消失，需要重貼' : '  ✅'));
+  report.push('  格式不是「純文字」的儲存格：' + nonTextFormat + ' 個'
+    + (nonTextFormat > 0 ? '  ⚠️ 建議整欄設為純文字後重貼' : '  ✅'));
+
+  const lengthKeys = Object.keys(idLengths).sort(function (a, b) { return a - b; });
+  report.push('  工號長度分布：' + lengthKeys.map(function (k) {
+    return k + ' 碼 × ' + idLengths[k] + ' 筆';
+  }).join('、'));
+  report.push('');
+
+  // --- 2. 資料完整性 ---
+  const emptyNameRows = [];
+  values.forEach(function (row, i) {
+    if (!String(row[1] === null || row[1] === undefined ? '' : row[1]).trim()) {
+      emptyNameRows.push(i + 2);
+    }
+  });
+
+  report.push('【資料完整性】');
+  report.push('  工號空白：' + emptyIdRows.length + ' 筆'
+    + (emptyIdRows.length ? '  → 第 ' + emptyIdRows.slice(0, 10).join(', ') + ' 列' : '  ✅'));
+  report.push('  姓名空白：' + emptyNameRows.length + ' 筆'
+    + (emptyNameRows.length ? '  → 第 ' + emptyNameRows.slice(0, 10).join(', ') + ' 列' : '  ✅'));
+  report.push('  工號前後有空白字元：' + spacedIdRows.length + ' 筆'
+    + (spacedIdRows.length ? '  → 第 ' + spacedIdRows.slice(0, 10).join(', ') + ' 列' : '  ✅'));
+  report.push('  工號重複：' + duplicateRows.length + ' 筆'
+    + (duplicateRows.length ? '  → 第 ' + duplicateRows.slice(0, 10).join('、') : '  ✅'));
+  report.push('');
+
+  // --- 3. 狀態欄 ---
+  let blankStatus = 0;
+  let activeCount = 0;
+  let leftCount = 0;
+  let otherStatus = 0;
+  values.forEach(function (row) {
+    const st = String(row[2] === null || row[2] === undefined ? '' : row[2]).trim().toUpperCase();
+    if (!st) blankStatus++;
+    else if (st === EMP_STATUS.ACTIVE) activeCount++;
+    else if (st === EMP_STATUS.LEFT) leftCount++;
+    else otherStatus++;
+  });
+
+  report.push('【狀態欄】');
+  report.push('  ACTIVE：' + activeCount + ' 筆');
+  report.push('  LEFT（已停用）：' + leftCount + ' 筆');
+  report.push('  空白：' + blankStatus + ' 筆　（空白會被視為在職，屬正常）');
+  if (otherStatus > 0) report.push('  ⚠️ 無法辨識的狀態：' + otherStatus + ' 筆');
+  report.push('');
+
+  // --- 4. 結論 ---
+  const problems = numericCells + emptyIdRows.length + emptyNameRows.length
+    + spacedIdRows.length + duplicateRows.length + otherStatus;
+
+  report.push('=== 結論 ===');
+  report.push(problems === 0
+    ? '✅ 沒有發現問題，名冊可以使用。'
+    : '⚠️ 發現 ' + problems + ' 處需要處理，詳見上方。');
+
+  // 清掉工號查詢的快取，讓新名冊立刻生效
+  const cache = CacheService.getScriptCache();
+  values.forEach(function (row) {
+    const id = String(row[0] === null || row[0] === undefined ? '' : row[0]).trim();
+    if (id) cache.remove('emp:' + id);
+  });
+  report.push('（已清除工號查詢快取，新名冊立即生效）');
+
+  const text = report.join(String.fromCharCode(10));
+  Logger.log(text);
+  return text;
+}
