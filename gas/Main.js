@@ -58,6 +58,8 @@ const ROUTES = {
   getAdminProfile:     function (p) { return withAuth(p, function (s) { return getAdminProfile(p, s); }); },
   adminChangePassword: function (p) { return withAuth(p, function (s) { return adminChangePassword(p, s); }); },
   getCaseList:         function (p) { return withAuth(p, function (s) { return getCaseList(p, s); }); },
+  getTemplates:        function (p) { return withAuth(p, function (s) { return getTemplates(p, s); }); },
+  updateCase:          function (p) { return withAuth(p, function (s) { return updateCase(p, s); }); },
 };
 
 

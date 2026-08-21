@@ -198,3 +198,135 @@ function stripInternalFields(item) {
   });
   return clean;
 }
+
+
+// ===== 更新案件（規格 §6.6）=====
+
+/**
+ * POST { action:'updateCase', token, case_id, status_code, response }
+ *
+ * 更新處理狀態與回覆內容，並自動記錄處理者、處理時間、最後更新資訊。
+ *
+ * 回傳更新後的整筆案件，前端直接replace畫面上那一筆就好，
+ * 不必為了看到結果再多打一次 API（Apps Script 每次來回要 3～8 秒）。
+ */
+function updateCase(params, session) {
+  const caseId     = str(params.case_id).toUpperCase();
+  const statusCode = str(params.status_code).toUpperCase();
+  const response   = str(params.response);
+
+  if (!caseId)     return fail('CASE_ID_REQUIRED', '缺少案件編號');
+  if (!statusCode) return fail('STATUS_REQUIRED', '請選擇處理狀態');
+
+  // 不能相信前端送來的代碼，否則有人改網頁原始碼就能塞任意值進資料庫
+  const options = readOptionsFromSheet();
+  if (!hasOptionCode(options.STATUS, statusCode)) {
+    return fail('STATUS_INVALID', '處理狀態不正確');
+  }
+
+  // 「處理中」與「已結案」一定要有回覆，員工才知道發生了什麼事
+  if (STATUS_REQUIRING_RESPONSE.indexOf(statusCode) >= 0 && !response) {
+    return fail('RESPONSE_REQUIRED', '這個狀態需要填寫回覆內容');
+  }
+
+  // 兩位管理者同時處理同一件時，後存的會蓋掉先存的。
+  // 加鎖讓兩次儲存排隊進行，至少不會寫到一半互相交錯
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return fail('BUSY', '系統忙碌中，請稍後再試');
+  }
+
+  try {
+    const sheet  = getSheet(SHEETS.FEEDBACK);
+    const colMap = getFeedbackColumnMap();
+    const row    = findCaseRow(sheet, colMap, caseId);
+
+    if (!row) return fail('CASE_NOT_FOUND', '查無此案件編號');
+
+    const before = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (isDeletedRow(before, colMap)) return fail('CASE_NOT_FOUND', '查無此案件編號');
+
+    const now         = new Date();
+    const handlerName = str(session.name) || str(session.account);
+    const oldResponse = str(before[colMap.response - 1]);
+
+    setTextCell(sheet, row, colMap.status_code, statusCode);
+    setTextCell(sheet, row, colMap.response,    response);
+    setTextCell(sheet, row, colMap.handler,     handlerName);
+
+    // 處理時間代表「這句回覆是什麼時候寫的」，
+    // 所以只有回覆內容真的變了才更新。單純改狀態不該讓時間跳動
+    if (response !== oldResponse) {
+      setDateCell(sheet, row, colMap.response_time, now);
+    }
+
+    // 稽核用：任何一次儲存都留下紀錄
+    setDateCell(sheet, row, colMap.last_updated_at, now);
+    setTextCell(sheet, row, colMap.last_updated_by, handlerName);
+
+    const after = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+    return ok({ case: stripInternalFields(buildAdminCase(after, colMap, now)) });
+
+  } finally {
+    // 執行過久時鎖會自動過期，releaseLock() 會丟出例外。
+    // 不包起來的話，已經存好的結果會被這個例外蓋掉，
+    // 使用者會看到「系統錯誤」但資料其實已經寫進去了
+    try { lock.releaseLock(); } catch (e) { Logger.log('釋放鎖失敗（可忽略）: ' + e); }
+  }
+}
+
+
+/**
+ * 用案件編號找出所在列號。
+ *
+ * ⚠️ 一律用 case_id 找，不可以記列號。
+ *    有人在 Sheet 手動插入或刪除列，記下來的列號就全錯了，
+ *    而且錯得無聲無息——會更新到別人的案件上。
+ *
+ * @return {number|null} 列號，找不到回傳 null
+ */
+function findCaseRow(sheet, colMap, caseId) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+
+  const match = sheet
+    .getRange(2, colMap.case_id, lastRow - 1, 1)
+    .createTextFinder(caseId)
+    .matchEntireCell(true)
+    .matchCase(false)
+    .findNext();
+
+  return match ? match.getRow() : null;
+}
+
+
+// ===== 回覆範本（規格 §3.5）=====
+
+/**
+ * POST { action:'getTemplates', token }
+ *
+ * 回傳「回覆範本」分頁的全部內容，讓管理者一鍵帶入再修改。
+ * 範本由管理者自己在 Sheet 上增修，不需要改程式。
+ */
+function getTemplates(params, session) {
+  const sheet   = getSheet(SHEETS.TEMPLATES);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return ok({ templates: [] });
+
+  const colMap = buildColumnMap(SHEETS.TEMPLATES, TEMPLATE_COLUMNS);
+  const rows   = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+  const templates = [];
+  rows.forEach(function (values) {
+    const item = {
+      code:       str(values[colMap.code - 1]),
+      category:   str(values[colMap.category - 1]).toUpperCase(),
+      content_zh: str(values[colMap.content_zh - 1]),
+      content_id: str(values[colMap.content_id - 1]),
+    };
+    // 兩種語言都空白的列視為未填完，不回傳
+    if (item.content_zh || item.content_id) templates.push(item);
+  });
+
+  return ok({ templates: templates });
+}

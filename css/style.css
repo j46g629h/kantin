@@ -1070,3 +1070,100 @@ input[type="date"] {
 @media (min-width: 640px) {
   .filter-body { grid-template-columns: repeat(3, 1fr); }
 }
+
+
+/* ===== 管理端：回覆表單 ===== */
+
+.result.ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-border);
+  margin-bottom: var(--gap);
+}
+
+.reply-form {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.reply-title {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.reply-label {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* 狀態下拉與回覆框之間要有距離，否則看起來像同一個欄位 */
+.reply-form .reply-status { margin-bottom: 14px; }
+
+.reply-lang {
+  font-size: var(--fs-xs);
+  color: var(--brand);
+  margin-bottom: 8px;
+}
+
+/* --- 回覆範本快捷按鈕 --- */
+
+.template-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.template-label {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+.template-btn {
+  max-width: 100%;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  color: var(--brand);
+  text-align: left;
+  background: var(--brand-light);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+
+  /* 範本可能很長，一律截斷成一行，版面才不會被撐開 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.template-btn:active { background: var(--brand-border); }
+
+/* --- 必填提示 --- */
+
+.reply-required {
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+/* 切到「處理中」或「已結案」時才變醒目 */
+.reply-required.active {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.reply-error { margin-top: 10px; }
+
+/* 逾期案件是紅底，表單改成白底才看得清楚 */
+.case-card.overdue .reply-form {
+  background: var(--surface);
+}

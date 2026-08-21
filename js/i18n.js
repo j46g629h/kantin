@@ -189,7 +189,19 @@ const I18N = {
     'admin.case.langID':    '印尼文',
     'admin.case.reply':     '回覆內容',
     'admin.case.noReply':   '尚未回覆',
-    'admin.case.editSoon':  '回覆與結案功能在關卡 3-4 開放',
+
+    // --- 管理端：回覆表單 ---
+    'admin.reply.title':      '處理這件案件',
+    'admin.reply.status':     '處理狀態',
+    'admin.reply.content':    '回覆內容',
+    'admin.reply.placeholder':'寫給員工看的回覆…',
+    'admin.reply.required':   '「處理中」與「已結案」必須填寫回覆，員工才知道處理狀況',
+    'admin.reply.templates':  '常用回覆',
+    'admin.reply.langHint':   '這位員工用{lang}回報，建議用{lang}回覆',
+    'admin.reply.save':       '儲存',
+    'admin.reply.saving':     '儲存中…',
+    'admin.reply.saved':      '已儲存 {id}',
+    'admin.reply.noChange':   '沒有任何變更',
 
     // --- 管理端錯誤 ---
     'err.LOGIN_REQUIRED':       '請輸入帳號與密碼',
@@ -205,6 +217,9 @@ const I18N = {
     'err.PASSWORD_NEEDS_DIGIT': '新密碼裡要有數字',
     'err.PASSWORD_SAME':        '新密碼不可以跟目前的密碼一樣',
     'err.OLD_PASSWORD_WRONG':   '目前密碼不正確',
+    'err.STATUS_REQUIRED':      '請選擇處理狀態',
+    'err.STATUS_INVALID':       '處理狀態不正確，請重新選擇',
+    'err.RESPONSE_REQUIRED':    '這個狀態必須填寫回覆內容',
 
     // --- 頁尾系統資訊 ---
     'footer.version':    '系統版本',
@@ -385,7 +400,19 @@ const I18N = {
     'admin.case.langID':    'Bahasa Indonesia',
     'admin.case.reply':     'Balasan',
     'admin.case.noReply':   'Belum dibalas',
-    'admin.case.editSoon':  'Fitur balas dan tutup laporan dibuka di tahap 3-4',
+
+    // --- Admin: form balasan ---
+    'admin.reply.title':      'Proses laporan ini',
+    'admin.reply.status':     'Status',
+    'admin.reply.content':    'Isi balasan',
+    'admin.reply.placeholder':'Tulis balasan untuk karyawan…',
+    'admin.reply.required':   'Status "Sedang Diproses" dan "Selesai" wajib diisi balasan, biar karyawan tahu perkembangannya',
+    'admin.reply.templates':  'Balasan cepat',
+    'admin.reply.langHint':   'Karyawan ini lapor pakai {lang}, sebaiknya dibalas pakai {lang} juga',
+    'admin.reply.save':       'Simpan',
+    'admin.reply.saving':     'Menyimpan…',
+    'admin.reply.saved':      '{id} sudah tersimpan',
+    'admin.reply.noChange':   'Tidak ada perubahan',
 
     // --- Pesan kesalahan admin ---
     'err.LOGIN_REQUIRED':       'Isi akun dan kata sandi dulu ya',
@@ -401,6 +428,9 @@ const I18N = {
     'err.PASSWORD_NEEDS_DIGIT': 'Kata sandi baru harus ada angkanya',
     'err.PASSWORD_SAME':        'Kata sandi baru tidak boleh sama dengan yang sekarang',
     'err.OLD_PASSWORD_WRONG':   'Kata sandi sekarang tidak cocok',
+    'err.STATUS_REQUIRED':      'Pilih status dulu ya',
+    'err.STATUS_INVALID':       'Status tidak valid, pilih ulang ya',
+    'err.RESPONSE_REQUIRED':    'Status ini wajib diisi balasan',
 
     // --- Info sistem ---
     'footer.version':    'Versi',

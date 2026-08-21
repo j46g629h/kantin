@@ -19,6 +19,19 @@ const state = {
   openId:  '',     // 目前展開的案件編號
   loading: false,
   loaded:  false,  // 是否已經成功載入過一次（用來分辨「還沒查」與「查無資料」）
+
+  templates: [],   // 回覆範本
+  saving:    false,
+  savedMsg:  '',   // 儲存成功後短暫顯示的訊息
+
+  /**
+   * 展開中那筆案件的草稿（狀態與回覆）。
+   *
+   * 為什麼要另外存：renderList() 每次都會把整個清單重畫，
+   * 表單元素會被換成新的，打到一半的字就不見了。
+   * 每次輸入都存進這裡，重畫時再填回去。
+   */
+  draft: null,
 };
 
 /** 目前套用中的篩選條件 */
@@ -26,6 +39,17 @@ const filters = {
   keyword: '', status_code: '', location_code: '', category_code: '',
   date_from: '', date_to: '',
 };
+
+
+/**
+ * 這些狀態一定要填回覆才能儲存。
+ * 後端 gas/Config.js 的 STATUS_REQUIRING_RESPONSE 是同一份規則，兩邊要一致。
+ * 前端這份只是為了少跑一趟 API，真正的把關在後端。
+ */
+const STATUS_NEEDS_RESPONSE = ['ST_PROC', 'ST_DONE'];
+
+/** 儲存成功提示的計時器（重複儲存時要先取消上一個，否則會提早消失） */
+let savedMsgTimer = null;
 
 
 const el = {
@@ -73,6 +97,7 @@ const el = {
 
   resultInfo:  document.getElementById('resultInfo'),
   refreshBtn:  document.getElementById('refreshBtn'),
+  savedNote:   document.getElementById('savedNote'),
   cappedNote:  document.getElementById('cappedNote'),
   listLoading: document.getElementById('listLoading'),
   listLoadingText: document.getElementById('listLoadingText'),
@@ -90,12 +115,16 @@ async function boot() {
     state.profile = await requireAdmin();
     if (!state.profile) return;      // 正在導回登入頁
 
-    // 選項清單是公開 API 且有快取，跟案件列表一起要，不必等對方
-    const [options] = await Promise.all([
+    // 三件事同時發出，總等待時間等於最慢的那一個，不是三個相加。
+    // 範本用 safeLoadTemplates()：範本讀不到只是少了快捷按鈕，
+    // 不該讓整頁掛掉（Promise.all 只要有一個 reject 就全部失敗）
+    const [options, templates] = await Promise.all([
       loadOptions(),
+      safeLoadTemplates(),
       loadCases(),
     ]);
-    state.options = options;
+    state.options   = options;
+    state.templates = templates;
 
     el.bootView.classList.add('hidden');
     el.adminBar.classList.remove('hidden');
@@ -151,6 +180,21 @@ async function loadCases() {
   } finally {
     state.loading = false;
     setLoading(false);
+  }
+}
+
+
+/**
+ * 讀取回覆範本。
+ * 失敗就回傳空陣列——沒有範本只是少了快捷按鈕，管理者照樣可以自己打字，
+ * 不該因此讓整個頁面進不去。
+ */
+async function safeLoadTemplates() {
+  try {
+    const result = await Api.getTemplates(AdminSession.token());
+    return result.ok ? (result.data.templates || []) : [];
+  } catch (err) {
+    return [];
   }
 }
 
@@ -360,6 +404,19 @@ function renderList() {
 function renderListInner() {
   el.caseList.innerHTML = '';
 
+  // 儲存成功的提示。顯示幾秒後自己消失，不用管理者動手關掉
+  if (state.savedMsg) {
+    el.savedNote.textContent = '✓ ' + state.savedMsg;
+    el.savedNote.classList.remove('hidden');
+    clearTimeout(savedMsgTimer);
+    savedMsgTimer = setTimeout(() => {
+      state.savedMsg = '';
+      el.savedNote.classList.add('hidden');
+    }, 4000);
+  } else {
+    el.savedNote.classList.add('hidden');
+  }
+
   const shown = state.cases.length;
 
   el.resultInfo.textContent = state.loaded
@@ -475,13 +532,243 @@ function buildCaseDetail(item) {
     : `<div>${escapeHtml(t('admin.case.noReply'))}</div>`;
   box.appendChild(replyBox);
 
-  // 關卡 3-4 會把回覆表單接在這裡
-  const soon = document.createElement('div');
-  soon.className = 'case-soon';
-  soon.textContent = t('admin.case.editSoon');
-  box.appendChild(soon);
+  // 回覆表單（規格 §6.6）
+  box.appendChild(buildReplyForm(item));
 
   return box;
+}
+
+
+// ===== 回覆表單 =====
+
+/**
+ * 建立「處理這件案件」的表單：狀態下拉 + 範本快捷 + 回覆輸入框。
+ *
+ * 表單的內容不是直接綁在 DOM 上，而是同步寫進 state.draft。
+ * 因為 renderList() 每次都會整個重畫清單，DOM 元素會被換掉，
+ * 沒有另外存的話，打到一半的字會憑空消失。
+ */
+function buildReplyForm(item) {
+  const draft = currentDraft(item);
+
+  const form = document.createElement('div');
+  form.className = 'reply-form';
+
+  const title = document.createElement('div');
+  title.className = 'reply-title';
+  title.textContent = t('admin.reply.title');
+  form.appendChild(title);
+
+  // --- 處理狀態 ---
+  const statusLabel = document.createElement('label');
+  statusLabel.className = 'reply-label';
+  statusLabel.textContent = t('admin.reply.status');
+  form.appendChild(statusLabel);
+
+  const select = document.createElement('select');
+  select.className = 'reply-status';
+  ((state.options && state.options.STATUS) || []).forEach((option) => {
+    const node = document.createElement('option');
+    node.value = option.code;
+    node.textContent = optionLabel(option);
+    select.appendChild(node);
+  });
+  select.value = draft.status_code;
+  select.addEventListener('change', () => {
+    draft.status_code = select.value;
+    // 切到需要回覆的狀態時，把必填提示亮起來
+    renderReplyHint(form, draft);
+  });
+  form.appendChild(select);
+
+  // --- 回覆內容 ---
+  const contentLabel = document.createElement('label');
+  contentLabel.className = 'reply-label';
+  contentLabel.textContent = t('admin.reply.content');
+  form.appendChild(contentLabel);
+
+  // 提示該用哪個語言回覆（規格 §6.6）
+  const langHint = document.createElement('div');
+  langHint.className = 'reply-lang';
+  const langName = item.lang === 'ZH' ? t('admin.case.langZH') : t('admin.case.langID');
+  langHint.textContent = t('admin.reply.langHint').split('{lang}').join(langName);
+  form.appendChild(langHint);
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'reply-text';
+  textarea.rows = 4;
+  textarea.placeholder = t('admin.reply.placeholder');
+  textarea.value = draft.response;
+  textarea.addEventListener('input', () => {
+    draft.response = textarea.value;
+  });
+
+  // 範本按鈕要放在輸入框上面，但需要先有 textarea 才能塞文字進去
+  const templates = templatesForCase(item);
+  if (templates.length) {
+    const row = document.createElement('div');
+    row.className = 'template-row';
+
+    const label = document.createElement('span');
+    label.className = 'template-label';
+    label.textContent = t('admin.reply.templates');
+    row.appendChild(label);
+
+    templates.forEach((tpl) => {
+      // 用「員工回報時使用的語言」取範本內容，不是管理者目前的介面語言——
+      // 這句話是要給員工看的
+      const content = (item.lang === 'ZH' ? tpl.content_zh : tpl.content_id)
+                   || tpl.content_zh || tpl.content_id;
+      if (!content) return;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'template-btn';
+      btn.textContent = content.length > 18 ? content.slice(0, 18) + '…' : content;
+      btn.title = content;
+
+      btn.addEventListener('click', () => {
+        // 已經有內容就接在後面，不要把管理者打的字直接蓋掉
+        textarea.value = textarea.value.trim()
+          ? textarea.value.replace(/\s+$/, '') + String.fromCharCode(10) + content
+          : content;
+        draft.response = textarea.value;
+        textarea.focus();
+      });
+
+      row.appendChild(btn);
+    });
+
+    form.appendChild(row);
+  }
+
+  form.appendChild(textarea);
+
+  // --- 必填提示 ---
+  const hint = document.createElement('div');
+  hint.className = 'reply-required';
+  hint.textContent = t('admin.reply.required');
+  form.appendChild(hint);
+
+  // --- 錯誤訊息 ---
+  const error = document.createElement('div');
+  error.className = 'reply-error result error hidden';
+  form.appendChild(error);
+
+  // --- 儲存 ---
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'btn-primary';
+  saveBtn.textContent = state.saving ? t('admin.reply.saving') : t('admin.reply.save');
+  saveBtn.disabled = state.saving;
+  saveBtn.addEventListener('click', () => saveCase(item, draft, form));
+  form.appendChild(saveBtn);
+
+  renderReplyHint(form, draft);
+  return form;
+}
+
+
+/** 需要回覆的狀態才把必填提示亮起來 */
+function renderReplyHint(form, draft) {
+  const hint = form.querySelector('.reply-required');
+  if (hint) hint.classList.toggle('active', STATUS_NEEDS_RESPONSE.indexOf(draft.status_code) >= 0);
+}
+
+
+/**
+ * 取得目前展開案件的草稿。
+ * 換到另一筆案件時重新以該筆的現有內容開始。
+ */
+function currentDraft(item) {
+  if (!state.draft || state.draft.case_id !== item.case_id) {
+    state.draft = {
+      case_id:     item.case_id,
+      status_code: item.status_code || 'ST_NEW',
+      response:    item.response || '',
+    };
+  }
+  return state.draft;
+}
+
+
+/**
+ * 挑出這筆案件適用的範本。
+ *
+ * 先找分類對得上的；一個都沒有就全部顯示，
+ * 總比讓管理者看到一排空的「常用回覆」好。
+ */
+function templatesForCase(item) {
+  const categories = item.category_codes || [];
+  const matched = state.templates.filter(function (tpl) {
+    return tpl.category && categories.indexOf(tpl.category) >= 0;
+  });
+  return matched.length ? matched : state.templates;
+}
+
+
+/** 儲存案件的狀態與回覆 */
+async function saveCase(item, draft, form) {
+  if (state.saving) return;
+
+  const error   = form.querySelector('.reply-error');
+  const saveBtn = form.querySelector('.btn-primary');
+
+  error.textContent = '';
+  error.classList.add('hidden');
+
+  const response = draft.response.trim();
+
+  // 前端先擋一次，省掉一趟 3～8 秒的往返
+  if (STATUS_NEEDS_RESPONSE.indexOf(draft.status_code) >= 0 && !response) {
+    error.textContent = t('err.RESPONSE_REQUIRED');
+    error.classList.remove('hidden');
+    return;
+  }
+
+  // 什麼都沒改就不要白跑一趟
+  if (draft.status_code === item.status_code && response === (item.response || '')) {
+    error.textContent = t('admin.reply.noChange');
+    error.classList.remove('hidden');
+    return;
+  }
+
+  state.saving = true;
+  saveBtn.disabled = true;
+  saveBtn.textContent = t('admin.reply.saving');
+
+  try {
+    const result = await Api.updateCase(
+      AdminSession.token(), item.case_id, draft.status_code, response);
+
+    if (!result.ok) {
+      if (result.error === 'UNAUTHORIZED') {
+        AdminSession.clear();
+        location.replace('admin.html');
+        return;
+      }
+      error.textContent = errorMessage(result);
+      error.classList.remove('hidden');
+      return;
+    }
+
+    // 重新載入整份清單，統計卡片才會跟著更新——
+    // 只換掉畫面上那一筆的話，「未處理 N 件」會停在舊數字
+    state.savedMsg = t('admin.reply.saved').replace('{id}', item.case_id);
+    state.draft = null;
+    await loadCases();
+    renderAll();
+
+  } catch (err) {
+    error.textContent = t('err.NETWORK');
+    error.classList.remove('hidden');
+  } finally {
+    state.saving = false;
+    if (saveBtn.isConnected) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = t('admin.reply.save');
+    }
+  }
 }
 
 

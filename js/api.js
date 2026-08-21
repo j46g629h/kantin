@@ -102,6 +102,22 @@ const Api = {
     return this.post(payload);
   },
 
+  /** 取得回覆範本（管理者可自行在 Sheet 的「回覆範本」分頁增修） */
+  getTemplates(token) {
+    return this.post({ action: 'getTemplates', token });
+  },
+
+  /** 更新案件狀態與回覆 */
+  updateCase(token, caseId, statusCode, response) {
+    return this.post({
+      action:      'updateCase',
+      token,
+      case_id:     caseId,
+      status_code: statusCode,
+      response,
+    });
+  },
+
   /** 變更自己的密碼 */
   adminChangePassword(token, oldPassword, newPassword) {
     return this.post({

@@ -1,5 +1,8 @@
 /**
- * 本機測試 getCaseList 的邏輯（篩選 / 排序 / 統計 / 逾期）
+ * 本機測試管理端案件 API：
+ *   getCaseList  篩選 / 排序 / 統計 / 逾期
+ *   updateCase   狀態驗證 / 回覆必填 / 寫回欄位
+ *   getTemplates 回覆範本
  *
  * 作法：把 Apps Script 的全域服務用假的替代品頂上，
  * 再把 gas/ 的檔案接起來在 Node 裡跑。
@@ -44,6 +47,29 @@ const ROWS_SPEC = [
 ];
 
 
+// 選項設定：類型 / 代碼 / 中文 / 印尼文 / 排序 / 啟用
+const OPTION_HEADERS = ['類型', '代碼', '中文顯示', '印尼文顯示', '排序', '啟用'];
+const OPTIONS_SPEC = [
+  ['LOCATION', 'LOC_02', '第二餐廳', 'Kantin 2',  1, true],
+  ['LOCATION', 'LOC_04', '第四餐廳', 'Kantin 4',  2, true],
+  ['LOCATION', 'LOC_R3', 'R3廠餐廳', 'Kantin R3', 3, true],
+  ['MEAL',     'MEAL_LUNCH', '午餐', 'Menu Siang', 1, true],
+  ['CATEGORY', 'CAT_TASTE',  '菜單口味', 'Rasa Makanan', 1, true],
+  ['STATUS',   'ST_NEW',  '未處理', 'Belum Diproses',  1, true],
+  ['STATUS',   'ST_PROC', '處理中', 'Sedang Diproses', 2, true],
+  ['STATUS',   'ST_DONE', '已結案', 'Selesai',         3, true],
+];
+
+// 回覆範本：代碼 / 分類 / 中文內容 / 印尼文內容
+const TEMPLATE_HEADERS = ['代碼', '分類', '中文內容', '印尼文內容'];
+const TEMPLATES_SPEC = [
+  ['TPL_01', 'CAT_TASTE',    '已轉知廚房調整口味。', 'Sudah disampaikan ke dapur.'],
+  ['TPL_02', 'CAT_HYGIENE',  '已加強清潔頻率。',     'Frekuensi pembersihan sudah ditingkatkan.'],
+  ['TPL_03', 'CAT_FACILITY', '已安排維修。',         'Perbaikan sudah dijadwalkan.'],
+  ['',       '',             '',                     ''],   // 空白列，應該被略過
+];
+
+
 // ---- 假的 Apps Script 服務 ----
 const sandbox = {
   console,
@@ -65,24 +91,78 @@ const sandbox = {
     },
   },
 
+  // updateCase 會寫回 Sheet，所以假的儲存格也要能寫
   SpreadsheetApp: {
     openById: () => ({
       getName: () => 'fake',
       getSheetByName: (name) => {
-        if (name !== '回報資料') return null;
-        const rows = sandbox.__ROWS;
-        return {
-          getLastRow: () => rows.length + 1,
-          getLastColumn: () => HEADERS.length,
-          getRange(row, col, numRows) {
-            const values = (row === 1) ? [HEADERS] : rows.slice(row - 2, row - 2 + numRows);
-            return { getValues: () => values };
-          },
-        };
+        if (name === '回報資料')  return makeSheet(sandbox.__ROWS, HEADERS);
+        if (name === '選項設定')  return makeSheet(sandbox.__OPTIONS, OPTION_HEADERS);
+        if (name === '回覆範本')  return makeSheet(sandbox.__TEMPLATES, TEMPLATE_HEADERS);
+        return null;
       },
     }),
   },
+
+  // updateCase 用 LockService 避免兩人同時儲存；測試裡一定拿得到鎖
+  LockService: {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+  },
+
+  CacheService: {
+    getScriptCache: () => ({ get: () => null, put: () => {}, remove: () => {} }),
+  },
+
+  Logger: { log: () => {} },
 };
+
+
+/**
+ * 假的分頁物件。
+ *
+ * 只實作程式真的會用到的方法：讀表頭、讀資料、寫值、TextFinder。
+ * getRange 回傳的物件同時支援讀與寫，寫入會直接改到 rows 陣列上，
+ * 這樣測試才能檢查「到底寫進去什麼」。
+ */
+function makeSheet(rows, headers) {
+  return {
+    getLastRow: () => rows.length + 1,
+    getLastColumn: () => headers.length,
+
+    getRange(row, col, numRows, numCols) {
+      const n = numRows || 1;
+      const c = numCols || 1;
+
+      return {
+        getValues() {
+          if (row === 1) return [headers];
+          return rows.slice(row - 2, row - 2 + n);
+        },
+        // 單一儲存格的寫入（setTextCell / setDateCell 都走這裡）
+        setNumberFormat() { return this; },
+        setValue(v) { rows[row - 2][col - 1] = v; return this; },
+
+        // 用案件編號找列
+        createTextFinder(text) {
+          return {
+            matchEntireCell() { return this; },
+            matchCase() { return this; },
+            findNext() {
+              for (let i = 0; i < n; i++) {
+                const value = rows[row - 2 + i][col - 1];
+                if (String(value).toUpperCase() === String(text).toUpperCase()) {
+                  const foundRow = row + i;
+                  return { getRow: () => foundRow };
+                }
+              }
+              return null;
+            },
+          };
+        },
+      };
+    },
+  };
+}
 
 vm.createContext(sandbox);
 
@@ -102,10 +182,12 @@ vm.runInContext(
      return row.map(function (v) {
        return (typeof v === 'string' && v.indexOf('@ISO:') === 0) ? new Date(v.slice(5)) : v;
      });
-   });`, sandbox);
+   });
+   __OPTIONS   = ${JSON.stringify(OPTIONS_SPEC)};
+   __TEMPLATES = ${JSON.stringify(TEMPLATES_SPEC)};`, sandbox);
 
 // 3) 載入要測的程式
-['Config.js', 'Utils.js', 'Query.js', 'Cases.js'].forEach((f) => {
+['Config.js', 'Utils.js', 'Options.js', 'Query.js', 'Cases.js'].forEach((f) => {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', f), 'utf8'), sandbox, { filename: f });
 });
 
@@ -113,6 +195,14 @@ vm.runInContext(
 // 免得連帶拉進 LockService / DriveApp 等一大票服務
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
   .match(/function parseCategoryCodes[\s\S]*?\n}/)[0], sandbox);
+
+// hasOptionCode 同樣住在 Feedback.js（updateCase 用它驗證狀態代碼）
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
+  .match(/function hasOptionCode[\s\S]*?\n}/)[0], sandbox);
+
+// setTextCell 住在 Auth.js，整個檔案載進來會連帶需要一堆服務，只取這一支
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Auth.js'), 'utf8')
+  .match(/function setTextCell[\s\S]*?\n}/)[0], sandbox);
 
 
 // ---- 開始測試 ----
@@ -203,6 +293,104 @@ console.log('\n【11】limit 上限保護');
 check('limit=1', run({ limit: 1 }).data.returned, 1);
 check('limit=1 時 total 仍是全部', run({ limit: 1 }).data.total, 4);
 check('limit=99999 被夾到 MAX 而非爆掉', run({ limit: 99999 }).data.returned, 4);
+
+
+// ===== updateCase =====
+
+function update(params) {
+  return vm.runInContext(
+    `updateCase(${JSON.stringify(params)}, {name:'王小明', account:'admin@test'})`, sandbox);
+}
+
+/** 直接從假資料裡讀某一格，用來確認到底寫進去什麼 */
+function cellOf(caseId, colName) {
+  const rowIndex = ROWS_SPEC.findIndex((r) => r[0] === caseId);
+  const colIndex = HEADERS.indexOf(colName);
+  return vm.runInContext(`__ROWS[${rowIndex}][${colIndex}]`, sandbox);
+}
+
+/** 直接改寫假資料裡的某一格（用來埋哨兵值） */
+function setCell(caseId, colName, value) {
+  const rowIndex = ROWS_SPEC.findIndex((r) => r[0] === caseId);
+  const colIndex = HEADERS.indexOf(colName);
+  vm.runInContext(`__ROWS[${rowIndex}][${colIndex}] = ${JSON.stringify(value)}`, sandbox);
+}
+
+/**
+ * 是不是日期物件。
+ *
+ * ⚠️ 不能用 `instanceof Date`：sandbox 裡建立的物件跨 realm 之後，
+ *    在這邊比對的是不同的建構子，永遠會是 false。
+ *    改成看它有沒有 getTime()，這個判斷不受 realm 影響。
+ */
+function isDateLike(value) {
+  return !!value && typeof value.getTime === 'function';
+}
+
+console.log('\n【12】updateCase：必填檢查');
+check('沒有案件編號', update({ status_code: 'ST_PROC', response: 'x' }).error, 'CASE_ID_REQUIRED');
+check('沒有狀態', update({ case_id: 'PCI-202608-001' }).error, 'STATUS_REQUIRED');
+check('狀態代碼不合法', update({ case_id: 'PCI-202608-001', status_code: 'ST_FAKE', response: 'x' }).error,
+  'STATUS_INVALID');
+check('查無案件', update({ case_id: 'PCI-999999-999', status_code: 'ST_NEW' }).error, 'CASE_NOT_FOUND');
+check('已軟刪除的案件不可更新',
+  update({ case_id: 'PCI-202608-005', status_code: 'ST_NEW' }).error, 'CASE_NOT_FOUND');
+
+console.log('\n【13】updateCase：處理中 / 已結案必須有回覆');
+check('處理中沒填回覆 → 擋下',
+  update({ case_id: 'PCI-202608-001', status_code: 'ST_PROC', response: '' }).error, 'RESPONSE_REQUIRED');
+check('已結案沒填回覆 → 擋下',
+  update({ case_id: 'PCI-202608-001', status_code: 'ST_DONE', response: '   ' }).error, 'RESPONSE_REQUIRED');
+check('改回未處理不強制填回覆',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_NEW', response: '' }).ok, true);
+
+console.log('\n【14】updateCase：正常儲存後寫進去的內容');
+const saved = update({ case_id: 'PCI-202608-001', status_code: 'ST_PROC', response: '已請廚房調整鹹度。' });
+check('回傳 ok', saved.ok, true);
+check('回傳更新後的案件', saved.data.case.case_id, 'PCI-202608-001');
+check('狀態已更新', cellOf('PCI-202608-001', '處理狀態'), 'ST_PROC');
+check('回覆已寫入', cellOf('PCI-202608-001', '處理回覆'), '已請廚房調整鹹度。');
+check('處理者記錄為登入者', cellOf('PCI-202608-001', '處理者'), '王小明');
+check('最後更新者', cellOf('PCI-202608-001', '最後更新者'), '王小明');
+check('處理時間已填入日期', isDateLike(cellOf('PCI-202608-001', '處理時間')), true);
+check('回傳的案件不含內部欄位', 'sort_key' in saved.data.case, false);
+check('更新後不再是逾期（已非未處理）', saved.data.case.is_overdue, false);
+
+console.log('\n【15】updateCase：只改狀態時，處理時間不該跳動');
+// 測試裡的時鐘是凍結的（逾期天數才有確定答案），兩次寫入的時間戳會一模一樣，
+// 沒辦法用比較時間來判斷有沒有被覆寫。改成先埋一個哨兵值，再看它有沒有被蓋掉。
+setCell('PCI-202608-001', '處理時間', 'SENTINEL');
+
+const again = update({ case_id: 'PCI-202608-001', status_code: 'ST_DONE', response: '已請廚房調整鹹度。' });
+check('儲存成功', again.ok, true);
+check('狀態變成已結案', cellOf('PCI-202608-001', '處理狀態'), 'ST_DONE');
+check('回覆沒變 → 處理時間沒被動到', cellOf('PCI-202608-001', '處理時間'), 'SENTINEL');
+
+update({ case_id: 'PCI-202608-001', status_code: 'ST_DONE', response: '已改善，感謝回報。' });
+check('回覆改了 → 處理時間被更新成日期',
+  isDateLike(cellOf('PCI-202608-001', '處理時間')), true);
+check('回覆內容也更新了', cellOf('PCI-202608-001', '處理回覆'), '已改善，感謝回報。');
+
+console.log('\n【16】updateCase：大小寫與空白');
+check('小寫案件編號也找得到',
+  update({ case_id: 'pci-202608-003', status_code: 'ST_PROC', response: '維修中' }).ok, true);
+check('狀態代碼小寫會轉成大寫', cellOf('PCI-202608-003', '處理狀態'), 'ST_PROC');
+
+console.log('\n【17】更新後的統計會跟著變');
+const after = run({});
+check('未處理剩 1 筆（002）', after.data.stats.new, 1);
+check('處理中 1 筆（003）', after.data.stats.processing, 1);
+check('已結案 2 筆（001 + 004）', after.data.stats.done, 2);
+check('逾期歸零', after.data.stats.overdue, 0);
+
+console.log('\n【18】getTemplates');
+const tpl = vm.runInContext(`getTemplates({}, {name:'王小明'})`, sandbox);
+check('ok', tpl.ok, true);
+check('空白列被略過', tpl.data.templates.length, 3);
+check('代碼', tpl.data.templates[0].code, 'TPL_01');
+check('分類', tpl.data.templates[2].category, 'CAT_FACILITY');
+check('中文內容', tpl.data.templates[0].content_zh, '已轉知廚房調整口味。');
+check('印尼文內容', tpl.data.templates[0].content_id, 'Sudah disampaikan ke dapur.');
 
 console.log(`\n===== 通過 ${pass} 項，失敗 ${failCount} 項 =====\n`);
 process.exit(failCount ? 1 : 0);

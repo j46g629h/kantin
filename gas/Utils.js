@@ -125,6 +125,17 @@ function writeRowByColumns(sheet, row, columnDefs, data) {
 }
 
 
+/**
+ * 把日期寫進單一儲存格（先設格式再寫值）。
+ * 與 setTextCell() 成對使用，見 gas/Auth.js。
+ */
+function setDateCell(sheet, row, col, date) {
+  const cell = sheet.getRange(row, col);
+  cell.setNumberFormat('yyyy-mm-dd hh:mm:ss');
+  cell.setValue(date || new Date());
+}
+
+
 // ===== 時間 =====
 
 /** 依專案時區格式化時間（yyyy-MM-dd HH:mm:ss） */
