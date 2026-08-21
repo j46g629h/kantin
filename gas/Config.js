@@ -15,6 +15,43 @@ const SHEET_ID = '1E3GIGSWRA1XbxZCQvSm57gAOLTES3McfPu0nALMz2CA';
 const DRIVE_IMAGE_FOLDER_ID = '1Re_ua0-cEed27kKc91-pAOwNv8zZnKuk';
 
 
+// ===== 前端網址 =====
+
+/**
+ * GitHub Pages 的網址。
+ * 排程寄出的信裡要放「直接去看案件」的連結，所以後端也需要知道它。
+ * 結尾的斜線不要拿掉，後面是直接接檔名的。
+ */
+const SITE_URL = 'https://j46g629h.github.io/kantin_PCI_adidas/';
+
+
+// ===== 通知與報表（規格 §10）=====
+
+const REPORT = {
+  /** 每日未處理清單的寄送時間（時，Asia/Jakarta） */
+  DAILY_HOUR: 8,
+
+  /** 每月統計月報的寄送時間（每月 1 日，時） */
+  MONTHLY_HOUR: 8,
+
+  /**
+   * 信件的寄件人顯示名稱。
+   *
+   * ⚠️ 只能改「顯示名稱」，改不了信箱地址——
+   *    Apps Script 一律從專案擁有者的 Google 帳號寄出。
+   *    要讓收件人一眼認出這是系統信，就靠這個名字。
+   */
+  SENDER_NAME: 'PCI 餐廳回饋系統 · Kantin PCI',
+
+  /**
+   * 一封信裡最多列幾筆案件。
+   * 超過就只列前 N 筆並註明還有幾筆——
+   * 沒有人會在信裡讀完 200 列表格，那種信只會被直接關掉。
+   */
+  MAX_ROWS: 50,
+};
+
+
 // ===== 分頁名稱 =====
 
 const SHEETS = {

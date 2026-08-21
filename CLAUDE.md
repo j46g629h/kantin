@@ -63,7 +63,8 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 
 **後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Store`（附有效期的鍵值儲存）/ `Main`（路由）/ `Auth`（登入與權限）/
 `Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
-`Admins`（帳號管理，僅 SUPER）/ `Setup`（一次性腳本與維運工具）
+`Admins`（帳號管理，僅 SUPER）/ `Notify`（寄信共用）/ `Reports`（排程報表）/
+`Triggers`（排程安裝與移除）/ `Setup`（一次性腳本與維運工具）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -365,6 +366,7 @@ clasp.cmd pull                             # 從線上拉回（很少用）
 node tools/test-cases-api.js   # 管理端案件 API（篩選 / 排序 / 統計 / 逾期 / 回覆 / 指派）
 node tools/test-store.js       # 附有效期的鍵值儲存
 node tools/test-admin-api.js   # 帳號管理 API（權限 / 新增 / 停用 / 重設密碼 / token 作廢）
+node tools/test-report-api.js  # 排程報表（收件人 / 日報內容 / 空信規則 / 寄信失敗）
 ```
 
 ⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。
