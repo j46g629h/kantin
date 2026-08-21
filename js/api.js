@@ -91,9 +91,9 @@ const Api = {
    * @param {Object} filters 篩選條件（status_code / location_code / category_code /
    *                         date_from / date_to / keyword），空字串的會被拿掉
    */
-  getCaseList(token, filters = {}, month = '') {
+  getCaseList(token, filters = {}, period = '') {
     const payload = { action: 'getCaseList', token };
-    if (month) payload.month = month;
+    if (period) payload.period = period;
 
     // 空字串代表「不篩這一項」，不要送出去佔位
     Object.keys(filters).forEach((key) => {

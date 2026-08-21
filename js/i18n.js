@@ -152,8 +152,8 @@ const I18N = {
     // --- 管理端：統計卡片 ---
     'admin.stats.new':        '未處理',
     'admin.stats.processing': '處理中',
-    'admin.stats.thisMonth':  '本月',
-    'admin.stats.overdue':    '逾期 {n} 件',
+    'admin.stats.done':       '已結案',
+    'admin.stats.overdue':    '全系統有 {n} 件逾期未處理，點這裡查看',
     'admin.stats.unit':       '件',
 
     // --- 管理端：篩選 ---
@@ -178,7 +178,7 @@ const I18N = {
     'admin.list.empty':    '沒有符合條件的案件',
     'admin.list.emptyAll': '目前還沒有任何回報',
     'admin.list.loading':  '載入案件中…',
-    'admin.refresh':       '重新整理',
+    'admin.refresh':       '重新整理（回到初始畫面）',
 
     // --- 管理端：案件內容 ---
     'admin.case.overdue':   '已 {n} 天未處理',
@@ -207,11 +207,13 @@ const I18N = {
     'admin.reply.noHandler':  '不指派',
     'admin.reply.handlerHint':'指派後，員工查詢時就看得到目前是誰在處理',
 
-    // --- 管理端：月份 ---
-    'admin.month.pick':    '選擇月份',
-    'admin.month.label':   '{y} 年 {m} 月',
-    'admin.month.count':   '{n} 件',
-    'admin.month.current': '本月',
+    // --- 管理端：檢視範圍 ---
+    'admin.period.pick':    '選擇檢視範圍',
+    'admin.period.all':     '全部時間',
+    'admin.period.current': '（本月）',
+    'admin.period.count':   '{n} 件',
+    'admin.period.total':   '共 {n} 件',
+    'admin.month.label':    '{y} 年 {m} 月',
 
     // --- 管理端錯誤 ---
     'err.LOGIN_REQUIRED':       '請輸入帳號與密碼',
@@ -374,8 +376,8 @@ const I18N = {
     // --- Admin: kartu statistik ---
     'admin.stats.new':        'Belum Diproses',
     'admin.stats.processing': 'Sedang Diproses',
-    'admin.stats.thisMonth':  'Bulan Ini',
-    'admin.stats.overdue':    '{n} laporan terlambat',
+    'admin.stats.done':       'Selesai',
+    'admin.stats.overdue':    'Ada {n} laporan terlambat di seluruh sistem, klik untuk lihat',
     'admin.stats.unit':       '',
 
     // --- Admin: filter ---
@@ -400,7 +402,7 @@ const I18N = {
     'admin.list.empty':    'Tidak ada laporan yang cocok',
     'admin.list.emptyAll': 'Belum ada laporan sama sekali',
     'admin.list.loading':  'Memuat laporan…',
-    'admin.refresh':       'Muat ulang',
+    'admin.refresh':       'Muat ulang (kembali ke tampilan awal)',
 
     // --- Admin: isi laporan ---
     'admin.case.overdue':   'Sudah {n} hari belum diproses',
@@ -429,11 +431,13 @@ const I18N = {
     'admin.reply.noHandler':  'Belum ditugaskan',
     'admin.reply.handlerHint':'Setelah ditugaskan, karyawan bisa lihat siapa yang sedang menangani',
 
-    // --- Admin: bulan ---
-    'admin.month.pick':    'Pilih bulan',
-    'admin.month.label':   '{m}/{y}',
-    'admin.month.count':   '{n} laporan',
-    'admin.month.current': 'Bulan ini',
+    // --- Admin: rentang waktu ---
+    'admin.period.pick':    'Pilih rentang waktu',
+    'admin.period.all':     'Semua Waktu',
+    'admin.period.current': ' (bulan ini)',
+    'admin.period.count':   '{n} laporan',
+    'admin.period.total':   'total {n} laporan',
+    'admin.month.label':    '{m}/{y}',
 
     // --- Pesan kesalahan admin ---
     'err.LOGIN_REQUIRED':       'Isi akun dan kata sandi dulu ya',

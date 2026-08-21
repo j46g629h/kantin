@@ -22,7 +22,7 @@ const state = {
 
   templates: [],   // 回覆範本
   months:    [],   // 有資料的月份 [{month,count}]
-  month:     '',   // 目前檢視的月份 YYYYMM（空 = 本月）
+  period:    'ALL',// 檢視範圍：'ALL' 或某個月份 YYYYMM
   saving:    false,
   savedMsg:  '',   // 儲存成功後短暫顯示的訊息
 
@@ -68,13 +68,16 @@ const el = {
 
   statNew:   document.getElementById('statNew'),
   statProc:  document.getElementById('statProc'),
-  statMonth: document.getElementById('statMonth'),
-  statNewLabel:   document.getElementById('statNewLabel'),
-  statProcLabel:  document.getElementById('statProcLabel'),
-  statMonthLabel: document.getElementById('statMonthLabel'),
-  statMonthCard:  document.getElementById('statMonthCard'),
-  monthPicker:    document.getElementById('monthPicker'),
-  overdueNote:    document.getElementById('overdueNote'),
+  statDone:  document.getElementById('statDone'),
+  statNewLabel:  document.getElementById('statNewLabel'),
+  statProcLabel: document.getElementById('statProcLabel'),
+  statDoneLabel: document.getElementById('statDoneLabel'),
+
+  periodBar:   document.getElementById('periodBar'),
+  periodLabel: document.getElementById('periodLabel'),
+  periodCount: document.getElementById('periodCount'),
+  monthPicker: document.getElementById('monthPicker'),
+  overdueNote: document.getElementById('overdueNote'),
 
   filterToggle:     document.getElementById('filterToggle'),
   filterToggleText: document.getElementById('filterToggleText'),
@@ -161,7 +164,7 @@ async function loadCases() {
   hide(el.listError);
 
   try {
-    const result = await Api.getCaseList(AdminSession.token(), filters, state.month);
+    const result = await Api.getCaseList(AdminSession.token(), filters, state.period);
 
     if (!result.ok) {
       if (result.error === 'UNAUTHORIZED') {
@@ -180,9 +183,9 @@ async function loadCases() {
     state.openId = '';
     state.loaded = true;
 
-    // 後端會把實際採用的月份回傳（沒指定時就是本月），
-    // 存下來讓月份選單知道現在該highlight哪一個
-    if (state.stats && state.stats.month) state.month = state.stats.month;
+    // 以後端實際採用的範圍為準（參數打錯時它會退回 ALL），
+    // 這樣畫面顯示的範圍一定和資料一致
+    if (state.stats && state.stats.period) state.period = state.stats.period;
 
   } catch (err) {
     show(el.listError, t('err.NETWORK'));
@@ -212,6 +215,7 @@ function setLoading(loading) {
   el.listLoading.classList.toggle('hidden', !loading);
   el.searchBtn.disabled  = loading;
   el.refreshBtn.disabled = loading;
+  el.refreshBtn.classList.toggle('spinning', loading);
   el.searchBtn.textContent = loading ? t('admin.filter.searching') : t('admin.filter.search');
 }
 
@@ -260,10 +264,34 @@ el.resetBtn.addEventListener('click', async () => {
 });
 
 
+/**
+ * 重新整理：重新載入資料，並回到剛登入時的乾淨狀態。
+ *
+ * 「保留目前篩選條件重新抓一次」請用篩選面板裡的〔查詢〕，
+ * 那支按鈕本來就是這個作用。兩個需求各有一個按鈕，不會互相打架。
+ */
 el.refreshBtn.addEventListener('click', async () => {
+  resetToInitialState();
   await loadCases();
   renderAll();
 });
+
+
+/** 把畫面恢復成剛登入的樣子 */
+function resetToInitialState() {
+  Object.keys(filters).forEach((key) => { filters[key] = ''; });
+  writeFilterInputs();
+
+  state.period   = 'ALL';
+  state.openId   = '';
+  state.draft    = null;
+  state.savedMsg = '';
+
+  el.monthPicker.classList.add('hidden');
+  el.filterForm.classList.add('hidden');   // 篩選面板收合
+  hide(el.listError);
+  renderFilterToggle();
+}
 
 
 /** 狀態卡片點一下就依該狀態篩選；再點一次取消 */
@@ -278,10 +306,24 @@ document.querySelectorAll('.stat-card[data-status]').forEach((card) => {
 });
 
 
-/** 月份卡片：點一下展開月份選單 */
-el.statMonthCard.addEventListener('click', () => {
+/** 範圍列：點一下展開範圍選單 */
+el.periodBar.addEventListener('click', () => {
   el.monthPicker.classList.toggle('hidden');
   renderMonthPicker();
+});
+
+
+/**
+ * 逾期提示點一下 → 跳到「全部時間 + 未處理」。
+ * 那正是要看逾期案件時該有的畫面，省得自己再設一次條件。
+ */
+el.overdueNote.addEventListener('click', async () => {
+  state.period = 'ALL';
+  filters.status_code = 'ST_NEW';
+  writeFilterInputs();
+  el.monthPicker.classList.add('hidden');
+  await loadCases();
+  renderAll();
 });
 
 
@@ -297,36 +339,54 @@ function renderMonthPicker() {
 
   const title = document.createElement('div');
   title.className = 'month-picker-title';
-  title.textContent = t('admin.month.pick');
+  title.textContent = t('admin.period.pick');
   el.monthPicker.appendChild(title);
 
   const thisMonth = currentYearMonth();
+  const totalAll  = state.months.reduce((sum, m) => sum + m.count, 0);
+
+  // 「全部時間」永遠放第一個
+  el.monthPicker.appendChild(buildPeriodItem(
+    'ALL', t('admin.period.all'), totalAll));
 
   state.months.forEach((entry) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'month-item' + (entry.month === state.month ? ' active' : '');
-
-    const label = document.createElement('span');
-    label.textContent = monthLabel(entry.month)
-      + (entry.month === thisMonth ? '（' + t('admin.month.current') + '）' : '');
-
-    const count = document.createElement('span');
-    count.className = 'month-count';
-    count.textContent = t('admin.month.count').replace('{n}', entry.count);
-
-    btn.appendChild(label);
-    btn.appendChild(count);
-
-    btn.addEventListener('click', async () => {
-      state.month = entry.month;
-      el.monthPicker.classList.add('hidden');
-      await loadCases();
-      renderAll();
-    });
-
-    el.monthPicker.appendChild(btn);
+    el.monthPicker.appendChild(buildPeriodItem(
+      entry.month,
+      monthLabel(entry.month) + (entry.month === thisMonth ? t('admin.period.current') : ''),
+      entry.count));
   });
+}
+
+
+function buildPeriodItem(period, label, count) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'month-item' + (period === state.period ? ' active' : '');
+
+  const text = document.createElement('span');
+  text.textContent = label;
+
+  const num = document.createElement('span');
+  num.className = 'month-count';
+  num.textContent = t('admin.period.count').replace('{n}', count);
+
+  btn.appendChild(text);
+  btn.appendChild(num);
+
+  btn.addEventListener('click', async () => {
+    state.period = period;
+    el.monthPicker.classList.add('hidden');
+    await loadCases();
+    renderAll();
+  });
+
+  return btn;
+}
+
+
+/** 目前範圍的顯示文字 */
+function periodLabelText() {
+  return state.period === 'ALL' ? t('admin.period.all') : monthLabel(state.period);
 }
 
 
@@ -389,8 +449,7 @@ function hasActiveFilter() {
  * 會讓人以為整個系統都是空的。
  */
 function isNarrowedView() {
-  const viewing = state.month || currentYearMonth();
-  return hasActiveFilter() || viewing !== currentYearMonth();
+  return hasActiveFilter() || state.period !== 'ALL';
 }
 
 
@@ -417,9 +476,10 @@ function renderTexts() {
     el.adminRole.textContent = adminRoleLabel(state.profile.role);
   }
 
-  el.statNewLabel.textContent   = t('admin.stats.new');
-  el.statProcLabel.textContent  = t('admin.stats.processing');
-  // 月份卡片的標題由 renderStats() 決定（可能是「本月」也可能是某個月份）
+  el.statNewLabel.textContent  = t('admin.stats.new');
+  el.statProcLabel.textContent = t('admin.stats.processing');
+  el.statDoneLabel.textContent = t('admin.stats.done');
+  // 範圍列的文字由 renderStats() 決定（要帶入件數）
 
   el.labelKeyword.textContent  = t('admin.filter.keyword');
   el.labelStatus.textContent   = t('admin.filter.status');
@@ -430,7 +490,7 @@ function renderTexts() {
   el.fKeyword.placeholder      = t('admin.filter.keywordPh');
 
   el.resetBtn.textContent      = t('admin.filter.reset');
-  el.refreshBtn.textContent    = t('admin.refresh');
+  el.refreshBtn.title          = t('admin.refresh');
   el.listLoadingText.textContent = t('admin.list.loading');
   if (!state.loading) el.searchBtn.textContent = t('admin.filter.search');
 
@@ -458,28 +518,25 @@ function renderStats() {
   const stats = state.stats;
   if (!stats) return;
 
-  el.statNew.textContent   = stats.new;
-  el.statProc.textContent  = stats.processing;
-  el.statMonth.textContent = stats.month_count;
+  // 三張卡片的數字全部是「選定範圍」內的，範圍名稱就寫在上方那條列上
+  el.statNew.textContent  = stats.new;
+  el.statProc.textContent = stats.processing;
+  el.statDone.textContent = stats.done;
 
-  // 月份卡片的標題跟著選定月份走；看的是本月就顯示「本月」
-  const viewing = state.month || currentYearMonth();
-  el.statMonthLabel.textContent = (viewing === currentYearMonth())
-    ? t('admin.stats.thisMonth')
-    : monthLabel(viewing);
+  el.periodLabel.textContent = periodLabelText();
+  el.periodCount.textContent = t('admin.period.total').replace('{n}', stats.total);
 
   // 目前依哪個狀態篩選，那張卡片就highlight
   document.querySelectorAll('.stat-card[data-status]').forEach((card) => {
     card.classList.toggle('active', card.dataset.status === filters.status_code && !!filters.status_code);
   });
 
-  // 不是在看本月時，月份卡片也highlight，提醒現在看的不是當月
-  el.statMonthCard.classList.toggle('active', viewing !== currentYearMonth());
-
   renderMonthPicker();
 
-  if (stats.overdue > 0) {
-    el.overdueNote.textContent = '⚠️ ' + t('admin.stats.overdue').replace('{n}', stats.overdue);
+  // 逾期永遠顯示全系統的數字，並明說是全系統——
+  // 這是安全網，不能被選定範圍藏起來
+  if (stats.overdue_all > 0) {
+    el.overdueNote.textContent = '⚠️ ' + t('admin.stats.overdue').replace('{n}', stats.overdue_all);
     el.overdueNote.classList.remove('hidden');
   } else {
     el.overdueNote.classList.add('hidden');

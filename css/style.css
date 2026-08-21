@@ -896,18 +896,26 @@ textarea:focus {
 
 .stat-new  .stat-num { color: var(--danger); }
 .stat-proc .stat-num { color: var(--warn); }
-.stat-month .stat-num { color: var(--brand); }
+.stat-done .stat-num { color: var(--ok); }
 
+/* 逾期提示。是按鈕（點一下跳到全部時間 + 未處理），但看起來像提示列 */
 .overdue-note {
-  padding: 10px 14px;
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
   margin-bottom: var(--gap);
+  font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
+  text-align: left;
   color: var(--danger);
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
   border-radius: var(--radius);
+  cursor: pointer;
 }
+
+.overdue-note:active { background: var(--danger-tag); }
 
 /* --- 篩選區 --- */
 
@@ -1008,18 +1016,36 @@ input[type="date"] {
   color: var(--text-muted);
 }
 
-.list-refresh {
-  padding: 6px 12px;
-  font-family: inherit;
-  font-size: var(--fs-xs);
+/* 頁首的重新整理鈕：重新載入並回到初始畫面 */
+.topbar-refresh {
+  flex-shrink: 0;
+  /* 手指點得到：觸控目標不可小於 44px（設計變數 --tap-min 是 48） */
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
   color: var(--text-muted);
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   cursor: pointer;
 }
 
-.list-refresh:disabled { opacity: .5; cursor: not-allowed; }
+.topbar-refresh:active { background: var(--surface-alt); }
+.topbar-refresh:disabled { opacity: .5; cursor: not-allowed; }
+
+.refresh-icon { display: inline-block; }
+
+/* 載入中時讓圖示轉起來，看得出正在做事 */
+.topbar-refresh.spinning .refresh-icon {
+  animation: refresh-spin .8s linear infinite;
+}
+
+@keyframes refresh-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
 .result.warn {
   color: var(--warn);
@@ -1171,8 +1197,38 @@ input[type="date"] {
 
 /* ===== 月份選擇 ===== */
 
-.stat-caret {
-  font-size: 10px;
+/* --- 檢視範圍列 --- */
+
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.period-bar:active { background: var(--surface-alt); }
+
+.period-count {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.period-caret {
+  font-size: 12px;
   color: var(--text-subtle);
   line-height: 1;
 }

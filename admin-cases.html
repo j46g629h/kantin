@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Daftar Laporan · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=1.6">
+  <link rel="stylesheet" href="css/style.css?v=1.7">
 </head>
 <body>
 
@@ -14,6 +14,10 @@
     <!-- 頁首 -->
     <header class="topbar">
       <h1 class="topbar-title" id="pageTitle">Daftar Laporan</h1>
+      <!-- 重新整理：重新載入並回到剛登入的乾淨狀態 -->
+      <button type="button" id="refreshBtn" class="topbar-refresh" aria-label="refresh">
+        <span class="refresh-icon">↻</span>
+      </button>
       <div class="lang-switch lang-switch-compact">
         <button type="button" class="lang-btn" data-lang="id">ID</button>
         <button type="button" class="lang-btn" data-lang="zh">中</button>
@@ -40,7 +44,20 @@
 
       <div id="mainView" class="hidden">
 
-        <!-- 統計卡片：點一下就依該狀態篩選 -->
+        <!--
+          檢視範圍。下面三張卡片全部跟著這裡走，
+          畫面上永遠只有一個尺度，不會出現「全部時間」與「某個月」並排。
+        -->
+        <button type="button" id="periodBar" class="period-bar">
+          <span class="period-label" id="periodLabel">Semua Waktu</span>
+          <span class="period-count" id="periodCount"></span>
+          <span class="period-caret">▾</span>
+        </button>
+
+        <!-- 範圍選單：只列出真的有資料的月份 -->
+        <div id="monthPicker" class="month-picker hidden"></div>
+
+        <!-- 統計卡片：範圍 = 上方選定的期間；點一下依該狀態篩選 -->
         <div class="stat-row">
           <button type="button" class="stat-card stat-new" data-status="ST_NEW">
             <span class="stat-num" id="statNew">–</span>
@@ -50,18 +67,17 @@
             <span class="stat-num" id="statProc">–</span>
             <span class="stat-label" id="statProcLabel">Sedang Diproses</span>
           </button>
-          <button type="button" class="stat-card stat-month" id="statMonthCard">
-            <span class="stat-num" id="statMonth">–</span>
-            <span class="stat-label" id="statMonthLabel">Bulan Ini</span>
-            <span class="stat-caret">▾</span>
+          <button type="button" class="stat-card stat-done" data-status="ST_DONE">
+            <span class="stat-num" id="statDone">–</span>
+            <span class="stat-label" id="statDoneLabel">Selesai</span>
           </button>
         </div>
 
-        <!-- 月份選單：點「本月」卡片才展開，只列出真的有資料的月份 -->
-        <div id="monthPicker" class="month-picker hidden"></div>
-
-        <!-- 有逾期案件時才出現 -->
-        <div id="overdueNote" class="overdue-note hidden"></div>
+        <!--
+          逾期提示。刻意固定顯示「全系統」的數字，不跟著範圍走——
+          三個月前沒處理完的案子今天一樣要處理，被月份藏起來就永遠沒人發現。
+        -->
+        <button type="button" id="overdueNote" class="overdue-note hidden"></button>
 
         <!-- 篩選 -->
         <div class="filter-box">
@@ -112,7 +128,6 @@
         <!-- 結果資訊列 -->
         <div class="list-bar">
           <span id="resultInfo" class="list-count"></span>
-          <button type="button" id="refreshBtn" class="list-refresh">Muat ulang</button>
         </div>
 
         <div id="savedNote" class="result ok hidden"></div>
@@ -133,12 +148,12 @@
 
   </div>
 
-  <script src="js/config.js?v=1.6"></script>
-  <script src="js/i18n.js?v=1.6"></script>
-  <script src="js/ui.js?v=1.6"></script>
-  <script src="js/api.js?v=1.6"></script>
-  <script src="js/admin-session.js?v=1.6"></script>
-  <script src="js/admin-cases.js?v=1.6"></script>
+  <script src="js/config.js?v=1.7"></script>
+  <script src="js/i18n.js?v=1.7"></script>
+  <script src="js/ui.js?v=1.7"></script>
+  <script src="js/api.js?v=1.7"></script>
+  <script src="js/admin-session.js?v=1.7"></script>
+  <script src="js/admin-cases.js?v=1.7"></script>
 
 </body>
 </html>

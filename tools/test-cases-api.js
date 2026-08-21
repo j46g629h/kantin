@@ -231,22 +231,24 @@ if (sanity.data.cases[0].submit_time.indexOf('2026') !== 0) {
   process.exit(2);
 }
 
-console.log('\n【1】不帶篩選：預設只看本月（202608），軟刪除那筆要被排除，由新到舊');
+console.log('\n【1】不帶參數：預設看全部時間，軟刪除那筆要被排除，由新到舊');
 let r = run({});
 check('ok', r.ok, true);
-check('本月總數', r.data.total, 3);
+check('預設範圍是 ALL', r.data.stats.period, 'ALL');
+check('總數', r.data.total, 4);
 check('順序（新→舊）', r.data.cases.map(c => c.case_id),
-  ['PCI-202608-002', 'PCI-202608-003', 'PCI-202608-001']);
+  ['PCI-202608-002', 'PCI-202608-003', 'PCI-202608-001', 'PCI-202607-004']);
 check('不含已刪除', r.data.cases.some(c => c.case_id === 'PCI-202608-005'), false);
-check('7 月那筆不在本月清單裡', r.data.cases.some(c => c.case_id === 'PCI-202607-004'), false);
 
-console.log('\n【2】統計卡片（不受篩選影響）');
+console.log('\n【2】統計卡片（範圍 = ALL，不受篩選影響）');
 check('未處理', r.data.stats.new, 2);
 check('處理中', r.data.stats.processing, 1);
 check('已結案', r.data.stats.done, 1);
-check('本月件數', r.data.stats.month_count, 3);
-check('選定月份', r.data.stats.month, '202608');
-check('逾期', r.data.stats.overdue, 1);
+check('範圍內總數', r.data.stats.total, 4);
+check('三種狀態相加 = 總數',
+  r.data.stats.new + r.data.stats.processing + r.data.stats.done, r.data.stats.total);
+check('全系統未處理（安全網）', r.data.stats.new_all, 2);
+check('全系統逾期（安全網）', r.data.stats.overdue_all, 1);
 
 console.log('\n【3】逾期判斷：未處理且滿 3 天');
 const byId = Object.fromEntries(r.data.cases.map(c => [c.case_id, c]));
@@ -269,9 +271,9 @@ check('提交時間格式', byId['PCI-202608-001'].submit_time, '2026-08-01 08:0
 console.log('\n【6】依狀態篩選');
 check('ST_NEW', run({ status_code: 'ST_NEW' }).data.cases.map(c => c.case_id),
   ['PCI-202608-002', 'PCI-202608-001']);
-check('ST_DONE（在 7 月，本月查不到）', run({ status_code: 'ST_DONE' }).data.total, 0);
-check('指定 7 月才找得到', run({ month: '202607', status_code: 'ST_DONE' }).data.total, 1);
-check('篩選後全時間統計不變', run({ status_code: 'ST_DONE' }).data.stats.new, 2);
+check('ST_DONE', run({ status_code: 'ST_DONE' }).data.total, 1);
+check('指定 7 月也找得到', run({ period: '202607', status_code: 'ST_DONE' }).data.total, 1);
+check('篩選不影響統計', run({ status_code: 'ST_DONE' }).data.stats.new, 2);
 
 console.log('\n【7】依地點 / 分類篩選');
 check('LOC_02', run({ location_code: 'LOC_02' }).data.total, 2);
@@ -279,20 +281,21 @@ check('複選案件的第 2 個分類也查得到', run({ category_code: 'CAT_HY
   ['PCI-202608-001']);
 check('CAT_TASTE', run({ category_code: 'CAT_TASTE' }).data.total, 1);
 
-console.log('\n【8】日期範圍（含起訖當天，會與月份範圍疊加）');
+console.log('\n【8】日期範圍（含起訖當天）');
 check('8/10 起（8/10 + 8/19）', run({ date_from: '2026-08-10' }).data.total, 2);
-check('到 8/10 止（8/01 + 8/10）', run({ date_to: '2026-08-10' }).data.total, 2);
+check('到 8/10 止（7/15 + 8/01 + 8/10）', run({ date_to: '2026-08-10' }).data.total, 3);
 check('剛好 8/10 當天', run({ date_from: '2026-08-10', date_to: '2026-08-10' }).data.cases.map(c => c.case_id),
   ['PCI-202608-003']);
-check('7 月整月（要同時指定月份）',
-  run({ month: '202607', date_from: '2026-07-01', date_to: '2026-07-31' }).data.total, 1);
+check('7 月整月', run({ date_from: '2026-07-01', date_to: '2026-07-31' }).data.total, 1);
+check('日期範圍會與檢視範圍疊加',
+  run({ period: '202608', date_to: '2026-08-10' }).data.total, 2);
 
 console.log('\n【9】關鍵字（案件編號 / 工號 / 姓名 / 描述 / 處理者）');
 check('姓名（不分大小寫）', run({ keyword: 'budi' }).data.total, 1);
 check('描述', run({ keyword: '燈' }).data.total, 1);
 check('工號', run({ keyword: 'a1234' }).data.total, 1);
-check('處理者姓名（由帳號查出來的）', run({ keyword: '王小明' }).data.total, 1);
-check('案件編號片段（7 月）', run({ month: '202607', keyword: '202607' }).data.total, 1);
+check('處理者姓名（由代碼查出來的）', run({ keyword: '王小明' }).data.total, 2);
+check('案件編號片段', run({ keyword: '202607' }).data.total, 1);
 check('查無', run({ keyword: 'zzzz' }).data.total, 0);
 
 console.log('\n【10】篩選條件可疊加');
@@ -301,8 +304,8 @@ check('LOC_02 + ST_NEW', run({ location_code: 'LOC_02', status_code: 'ST_NEW' })
 
 console.log('\n【11】limit 上限保護');
 check('limit=1', run({ limit: 1 }).data.returned, 1);
-check('limit=1 時 total 仍是全部', run({ limit: 1 }).data.total, 3);
-check('limit=99999 被夾到 MAX 而非爆掉', run({ limit: 99999 }).data.returned, 3);
+check('limit=1 時 total 仍是全部', run({ limit: 1 }).data.total, 4);
+check('limit=99999 被夾到 MAX 而非爆掉', run({ limit: 99999 }).data.returned, 4);
 
 
 // ===== updateCase =====
@@ -386,13 +389,13 @@ check('小寫案件編號也找得到',
   update({ case_id: 'pci-202608-003', status_code: 'ST_PROC', response: '維修中' }).ok, true);
 check('狀態代碼小寫會轉成大寫', cellOf('PCI-202608-003', '處理狀態'), 'ST_PROC');
 
-console.log('\n【17】更新後的統計會跟著變（全時間範圍）');
+console.log('\n【17】更新後的統計會跟著變');
 const after = run({});
 check('未處理剩 1 筆（002）', after.data.stats.new, 1);
 check('處理中 1 筆（003）', after.data.stats.processing, 1);
 check('已結案 2 筆（001 + 004）', after.data.stats.done, 2);
-check('逾期歸零', after.data.stats.overdue, 0);
-check('本月件數不受狀態變化影響', after.data.stats.month_count, 3);
+check('全系統逾期歸零', after.data.stats.overdue_all, 0);
+check('範圍內總數不受狀態變化影響', after.data.stats.total, 4);
 
 console.log('\n【18】getTemplates');
 const tpl = vm.runInContext(`getTemplates({}, {name:'王小明'})`, sandbox);
@@ -404,23 +407,42 @@ check('中文內容', tpl.data.templates[0].content_zh, '已轉知廚房調整�
 check('印尼文內容', tpl.data.templates[0].content_id, 'Sudah disampaikan ke dapur.');
 
 
-console.log('\n【19】月份選擇');
-const aug = run({ month: '202608' });
-check('8 月件數', aug.data.stats.month_count, 3);
+console.log('\n【19】檢視範圍（全部時間 / 指定月份）');
+const all = run({ period: 'ALL' });
+check('ALL 的總數', all.data.stats.total, 4);
+check('ALL 的清單筆數', all.data.total, 4);
+
+const aug = run({ period: '202608' });
+check('8 月總數', aug.data.stats.total, 3);
 check('8 月清單', aug.data.total, 3);
+check('8 月三種狀態相加 = 總數',
+  aug.data.stats.new + aug.data.stats.processing + aug.data.stats.done, aug.data.stats.total);
 
-const jul = run({ month: '202607' });
-check('7 月件數', jul.data.stats.month_count, 1);
+const jul = run({ period: '202607' });
+check('7 月總數', jul.data.stats.total, 1);
 check('7 月清單只有那一筆', jul.data.cases.map(c => c.case_id), ['PCI-202607-004']);
-check('全時間統計不受月份影響', jul.data.stats.new, aug.data.stats.new);
+check('7 月的已結案 1 筆', jul.data.stats.done, 1);
+check('7 月的未處理 0 筆', jul.data.stats.new, 0);
 
+console.log('\n【19b】安全網數字不受範圍影響');
+check('全系統未處理：ALL 與 7 月一致', jul.data.stats.new_all, all.data.stats.new_all);
+check('全系統逾期：ALL 與 7 月一致', jul.data.stats.overdue_all, all.data.stats.overdue_all);
+// 用不變式驗證，不寫死數字——前面的測試已經改過幾筆案件的狀態，
+// 寫死的話會隨測試順序而錯，而錯的是期望值不是程式
+check('全系統未處理 === ALL 範圍的未處理', jul.data.stats.new_all, all.data.stats.new);
+check('全系統未處理 >= 任一月份的未處理', jul.data.stats.new_all >= jul.data.stats.new, true);
+
+console.log('\n【19c】範圍參數的容錯');
 check('可選月份由新到舊', run({}).data.available_months.map(m => m.month), ['202608', '202607']);
 check('可選月份帶件數', run({}).data.available_months.map(m => m.count), [3, 1]);
-check('月份格式 2026-08 也接受', run({ month: '2026-08' }).data.stats.month, '202608');
-check('亂填月份就回到本月', run({ month: 'abc' }).data.stats.month, '202608');
+check('2026-08 格式也接受', run({ period: '2026-08' }).data.stats.period, '202608');
+check('小寫 all 也接受', run({ period: 'all' }).data.stats.period, 'ALL');
+check('空字串 = 全部時間', run({ period: '' }).data.stats.period, 'ALL');
+check('亂填就回到全部時間（寧可多顯示也不要無聲少掉案件）',
+  run({ period: 'abc' }).data.stats.period, 'ALL');
 check('選了沒資料的月份仍列在選單裡',
-  run({ month: '202601' }).data.available_months.some(m => m.month === '202601'), true);
-check('沒資料的月份件數為 0', run({ month: '202601' }).data.stats.month_count, 0);
+  run({ period: '202601' }).data.available_months.some(m => m.month === '202601'), true);
+check('沒資料的月份總數為 0', run({ period: '202601' }).data.stats.total, 0);
 
 console.log('\n【20】處理者指派（名單來自選項設定）');
 check('指派給啟用中的處理者',

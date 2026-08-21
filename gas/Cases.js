@@ -32,12 +32,15 @@ function getCaseList(params, session) {
   const sheet   = getSheet(SHEETS.FEEDBACK);
   const lastRow = sheet.getLastRow();
 
-  // 沒選月份就看本月
-  const selectedMonth = normalizeMonth(params.month) || currentYearMonth();
+  // 檢視範圍：'ALL' 或某個月份 YYYYMM。預設看全部
+  const period = normalizePeriod(params.period);
 
   const emptyResult = {
     cases: [], total: 0, returned: 0,
-    stats: { new: 0, processing: 0, done: 0, month_count: 0, overdue: 0, month: selectedMonth },
+    stats: {
+      new: 0, processing: 0, done: 0, total: 0, period: period,
+      new_all: 0, overdue_all: 0,
+    },
     available_months: [],
   };
   if (lastRow < 2) return ok(emptyResult);
@@ -50,37 +53,49 @@ function getCaseList(params, session) {
   const now    = new Date();
 
   /**
-   * 統計卡片的算法刻意分成兩種：
-   *   未處理 / 處理中 / 逾期 → 算「全部時間」，不受月份與篩選影響。
-   *     這三個回答的是「我現在該做什麼」。三個月前沒處理完的案子今天一樣要處理，
-   *     被月份篩掉反而會漏看。
-   *   月份件數 → 只算選定的那個月。這個回答的是「那個月的量有多少」。
+   * 統計數字分成兩組，用途完全不同：
+   *
+   *   new / processing / done / total
+   *     → 只算「選定範圍」內的。畫面上三張卡片顯示的就是這組，
+   *       卡片上方會標明現在看的是哪個範圍，不會出現兩種尺度並排。
+   *
+   *   new_all / overdue_all
+   *     → 永遠算全部時間，不受範圍與篩選影響。
+   *       這是安全網：三個月前沒處理完的案子今天一樣要處理，
+   *       如果被月份藏起來就會永遠沒人發現。
    */
-  const stats = { new: 0, processing: 0, done: 0, month_count: 0, overdue: 0, month: selectedMonth };
+  const stats = {
+    new: 0, processing: 0, done: 0, total: 0, period: period,
+    new_all: 0, overdue_all: 0,
+  };
 
-  const monthSet = {};      // 有資料的月份，給前端做月份選單用
+  const monthSet = {};      // 有資料的月份，給前端做範圍選單用
   const matched  = [];
 
   rows.forEach(function (values) {
     if (isDeletedRow(values, colMap)) return;
 
-    const item = buildAdminCase(values, colMap, now, handlerMap);
+    const item   = buildAdminCase(values, colMap, now, handlerMap);
+    const isNew  = item.status_code !== 'ST_PROC' && item.status_code !== 'ST_DONE';
 
-    // --- 全時間統計 ---
-    if (item.status_code === 'ST_PROC')      stats.processing++;
-    else if (item.status_code === 'ST_DONE') stats.done++;
-    else                                     stats.new++;     // 狀態空白或認不得都算未處理
+    // --- 全系統的安全網數字 ---
+    if (isNew)           stats.new_all++;
+    if (item.is_overdue) stats.overdue_all++;
 
-    if (item.is_overdue) stats.overdue++;
-
-    // --- 選定月份的件數 ---
     if (item.submit_month) {
       monthSet[item.submit_month] = (monthSet[item.submit_month] || 0) + 1;
-      if (item.submit_month === selectedMonth) stats.month_count++;
+    }
+
+    // --- 選定範圍內的統計 ---
+    if (isInPeriod(item, period)) {
+      stats.total++;
+      if (item.status_code === 'ST_PROC')      stats.processing++;
+      else if (item.status_code === 'ST_DONE') stats.done++;
+      else                                     stats.new++;   // 狀態空白或認不得都算未處理
     }
 
     // --- 篩選 ---
-    if (matchCaseFilter(item, filter, selectedMonth)) {
+    if (isInPeriod(item, period) && matchCaseFilter(item, filter)) {
       matched.push(item);
     }
   });
@@ -96,13 +111,19 @@ function getCaseList(params, session) {
     total:            matched.length,
     returned:         page.length,
     stats:            stats,
-    available_months: buildAvailableMonths(monthSet, selectedMonth),
+    available_months: buildAvailableMonths(monthSet, period),
   });
 }
 
 
+/** 這筆案件在不在選定的範圍內 */
+function isInPeriod(item, period) {
+  return period === PERIOD_ALL || item.submit_month === period;
+}
+
+
 /**
- * 把「有資料的月份」整理成前端的月份選單。
+ * 把「有資料的月份」整理成前端的範圍選單。
  *
  * 只列出真的有案件的月份，選單裡就不會出現點下去一片空白的月份。
  * 目前選定的月份就算沒有資料也要保留，否則選單會突然少一項，
@@ -110,9 +131,9 @@ function getCaseList(params, session) {
  *
  * @return {Array} [{ month:'202608', count:10 }]，由新到舊
  */
-function buildAvailableMonths(monthSet, selectedMonth) {
-  if (selectedMonth && monthSet[selectedMonth] === undefined) {
-    monthSet[selectedMonth] = 0;
+function buildAvailableMonths(monthSet, period) {
+  if (period !== PERIOD_ALL && monthSet[period] === undefined) {
+    monthSet[period] = 0;
   }
 
   return Object.keys(monthSet)
@@ -124,11 +145,16 @@ function buildAvailableMonths(monthSet, selectedMonth) {
 }
 
 
-/** 把月份參數正規化成 YYYYMM；認不得的格式回傳空字串（等於不篩） */
-function normalizeMonth(raw) {
-  // 前端可能送 2026-08（<input type="month"> 的格式）或 202608，兩種都收
-  const value = str(raw).replace('-', '');
-  return /^\d{6}$/.test(value) ? value : '';
+/**
+ * 把範圍參數正規化。
+ *
+ * 接受 'ALL'、'202608'、'2026-08'（後者是 <input type="month"> 的格式）。
+ * 認不得的一律當成 ALL——寧可多顯示，也不要因為參數打錯就無聲少掉一堆案件。
+ */
+function normalizePeriod(raw) {
+  const value = str(raw).toUpperCase().replace('-', '');
+  if (!value || value === PERIOD_ALL) return PERIOD_ALL;
+  return /^\d{6}$/.test(value) ? value : PERIOD_ALL;
 }
 
 
@@ -154,10 +180,7 @@ function readCaseFilter(params) {
  * 字串比大小的結果跟日期先後完全一致，而且不必處理時區與時分秒，
  * 少一個最容易出錯的地方（例如 date_to 當天的下午 3 點被判定為超出範圍）。
  */
-function matchCaseFilter(item, filter, selectedMonth) {
-  // 月份是清單的主要範圍：看哪個月，清單就只顯示那個月
-  if (selectedMonth && item.submit_month !== selectedMonth) return false;
-
+function matchCaseFilter(item, filter) {
   if (filter.status   && item.status_code   !== filter.status)   return false;
   if (filter.location && item.location_code !== filter.location) return false;
 

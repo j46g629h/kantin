@@ -194,6 +194,9 @@ const CACHE_KEYS = {
 
 // ===== 管理端案件列表 =====
 
+/** 檢視範圍選「全部時間」時用的代碼 */
+const PERIOD_ALL = 'ALL';
+
 const CASE_LIST = {
   /** 一次回傳幾筆（前端沒指定時） */
   DEFAULT_LIMIT: 100,
