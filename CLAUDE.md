@@ -409,7 +409,36 @@ sandbox 裡的 `x instanceof Date` 會是 false（跨 realm 的建構子不同�
 
 Windows 公司電腦 ↔ macOS 私人電腦，透過 GitHub 同步。
 `.gitattributes` 已設定換行字元正規化。
-換電腦後 clasp 需要重新 `clasp login`（憑證存在使用者家目錄，不在專案裡）。
+
+**換到另一台時的完整步驟：**
+
+```bash
+git pull
+```
+
+拉下來就能繼續。三件事要注意：
+
+| 項目 | 說明 |
+|---|---|
+| **指令前綴** | macOS 直接用 `clasp` / `npm`；Windows PowerShell 要用 `clasp.cmd` / `npm.cmd`（見上方說明） |
+| **clasp 憑證** | 不在專案裡（在使用者家目錄），換電腦要重新 `clasp login`。**只有要改後端才需要**，光改前端不用 |
+| **測試檔不可寫死路徑** | 一律用 `path.join(__dirname, '..')`。寫死 `D:/Claude/KANTIN` 在 macOS 上會直接爆掉——`test-cases-api.js` 與 `test-store.js` 都踩過 |
+
+**不會跟著 git 走的東西**（換電腦時不必也不能帶）：
+
+- clasp 登入憑證（`~/.clasprc.json`）→ 重新 `clasp login`
+- Google Sheet 與 Drive 上的資料 → 本來就在雲端，兩台看到的是同一份
+- Apps Script 上的程式碼 → 已部署的版本兩台共用，`clasp push` 推的是同一個專案
+- 已安裝的觸發器（排程）→ 跟著「安裝的人」跑，不是跟著電腦
+
+**接手後確認狀態的三個指令：**
+
+```bash
+git log --oneline -5                    # 做到哪裡
+node tools/test-report-api.js           # 測試是否還全過
+```
+
+線上狀態（部署版本、排程有沒有裝）看 `docs/開發進度.md` 最上方的「目前狀態」。
 
 ---
 

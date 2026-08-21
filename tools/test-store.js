@@ -1,6 +1,11 @@
 // 本機測試 gas/Store.js：存取、過期、清除、清掃
-const fs = require('fs');
-const vm = require('vm');
+const fs   = require('fs');
+const path = require('path');
+const vm   = require('vm');
+
+// ⚠️ 不要寫死絕對路徑。這支測試原本寫死 D:/Claude/KANTIN，
+//    在 macOS 那台會直接爆掉（其他兩支測試也踩過同一個坑）。
+const ROOT = path.join(__dirname, '..');
 
 const props = {};
 const sandbox = {
@@ -16,7 +21,7 @@ const sandbox = {
   },
 };
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync('D:/Claude/KANTIN/gas/Store.js', 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Store.js'), 'utf8'), sandbox);
 
 const run = (code) => vm.runInContext(code, sandbox);
 
