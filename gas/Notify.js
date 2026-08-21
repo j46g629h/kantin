@@ -77,9 +77,13 @@ function sendToRecipients(subject, buildHtml, source) {
     return { sent: 0, failed: 0, skipped: 0 };
   }
 
-  let sent = 0, failed = 0;
+  let sent = 0, failed = 0, authError = '';
 
-  recipients.forEach(function (person) {
+  // 用 for 而不是 forEach：授權不足時要能中斷。
+  // forEach 沒辦法 break，會把每一位收件人都試一次、每一次都失敗
+  for (let i = 0; i < recipients.length; i++) {
+    const person = recipients[i];
+
     try {
       MailApp.sendEmail({
         to:       person.email,
@@ -88,14 +92,43 @@ function sendToRecipients(subject, buildHtml, source) {
         name:     REPORT.SENDER_NAME,
       });
       sent++;
+
     } catch (e) {
-      // 一個人寄失敗不該讓其他人也收不到，所以在迴圈裡各自 try
+      // 一個人的信箱有問題不該讓其他人也收不到，所以在迴圈裡各自 try
       failed++;
       logError(source, '', e, { recipient: person.email });
-    }
-  });
 
-  return { sent: sent, failed: failed, skipped: 0 };
+      // 授權不足是另一回事：那不是「這個收件人有問題」，是整個功能都還不能用。
+      // 剩下的人一定也會失敗，繼續試只是多寫幾筆一模一樣的錯誤日誌
+      if (isAuthorizationError(e)) {
+        authError = String(e);
+        break;
+      }
+    }
+  }
+
+  return { sent: sent, failed: failed, skipped: 0, auth_error: authError };
+}
+
+
+/**
+ * 這個錯誤是不是「權限還沒授權」？
+ *
+ * ⚠️ 為什麼要特別認出它：這是新增一支會用到新服務的功能時，第一次執行幾乎必然遇到的錯。
+ *
+ *    Apps Script 是靠掃描程式碼推算需要哪些權限的。
+ *    剛推上新程式碼時，它可能還在用舊的權限清單，
+ *    於是「授權畫面按過了，但寄信照樣被擋」——
+ *    而錯誤訊息只會顯示成「失敗 N 封」，看不出是授權問題。
+ *
+ *    解法很簡單（再執行一次，這次的授權畫面就會包含新權限），
+ *    但前提是要知道問題出在授權。所以這裡要把它跟一般的寄信失敗分開講。
+ */
+function isAuthorizationError(error) {
+  const text = String((error && error.message) || error);
+  return text.indexOf('permission') >= 0
+      || text.indexOf('Authorization') >= 0
+      || text.indexOf('authorization') >= 0;
 }
 
 

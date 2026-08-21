@@ -45,8 +45,25 @@ function sendDailyReport() {
       return buildDailyReportHtml(report, today);
     }, 'sendDailyReport');
 
-    const msg = '已寄出 ' + result.sent + ' 封（失敗 ' + result.failed + ' 封）；'
-              + '未處理 ' + report.total + ' 件，其中逾期 ' + report.overdue + ' 件。';
+    const lines = [
+      '已寄出 ' + result.sent + ' 封（失敗 ' + result.failed + ' 封）；'
+        + '未處理 ' + report.total + ' 件，其中逾期 ' + report.overdue + ' 件。',
+    ];
+
+    // 授權問題不能只說「失敗 N 封」——那看起來像信箱有問題，
+    // 但實際上要做的事完全不同（再執行一次就好）
+    if (result.auth_error) {
+      lines.push('');
+      lines.push('⚠️ 一封都沒寄出，原因是「寄信權限尚未授權」。');
+      lines.push('   請再執行一次這支函式，這次會跳出授權畫面，允許之後就正常了。');
+      lines.push('   （Apps Script 是掃描程式碼推算需要哪些權限的，');
+      lines.push('     剛更新過程式碼時第一次執行常常會遇到這個。）');
+      lines.push('');
+      lines.push('   原始訊息：' + result.auth_error);
+    }
+
+    const msg = lines.join(String.fromCharCode(10));
+
     Logger.log(msg);
     return msg;
 

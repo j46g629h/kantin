@@ -987,3 +987,106 @@ function migrateAddPasswordChangedAt() {
   Logger.log(msg);
   return msg;
 }
+
+
+/**
+ * 把「錯誤日誌」最近幾筆印在執行紀錄上（維運工具）。
+ *
+ * 為什麼需要它：排程出錯時沒有人在場，錯誤只會躺在 Sheet 裡，
+ * 而錯誤欄裡是一長串堆疊訊息，在儲存格裡幾乎讀不了。
+ * 印在執行紀錄上就能整段看完、整段複製。
+ *
+ * 執行方式：Apps Script 編輯器 → 函式選 showRecentErrors → 按 ▷ → 看執行紀錄
+ */
+function showRecentErrors() {
+  const COUNT = 5;   // 要看更多就把這個數字改大
+
+  const sheet = getSpreadsheet().getSheetByName(SHEETS.LOGS);
+  if (!sheet) {
+    const msg = '找不到「' + SHEETS.LOGS + '」分頁。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    const msg = '錯誤日誌是空的，目前沒有任何錯誤紀錄。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const start = Math.max(2, lastRow - COUNT + 1);
+  const rows  = sheet.getRange(start, 1, lastRow - start + 1, 5).getValues();
+
+  const report = ['===== 錯誤日誌最近 ' + rows.length + ' 筆（新的在最下面）====='];
+
+  rows.forEach(function (row, i) {
+    report.push('');
+    report.push('--- 第 ' + (start + i) + ' 列 ---');
+    report.push('時間：' + row[0]);
+    report.push('來源：' + row[1]);
+    report.push('錯誤：' + row[3]);
+    report.push('內容：' + row[4]);
+  });
+
+  const msg = report.join('\n');
+  Logger.log(msg);
+  return msg;
+}
+
+
+/**
+ * 檢查寄信功能本身能不能用（維運工具）。
+ *
+ * 把「寄信」和「產生信件內容」拆開來各測一次，
+ * 這樣才分得出來是權限 / 額度的問題，還是信件內容的程式出錯。
+ * 兩者的解法完全不同，混在一起看只會多繞路。
+ */
+function checkMailSetup() {
+  const report = ['===== 寄信環境檢查 ====='];
+
+  // 1. 額度
+  try {
+    report.push('今日剩餘可寄收件人數：' + MailApp.getRemainingDailyQuota());
+  } catch (e) {
+    report.push('❌ 讀不到寄信額度：' + e);
+  }
+
+  // 2. 收件人
+  try {
+    const recipients = getReportRecipients();
+    report.push('收件人 ' + recipients.length + ' 位：'
+      + recipients.map(function (r) { return r.name + ' <' + r.email + '>'; }).join('、'));
+  } catch (e) {
+    report.push('❌ 取收件人失敗：' + e);
+  }
+
+  // 3. 產生信件內容（不寄出）——內容出錯的話問題在這裡，不在寄信
+  try {
+    const daily = buildDailyReport();
+    const html  = buildDailyReportHtml(daily, '測試');
+    report.push('信件內容產生成功，長度 ' + html.length + ' 字元；'
+      + '未處理 ' + daily.total + ' 件、逾期 ' + daily.overdue + ' 件。');
+  } catch (e) {
+    report.push('❌ 產生信件內容失敗：' + e);
+    report.push('   ' + (e.stack || ''));
+  }
+
+  // 4. 真的寄一封給自己
+  try {
+    const me = Session.getEffectiveUser().getEmail();
+    MailApp.sendEmail({
+      to:       me,
+      subject:  '[Kantin PCI] 寄信測試',
+      htmlBody: '<p>這是一封測試信。收得到就表示寄信功能正常。</p>',
+      name:     REPORT.SENDER_NAME,
+    });
+    report.push('✔ 已寄一封測試信給 ' + me + '，請去信箱確認。');
+  } catch (e) {
+    report.push('❌ 寄信失敗：' + e);
+  }
+
+  const msg = report.join('\n');
+  Logger.log(msg);
+  return msg;
+}
