@@ -60,7 +60,7 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 
 **Sheet 分頁**：`回報資料`、`員工名冊`、`管理者名單`、`選項設定`、`回覆範本`、`系統計數`、`錯誤日誌`
 
-**後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Main`（路由）/ `Auth`（登入與權限）/
+**後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Store`（附有效期的鍵值儲存）/ `Main`（路由）/ `Auth`（登入與權限）/
 `Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
 `Setup`（一次性腳本與維運工具）
 
@@ -172,6 +172,21 @@ manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin
 工號 `0012345` 變 `12345`，64 位十六進位的密碼雜湊若剛好整串是數字會變成科學記號，
 那個帳號從此永遠登不進去。
 
+### 12. 改欄位定義＝改資料結構，順序不可顛倒
+
+`XXX_COLUMNS`（`gas/Config.js`）就是資料結構的定義。
+加一個欄位進去之後，`buildColumnMap()` 在 Sheet 找不到該欄位就會**丟出例外**，
+所有讀那張表的功能會一起壞掉。
+
+**正確順序：先升級 Sheet，再部署程式。** 反過來做的話，
+從部署到使用者跑完升級程式的這段時間，功能是全壞的。
+
+實際踩過：把「電話」加進 `ADMIN_COLUMNS` 後直接部署，
+結果超級管理者完全無法登入，只看到「系統出了問題」。
+
+寫入也要小心：一律用 `writeRowByColumns()`，它會依表頭定位。
+自己照順序從第 1 欄寫到第 N 欄的話，Sheet 上多一欄就會整批錯位寫進隔壁，而且不會報錯。
+
 ### 13. 不要用 `CacheService`，改用 `gas/Store.js`
 
 **這個專案的 `CacheService` 完全沒有作用。** 實測：`put()` 不丟任何錯誤，
@@ -193,21 +208,6 @@ storeSweepExpired();                // Properties 沒有自動過期，登入時
 ```
 
 驗證方式：`node tools/test-store.js`
-
-### 12. 改欄位定義＝改資料結構，順序不可顛倒
-
-`XXX_COLUMNS`（`gas/Config.js`）就是資料結構的定義。
-加一個欄位進去之後，`buildColumnMap()` 在 Sheet 找不到該欄位就會**丟出例外**，
-所有讀那張表的功能會一起壞掉。
-
-**正確順序：先升級 Sheet，再部署程式。** 反過來做的話，
-從部署到使用者跑完升級程式的這段時間，功能是全壞的。
-
-實際踩過：把「電話」加進 `ADMIN_COLUMNS` 後直接部署，
-結果超級管理者完全無法登入，只看到「系統出了問題」。
-
-寫入也要小心：一律用 `writeRowByColumns()`，它會依表頭定位。
-自己照順序從第 1 欄寫到第 N 欄的話，Sheet 上多一欄就會整批錯位寫進隔壁，而且不會報錯。
 
 ---
 
@@ -260,7 +260,8 @@ clasp.cmd pull                             # 從線上拉回（很少用）
 ### 後端邏輯的本機測試
 
 ```bash
-node tools/test-cases-api.js
+node tools/test-cases-api.js   # 管理端案件 API（篩選 / 排序 / 統計 / 逾期 / 回覆 / 指派）
+node tools/test-store.js       # 附有效期的鍵值儲存
 ```
 
 用假的 Apps Script 服務（`SpreadsheetApp` / `Utilities` / `Session`）在 Node 裡跑 `getCaseList`，
