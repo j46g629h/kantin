@@ -85,6 +85,15 @@ const el = {
   fAccount:     document.getElementById('fAccount'),
   fEmail:       document.getElementById('fEmail'),
   fRole:        document.getElementById('fRole'),
+  labelInitPw:  document.getElementById('labelInitPw'),
+  newPwManual:     document.getElementById('newPwManual'),
+  newPwManualHint: document.getElementById('newPwManualHint'),
+  newPwAuto:       document.getElementById('newPwAuto'),
+  newPwAutoHint:   document.getElementById('newPwAutoHint'),
+  newPwBox:        document.getElementById('newPwBox'),
+  fPassword:       document.getElementById('fPassword'),
+  showNewPw:       document.getElementById('showNewPw'),
+  newPwShowLabel:  document.getElementById('newPwShowLabel'),
   addError:     document.getElementById('addError'),
   createBtn:    document.getElementById('createBtn'),
   cancelBtn:    document.getElementById('cancelBtn'),
@@ -181,16 +190,26 @@ async function createAdmin(event) {
   event.preventDefault();
   if (state.creating) return;
 
+  const manualPw = document.querySelector('input[name="newPwMode"]:checked').value === 'manual';
+
   const data = {
     account: el.fAccount.value.trim(),
     name:    el.fName.value.trim(),
     email:   el.fEmail.value.trim(),
     role:    el.fRole.value,
+    newPassword: manualPw ? el.fPassword.value.trim() : '',
   };
 
   // 前端先擋掉明顯的漏填，省一趟 3～8 秒的往返。真正的檢查在後端
   if (!data.name)    { show(el.addError, t('err.ADMIN_NAME_REQUIRED'));    el.fName.focus();    return; }
   if (!data.account) { show(el.addError, t('err.ADMIN_ACCOUNT_REQUIRED')); el.fAccount.focus(); return; }
+
+  // 「不可與其他管理者重複」前端檢查不了（拿不到雜湊，也不該拿得到），
+  // 那條由後端回 ADMIN_PASSWORD_TAKEN
+  if (manualPw) {
+    const ruleError = passwordRuleError(data.newPassword);
+    if (ruleError) { show(el.addError, t(ruleError)); el.fPassword.focus(); return; }
+  }
 
   state.creating = true;
   hide(el.addError);
@@ -202,6 +221,8 @@ async function createAdmin(event) {
 
     if (!result.ok) {
       show(el.addError, errorMessage(result));
+      // 「這組密碼已經有人在用」是最常見的失敗，游標直接回到密碼欄
+      if (manualPw && String(result.error).indexOf('PASSWORD') >= 0) el.fPassword.focus();
       return;
     }
 
@@ -210,7 +231,7 @@ async function createAdmin(event) {
       account:   result.data.account,
       password:  result.data.initial_password,
       mode:      'create',
-      generated: true,          // 新增帳號的初始密碼一定是系統產生的
+      generated: result.data.generated !== false,
     };
 
     closeAddForm();
@@ -592,6 +613,14 @@ function renderTexts() {
   el.fAccount.placeholder      = t('accounts.fAccountPh');
   el.fEmail.placeholder        = t('accounts.fEmailPh');
   el.roleHint.textContent      = t('accounts.roleHint');
+
+  el.labelInitPw.textContent     = t('accounts.fInitPw');
+  el.newPwManual.textContent     = t('accounts.pwModeManual');
+  el.newPwManualHint.textContent = t('accounts.pwModeManualHint');
+  el.newPwAuto.textContent       = t('accounts.pwModeAuto');
+  el.newPwAutoHint.textContent   = t('accounts.pwModeAutoHint');
+  el.fPassword.placeholder       = t('accounts.pwInputPh');
+  el.newPwShowLabel.textContent  = t('accounts.pwShow');
   el.cancelBtn.textContent     = t('accounts.cancel');
   if (!state.creating) el.createBtn.textContent = t('accounts.create');
 
@@ -828,6 +857,11 @@ function closeAddForm() {
   el.fAccount.value = '';
   el.fEmail.value = '';
   el.fRole.value = 'ADMIN';
+  el.fPassword.value = '';
+  el.fPassword.type = 'password';        // 「顯示密碼」的狀態也要復原
+  el.showNewPw.checked = false;
+  document.querySelector('input[name="newPwMode"][value="manual"]').checked = true;
+  el.newPwBox.classList.remove('hidden');
   hide(el.addError);
 }
 
@@ -872,6 +906,20 @@ el.logoutBtn.addEventListener('click', function () { adminLogout(); });
 el.addBtn.addEventListener('click', openAddForm);
 el.cancelBtn.addEventListener('click', closeAddForm);
 el.addForm.addEventListener('submit', createAdmin);
+
+document.querySelectorAll('input[name="newPwMode"]').forEach(function (radio) {
+  radio.addEventListener('change', function () {
+    const manual = radio.value === 'manual' && radio.checked;
+    el.newPwBox.classList.toggle('hidden', !manual);
+    hide(el.addError);
+    if (manual) el.fPassword.focus();
+  });
+});
+
+// 打錯字要等對方登不進去才會發現，給一個看一眼確認的開關
+el.showNewPw.addEventListener('change', function (e) {
+  el.fPassword.type = e.target.checked ? 'text' : 'password';
+});
 
 document.querySelectorAll('.lang-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {

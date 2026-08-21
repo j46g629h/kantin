@@ -100,11 +100,17 @@ function adminOpList(params, session) {
 // ===== create：新增管理者 =====
 
 /**
- * 新增一個管理者帳號，並回傳系統隨機產生的初始密碼。
+ * 新增一個管理者帳號，並回傳初始密碼。
+ *
+ * 密碼來源與 resetPassword 一致：
+ *   - 有帶 new_password  → 用超級管理者自己輸入的那組（預設作法）
+ *   - 沒帶 new_password  → 系統產生一組 12 碼的隨機密碼
+ *
+ * 自訂密碼一樣要過規格 §5.5 的規則，也一樣不可以跟現有管理者重複。
  *
  * ⚠️ 初始密碼只會在這一次的回應裡出現。
  *    Sheet 裡只存雜湊，事後查不回來（這是刻意的）。
- *    忘了記下來就用「重設密碼」再產生一組新的。
+ *    忘了記下來就用「重設密碼」再設一組。
  */
 function adminOpCreate(params, session) {
   const account = str(params.account).toLowerCase();
@@ -126,9 +132,27 @@ function adminOpCreate(params, session) {
     return fail('ADMIN_EXISTS', '這個帳號已經存在');
   }
 
-  const password = generateInitialPassword();
-  const salt     = generateSalt();
-  const sheet    = getSheet(SHEETS.ADMINS);
+  // 密碼來源。欄位名稱一定要是 new_password——
+  // SENSITIVE_PARAMS 只遮這幾個名字，換名字的話出錯時明文會被寫進「錯誤日誌」
+  const custom = str(params.new_password);
+  let password;
+
+  if (custom) {
+    const ruleError = validatePasswordRule(custom);
+    if (ruleError) return fail(ruleError, '密碼不符合規則');
+
+    // 這個帳號還不存在，所以只可能撞到別人，不會出現 'self'
+    if (findPasswordClash(custom, account) === 'other') {
+      // 一樣不可以說是「誰」在用（見 findPasswordClash 的說明）
+      return fail('ADMIN_PASSWORD_TAKEN', '已經有其他管理者在用這組密碼，請換一組');
+    }
+    password = custom;
+  } else {
+    password = generateInitialPassword();
+  }
+
+  const salt  = generateSalt();
+  const sheet = getSheet(SHEETS.ADMINS);
 
   // 一律用 writeRowByColumns()：它會依表頭定位欄位，
   // Sheet 上多一欄少一欄都不會錯位（設計約定第 12 條）
@@ -150,6 +174,7 @@ function adminOpCreate(params, session) {
     name:             name,
     role:             role,
     initial_password: password,
+    generated:        !custom,
   });
 }
 

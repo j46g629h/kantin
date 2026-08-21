@@ -112,7 +112,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 **六個 HTML 檔**（`index.html` / `report.html` / `query.html` /
 `admin.html` / `admin-cases.html` / `admin-accounts.html`）
-引用 CSS 與 JS 時都帶 `?v=2.1`。
+引用 CSS 與 JS 時都帶 `?v=2.2`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -123,11 +123,11 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 2.1 改成 2.2
-sed -i 's/?v=2\.1/?v=2.2/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
+# 例如從 2.2 改成 2.3
+sed -i 's/?v=2\.2/?v=2.3/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=2\.1" *.html`（應該一筆都查不到）
+改完用這行確認沒有漏掉：`grep -rn "v=2\.2" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -214,6 +214,14 @@ if (colMap.password_changed_at) {
 
 漏了這個檢查的話，`getRange(row, undefined)` 會炸掉——
 等於把問題從「部署當下全壞」搬到「某個功能被用到時才壞」，那更難查。
+
+**這個洞真的踩過一次。** `writeRowByColumns()` 當初沒檢查，
+結果「新增管理者」在使用者跑升級程式之前整支壞掉——
+而 `optional` 本來就是為了消滅這種空窗期，等於白做。已修正。
+
+而且本機測試一路綠燈：假 Sheet 對 `getRange(row, undefined)` 默默接受
+（陣列索引 `[NaN]` 不報錯）。**假的服務對錯誤輸入太寬容，測試就成了裝飾品。**
+`tools/test-admin-api.js` 的假 Sheet 已改成欄號不合法就丟例外。
 
 實際踩過：把「電話」加進 `ADMIN_COLUMNS` 後直接部署，
 結果超級管理者完全無法登入，只看到「系統出了問題」。

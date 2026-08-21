@@ -143,6 +143,15 @@ function makeSheet(rows, headers) {
 
     getRange(row, col, numRows) {
       const n = numRows || 1;
+
+      // 真實的 Apps Script 收到 undefined 欄號會丟例外。
+      // 假 Sheet 如果默默接受，「選填欄位沒檢查就拿去 getRange」這種洞就永遠測不出來——
+      // 實際上就發生過：writeRowByColumns() 少了檢查，
+      // 升級前的「新增管理者」在正式環境會整支壞掉，但本機測試一路綠燈
+      if (!col || !row) {
+        throw new Error('getRange 收到不合法的位置: row=' + row + ', col=' + col);
+      }
+
       return {
         getValues() {
           if (row === 1) return [headers];
@@ -329,6 +338,52 @@ check('新增後列表跟著變多',
   callAs(SUPER_SESSION, { op: 'list' }).data.admins.length, 7);
 check('現在有兩位啟用中的超級管理者',
   callAs(SUPER_SESSION, { op: 'list' }).data.active_super_count, 2);
+
+
+console.log('\n===== create：自訂初始密碼 =====\n');
+
+const NEWPW = 'FreshAcct2026';
+const madeCustom = callAs(SUPER_SESSION, { op:'create', account:'custom@pci', name:'自訂密碼的人',
+                                           new_password: NEWPW });
+check('用自訂密碼建立成功',   madeCustom.ok, true);
+check('回傳的就是輸入那組',   madeCustom.data.initial_password, NEWPW);
+check('標記為「非系統產生」', madeCustom.data.generated, false);
+check('可以用這組密碼登入',   login('custom@pci', NEWPW).ok, true);
+check('一樣強制首次登入改掉', rawRow('custom@pci')[7], 'TRUE');
+check('Sheet 上存的是雜湊',   rawRow('custom@pci').indexOf(NEWPW) === -1, true);
+
+check('新帳號的密碼不可與現有管理者重複',
+  callAs(SUPER_SESSION, { op:'create', account:'dup@pci', name:'撞密碼的', new_password:NEWPW }).error,
+  'ADMIN_PASSWORD_TAKEN');
+check('被擋下時帳號沒有被建立',
+  evalIn(`findAdminByAccount('dup@pci') === null`), true);
+check('重複的錯誤訊息不提到是誰',
+  /custom@pci|自訂密碼的人/.test(JSON.stringify(
+    callAs(SUPER_SESSION, { op:'create', account:'dup2@pci', name:'X', new_password:NEWPW }))), false);
+
+check('自訂密碼太短 → 擋下',
+  callAs(SUPER_SESSION, { op:'create', account:'short@pci', name:'X', new_password:'Ab1' }).error,
+  'PASSWORD_TOO_SHORT');
+check('規則不符時帳號也不會被建立',
+  evalIn(`findAdminByAccount('short@pci') === null`), true);
+
+check('沒帶密碼 → 仍然系統產生',
+  callAs(SUPER_SESSION, { op:'create', account:'auto@pci', name:'系統配的' }).data.generated, true);
+check('系統產生的是 12 碼',
+  callAs(SUPER_SESSION, { op:'create', account:'auto2@pci', name:'系統配的2' })
+    .data.initial_password.length, 12);
+
+check('帳號重複時先擋帳號，不會先跑密碼檢查',
+  callAs(SUPER_SESSION, { op:'create', account:'custom@pci', name:'X', new_password:'Ab1' }).error,
+  'ADMIN_EXISTS');
+
+// ⚠️ 這一段跑的時候，假 Sheet 還「沒有」密碼最後變更時間那一欄
+//    （後面的「選填欄位」區段才會補上），等同還沒跑升級程式的正式環境。
+//    所以上面每一項都同時在驗證「升級前新增管理者也要能用」——
+//    writeRowByColumns() 曾經漏了選填欄位的檢查，在正式環境會整支壞掉
+check('升級前這一欄是空的（不是壞掉）',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins
+    .find(a => a.account === 'auto@pci').password_changed_at, '');
 
 
 console.log('\n===== setStatus：停用 / 啟用 =====\n');

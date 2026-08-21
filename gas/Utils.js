@@ -135,8 +135,18 @@ function writeRowByColumns(sheet, sheetName, row, columnDefs, data) {
   const colMap = buildColumnMap(sheetName, columnDefs);
 
   columnDefs.forEach(function (col) {
+    const colIndex = colMap[col.code];
+
+    // 選填欄位在 Sheet 上還不存在時，colMap 裡就沒有它。
+    //
+    // ⚠️ 這個檢查不可以拿掉。少了它，getRange(row, undefined) 會丟出例外，
+    //    「新增管理者」會在使用者跑升級程式之前整支壞掉——
+    //    而那正是 optional 欄位本來要避免的事。
+    //    （本機測試的假 Sheet 不會報錯，這個洞是靠測試斷言才抓出來的。）
+    if (!colIndex) return;
+
     const value = data[col.code];
-    const cell  = sheet.getRange(row, colMap[col.code]);
+    const cell  = sheet.getRange(row, colIndex);
 
     cell.setNumberFormat(col.format);                                  // 先設格式
     cell.setValue((value === undefined || value === null) ? '' : value); // 再寫值

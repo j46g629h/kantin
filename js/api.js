@@ -131,9 +131,22 @@ const Api = {
     return this.post({ action: 'manageAdmin', token, op: 'list' });
   },
 
-  /** 新增管理者。成功時 data.initial_password 是一次性的初始密碼 */
-  createAdmin(token, { account, name, email, role }) {
-    return this.post({ action: 'manageAdmin', token, op: 'create', account, name, email, role });
+  /**
+   * 新增管理者。
+   *
+   * newPassword 留空 → 系統產生一組隨機密碼
+   * newPassword 有值 → 用超級管理者自己輸入的那組（一樣不可與其他管理者重複）
+   *
+   * 成功時 data.initial_password 是要交給對方的密碼。
+   */
+  createAdmin(token, { account, name, email, role, newPassword }) {
+    return this.post({
+      action:       'manageAdmin',
+      token,
+      op:           'create',
+      account, name, email, role,
+      new_password: newPassword || '',
+    });
   },
 
   /** 停用 / 啟用（status 傳 'ACTIVE' 或 'DISABLED'） */

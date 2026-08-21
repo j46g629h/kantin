@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Kelola Akun · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=2.1">
+  <link rel="stylesheet" href="css/style.css?v=2.2">
 </head>
 <body>
 
@@ -79,6 +79,35 @@
 
           <p class="field-hint" id="roleHint"></p>
 
+          <!-- 初始密碼：與「重設密碼」對話框同一套選擇方式 -->
+          <div class="filter-field filter-field-wide">
+            <span class="filter-label" id="labelInitPw">Kata sandi awal</span>
+
+            <label class="pw-choice">
+              <input type="radio" name="newPwMode" value="manual" checked>
+              <span>
+                <span class="pw-choice-title" id="newPwManual"></span>
+                <span class="pw-choice-hint" id="newPwManualHint"></span>
+              </span>
+            </label>
+
+            <label class="pw-choice">
+              <input type="radio" name="newPwMode" value="auto">
+              <span>
+                <span class="pw-choice-title" id="newPwAuto"></span>
+                <span class="pw-choice-hint" id="newPwAutoHint"></span>
+              </span>
+            </label>
+
+            <div class="pw-manual" id="newPwBox">
+              <input type="password" id="fPassword" autocomplete="new-password" spellcheck="false">
+              <label class="pw-show">
+                <input type="checkbox" id="showNewPw">
+                <span id="newPwShowLabel"></span>
+              </label>
+            </div>
+          </div>
+
           <div id="addError" class="result error hidden"></div>
 
           <div class="filter-actions">
@@ -101,12 +130,12 @@
 
   </div>
 
-  <script src="js/config.js?v=2.1"></script>
-  <script src="js/i18n.js?v=2.1"></script>
-  <script src="js/ui.js?v=2.1"></script>
-  <script src="js/api.js?v=2.1"></script>
-  <script src="js/admin-session.js?v=2.1"></script>
-  <script src="js/admin-accounts.js?v=2.1"></script>
+  <script src="js/config.js?v=2.2"></script>
+  <script src="js/i18n.js?v=2.2"></script>
+  <script src="js/ui.js?v=2.2"></script>
+  <script src="js/api.js?v=2.2"></script>
+  <script src="js/admin-session.js?v=2.2"></script>
+  <script src="js/admin-accounts.js?v=2.2"></script>
 
 </body>
 </html>
