@@ -141,7 +141,8 @@ function adminLogin(params) {
  */
 function adminLogout(params) {
   const token = str(params.token);
-  if (token) CacheService.getScriptCache().remove(CACHE_KEYS.TOKEN + token);
+  // Properties 存的 token 是真的刪得掉的，所以這是真正的伺服器端登出
+  if (token) storeRemove(CACHE_KEYS.TOKEN + token);
   return ok({ logged_out: true });
 }
 
@@ -208,11 +209,11 @@ function adminChangePassword(params, session) {
 /**
  * 產生 token 並存進快取。
  *
- * ⚠️ token 存在 CacheService，Google 在記憶體吃緊時可能提前清掉，
- *    管理者偶爾會需要重新登入一次。這是刻意的取捨：
- *    改存 Sheet 會讓每支 API 都多一次讀取，而重新登入的代價很小。
+ * token 存在 PropertiesService（見 gas/Store.js 說明為什麼不用 CacheService）。
+ * 每次登入順手清掉已過期的資料，過期 token 才不會一直累積。
  */
 function createSession(session) {
+  storeSweepExpired();                 // 登入不頻繁，順手清掉過期的資料
   const token = Utilities.getUuid();
   refreshSession(token, session);
   return token;
@@ -221,17 +222,13 @@ function createSession(session) {
 /** 寫入 / 更新 token 的內容（效期重新起算） */
 function refreshSession(token, session) {
   if (!token) return;
-  CacheService.getScriptCache().put(
-    CACHE_KEYS.TOKEN + token,
-    JSON.stringify(session),
-    AUTH.TOKEN_TTL
-  );
+  storePut(CACHE_KEYS.TOKEN + token, JSON.stringify(session), AUTH.TOKEN_TTL);
 }
 
 /** 用 token 取回 session，無效或過期回傳 null */
 function readSession(token) {
   if (!token) return null;
-  const raw = CacheService.getScriptCache().get(CACHE_KEYS.TOKEN + token);
+  const raw = storeGet(CACHE_KEYS.TOKEN + token);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -280,13 +277,13 @@ function recordLoginFailure(account) {
     state.locked_until = Date.now() + AUTH.LOCKOUT_SECONDS * 1000;
   }
 
-  CacheService.getScriptCache().put(key, JSON.stringify(state), AUTH.LOCKOUT_SECONDS);
+  storePut(key, JSON.stringify(state), AUTH.LOCKOUT_SECONDS);
   return Math.max(0, AUTH.MAX_LOGIN_FAILS - state.count);
 }
 
 /** 登入成功後把失敗紀錄清掉 */
 function clearLoginFailures(account) {
-  CacheService.getScriptCache().remove(CACHE_KEYS.LOGIN_FAIL + account);
+  storeRemove(CACHE_KEYS.LOGIN_FAIL + account);
 }
 
 /** 還要鎖幾分鐘（沒被鎖就回傳 0） */
@@ -299,7 +296,7 @@ function getLockRemainingMinutes(account) {
 /** 讀失敗計數；沒有或壞掉都當作全新開始 */
 function readFailState(key) {
   try {
-    const raw = CacheService.getScriptCache().get(key);
+    const raw = storeGet(key);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed.count === 'number') return parsed;

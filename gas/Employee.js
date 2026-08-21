@@ -22,20 +22,18 @@ function verifyEmployee(params) {
     return fail('EMP_ID_REQUIRED', '請輸入工號');
   }
 
-  const cache = CacheService.getScriptCache();
   const cacheKey = 'emp:' + empId;
 
   // --- 先查快取 ---
-  const cached = cache.get(cacheKey);
+  const cached = storeGet(cacheKey);
   if (cached) {
-    const c = JSON.parse(cached);
-    return buildEmployeeResult(empId, c);
+    return buildEmployeeResult(empId, JSON.parse(cached));
   }
 
   // --- 快取沒有就查 Sheet ---
   const found = findEmployeeInSheet(empId);
 
-  cache.put(
+  storePut(
     cacheKey,
     JSON.stringify(found),
     found.exists ? CACHE_TTL.EMPLOYEE_FOUND : CACHE_TTL.EMPLOYEE_MISS
@@ -101,6 +99,6 @@ function buildEmployeeResult(empId, found) {
  */
 function clearEmployeeCache() {
   const empId = '0012345';   // ← 改成要清除的工號
-  CacheService.getScriptCache().remove('emp:' + empId);
+  storeRemove('emp:' + empId);
   Logger.log('已清除工號 ' + empId + ' 的快取');
 }

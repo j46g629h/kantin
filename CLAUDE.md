@@ -172,6 +172,28 @@ manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin
 工號 `0012345` 變 `12345`，64 位十六進位的密碼雜湊若剛好整串是數字會變成科學記號，
 那個帳號從此永遠登不進去。
 
+### 13. 不要用 `CacheService`，改用 `gas/Store.js`
+
+**這個專案的 `CacheService` 完全沒有作用。** 實測：`put()` 不丟任何錯誤，
+但 `get()` 永遠回傳 null——連同一次請求內寫完立刻讀都讀不到。
+`PropertiesService` 在同一個環境下完全正常。
+
+**為什麼很難發現：** 快取失效通常只是「變慢」，功能照樣對。
+所以選項快取、員工快取壞了兩個月都沒人察覺。
+直到 token 也存在那裡，才變成「登入成功但下一個請求就未授權」——
+使用者看到的是「輸入密碼後又跳回登入畫面」，而錯誤日誌裡一片空白。
+
+`gas/Store.js` 是建在 `PropertiesService` 上的替代品，附有效期：
+
+```js
+storePut(key, value, ttlSeconds);   // value 要是字串
+storeGet(key);                      // 不存在或過期都回 null
+storeRemove(key);
+storeSweepExpired();                // Properties 沒有自動過期，登入時順手掃
+```
+
+驗證方式：`node tools/test-store.js`
+
 ### 12. 改欄位定義＝改資料結構，順序不可顛倒
 
 `XXX_COLUMNS`（`gas/Config.js`）就是資料結構的定義。

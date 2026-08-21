@@ -246,7 +246,7 @@ function migrateAddMeal() {
     : '－ 「' + SHEETS.EMPLOYEES + '」已有測試工號，略過');
 
   // --- 4. 清掉選項快取，讓新選項立刻生效 ---
-  CacheService.getScriptCache().remove('options');
+  storeRemove('options');
   report.push('✔ 選項快取已清除');
 
   report.push('');
@@ -582,7 +582,7 @@ function setupHandlerOptions() {
   });
 
   // 清掉快取，新名單立刻生效，不用等 10 分鐘
-  CacheService.getScriptCache().remove('options');
+  storeRemove('options');
 
   report.push('');
   report.push(added > 0 ? '完成，新增 ' + added + ' 位處理者。' : '沒有新增任何項目。');
@@ -838,7 +838,6 @@ function checkEmployeeRoster() {
     : '⚠️ 發現 ' + problems + ' 處需要處理，詳見上方。');
 
   // 清掉工號查詢的快取，讓新名冊立刻生效
-  const cache = CacheService.getScriptCache();
   values.forEach(function (row) {
     const id = String(row[0] === null || row[0] === undefined ? '' : row[0]).trim();
     if (id) cache.remove('emp:' + id);
@@ -925,7 +924,6 @@ function normalizeEmployeeStatus() {
 
   // 狀態改變會影響能不能提交回報，快取要一併清掉
   const empIds = sheet.getRange(2, 1, count, 1).getValues();
-  const cache = CacheService.getScriptCache();
   empIds.forEach(function (row) {
     const id = str(row[0]);
     if (id) cache.remove('emp:' + id);

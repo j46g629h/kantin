@@ -18,14 +18,13 @@
  * }
  */
 function getOptions(params) {
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get('options');
+  const cached = storeGet('options');
   if (cached) {
     return ok(JSON.parse(cached));
   }
 
   const result = readOptionsFromSheet();
-  cache.put('options', JSON.stringify(result), CACHE_TTL.OPTIONS);
+  storePut('options', JSON.stringify(result), CACHE_TTL.OPTIONS);
   return ok(result);
 }
 
@@ -81,7 +80,7 @@ function isEnabled(value) {
  * 管理者改完選項後不想等 10 分鐘的話，可以在編輯器裡執行這個函式。
  */
 function clearOptionsCache() {
-  CacheService.getScriptCache().remove('options');
+  storeRemove('options');
   Logger.log('選項快取已清除，下次呼叫會重新讀取 Sheet');
 }
 
