@@ -110,7 +110,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 ### 5. 改前端檔案後，一定要更新資源版本號
 
 **五個 HTML 檔**（`index.html` / `report.html` / `query.html` / `admin.html` / `admin-cases.html`）
-引用 CSS 與 JS 時都帶 `?v=1.6`。
+引用 CSS 與 JS 時都帶 `?v=1.7`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -121,8 +121,8 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 建議與 `js/config.js` 的 `SYSTEM_INFO.version` 保持一致。
 
 ```bash
-# 例如從 1.6 改成 1.7
-sed -i 's/?v=1\.6/?v=1.7/g' index.html report.html query.html admin.html admin-cases.html
+# 例如從 1.7 改成 1.8
+sed -i 's/?v=1\.7/?v=1.8/g' index.html report.html query.html admin.html admin-cases.html
 ```
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
@@ -137,7 +137,14 @@ sed -i 's/?v=1\.6/?v=1.7/g' index.html report.html query.html admin.html admin-c
 ### 7. 選項清單讀 Sheet，不可寫死
 
 餐廳地點、問題分類、**處理者名單**都從 `選項設定` 分頁讀取，讓管理者自己就能新增。
-處理者用類型 `HANDLER`——他們不一定是系統管理者，不該為了被指派而開帳號。
+
+⚠️ **「處理者」和「管理者」是兩份不會互相同步的名單，不要搞混：**
+
+- **管理者名單** = 使用這個 app 的人（登入、回覆、結案），需要帳號密碼
+- **選項設定的 `HANDLER`** = **現場實際派工的人員**（廚房主管、清潔組長、維修人員），
+  **他們不會碰到這個 app**，只是被記錄為某件案子的負責人，所以不需要帳號
+
+新增管理者不會自動變成可指派的處理者，反之亦然。這是刻意的設計。
 
 ### 8. 管理端 API 一律用 `withAuth()` 包起來
 
