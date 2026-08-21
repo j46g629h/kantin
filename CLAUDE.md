@@ -56,7 +56,7 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 | `report.html` | 員工 | 回報表單 |
 | `query.html` | 員工 | 查詢案件進度 |
 | `admin.html` | 管理者 | 登入 + 強制變更初始密碼（同一頁，避免按上一頁繞過） |
-| `admin-cases.html` | 管理者 | 案件列表（關卡 3-3 施工中） |
+| `admin-cases.html` | 管理者 | 案件列表、案件回覆與結案 |
 
 **Sheet 分頁**：`回報資料`、`員工名冊`、`管理者名單`、`選項設定`、`回覆範本`、`系統計數`、`錯誤日誌`
 
@@ -110,7 +110,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 ### 5. 改前端檔案後，一定要更新資源版本號
 
 **五個 HTML 檔**（`index.html` / `report.html` / `query.html` / `admin.html` / `admin-cases.html`）
-引用 CSS 與 JS 時都帶 `?v=1.2`。
+引用 CSS 與 JS 時都帶 `?v=1.6`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -121,8 +121,8 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 建議與 `js/config.js` 的 `SYSTEM_INFO.version` 保持一致。
 
 ```bash
-# 例如從 1.2 改成 1.3
-sed -i 's/?v=1\.2/?v=1.3/g' index.html report.html query.html admin.html admin-cases.html
+# 例如從 1.6 改成 1.7
+sed -i 's/?v=1\.6/?v=1.7/g' index.html report.html query.html admin.html admin-cases.html
 ```
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
@@ -136,7 +136,8 @@ sed -i 's/?v=1\.2/?v=1.3/g' index.html report.html query.html admin.html admin-c
 
 ### 7. 選項清單讀 Sheet，不可寫死
 
-餐廳地點、問題分類都從 `選項設定` 分頁讀取，讓管理者自己就能新增。
+餐廳地點、問題分類、**處理者名單**都從 `選項設定` 分頁讀取，讓管理者自己就能新增。
+處理者用類型 `HANDLER`——他們不一定是系統管理者，不該為了被指派而開帳號。
 
 ### 8. 管理端 API 一律用 `withAuth()` 包起來
 
@@ -164,6 +165,13 @@ manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin
 建立帳號時由 `generateInitialPassword()` 隨機產生，印在 Apps Script 的「執行紀錄」上，
 登入後強制使用者改掉。
 
+### 11. 寫進 Sheet 的字串欄一律「先設格式，再寫值」
+
+用 `writeRowByColumns()` 或 `setTextCell()`（都在 `gas/Utils.js` / `gas/Auth.js`）。
+直接 `setValue()` 的話 Sheet 會自作主張判斷型別：
+工號 `0012345` 變 `12345`，64 位十六進位的密碼雜湊若剛好整串是數字會變成科學記號，
+那個帳號從此永遠登不進去。
+
 ### 12. 改欄位定義＝改資料結構，順序不可顛倒
 
 `XXX_COLUMNS`（`gas/Config.js`）就是資料結構的定義。
@@ -178,13 +186,6 @@ manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin
 
 寫入也要小心：一律用 `writeRowByColumns()`，它會依表頭定位。
 自己照順序從第 1 欄寫到第 N 欄的話，Sheet 上多一欄就會整批錯位寫進隔壁，而且不會報錯。
-
-### 11. 寫進 Sheet 的字串欄一律「先設格式，再寫值」
-
-用 `writeRowByColumns()` 或 `setTextCell()`（都在 `gas/Utils.js` / `gas/Auth.js`）。
-直接 `setValue()` 的話 Sheet 會自作主張判斷型別：
-工號 `0012345` 變 `12345`，64 位十六進位的密碼雜湊若剛好整串是數字會變成科學記號，
-那個帳號從此永遠登不進去。
 
 ---
 
