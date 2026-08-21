@@ -113,23 +113,33 @@ function seedTestFeedback() {
 
 
 /**
- * 產生 2 筆「已經逾期」的測試案件。
+ * 產生 4 筆「已經逾期」的測試案件。
  *
  * 為什麼需要另外做一支：submitFeedback 一律用當下時間當提交時間，
  * 剛送出的案件是 0 天，永遠不會被判定為逾期。
  * 所以這裡先正常提交，再把「提交時間」改成過去的日期。
  *
- * 產生的兩筆分別是 4 天前與 12 天前：
- * 一筆剛過門檻（3 天），一筆明顯超時，方便對照天數計算對不對。
+ * 分別是 4 天前、12 天前、40 天前、75 天前：
+ * 從剛過門檻到超過兩個月都有，方便對照天數計算，
+ * 後兩筆同時也可以拿來測「月份切換」。
  *
  * ⚠️ 只有「未處理」的案件才會被判定為逾期，所以這兩筆會保持 ST_NEW。
  */
 function seedOverdueCases() {
   const OVERDUE_SPECS = [
-    { daysAgo: 4,  loc: 'LOC_04', meal: 'MEAL_LUNCH',     cat: 'CAT_HYGIENE', lang: 'ID', rating: 1,
+    // 剛過門檻與明顯超時，方便對照天數計算
+    { daysAgo: 4,  loc: 'LOC_04', meal: 'MEAL_LUNCH',     cat: 'CAT_HYGIENE',  lang: 'ID', rating: 1,
       desc: 'Lantai di dekat wastafel licin, hampir jatuh kemarin.' },
     { daysAgo: 12, loc: 'LOC_02', meal: 'MEAL_BREAKFAST', cat: 'CAT_FACILITY', lang: 'ZH', rating: 2,
       desc: '早餐區的保溫檯壞了，粥端上來已經是冷的，這個問題持續一段時間了。' },
+
+    // 超過一個月。這兩筆會落在上個月甚至上上個月，
+    // 順便可以測「月份切換」——它們不會出現在本月清單裡，
+    // 但「未處理」與「逾期」的統計仍然算得到（那兩個是全部時間範圍）
+    { daysAgo: 40, loc: 'LOC_R3',  meal: 'MEAL_DINNER', cat: 'CAT_SERVICE', lang: 'ID', rating: 1,
+      desc: 'Sudah lama lapor tapi belum ada kabar. Petugas kasir sering tidak ada di tempat.' },
+    { daysAgo: 75, loc: 'LOC_VIP', meal: 'MEAL_LUNCH',  cat: 'CAT_TASTE',   lang: 'ZH', rating: 1,
+      desc: '這個問題反映很久了一直沒有下文：湯品每天都一樣，希望能換菜色。' },
   ];
 
   const employees = pickRandomActiveEmployees(OVERDUE_SPECS.length);
@@ -181,9 +191,12 @@ function seedOverdueCases() {
   report.push('');
   report.push('完成：成功 ' + (OVERDUE_SPECS.length - failed) + ' 筆，失敗 ' + failed + ' 筆。');
   report.push('');
-  report.push('到管理端案件列表按「重新整理」，這兩筆應該會是紅底，');
-  report.push('編號旁邊顯示「已 4 天未處理」與「已 12 天未處理」，');
-  report.push('上方也會出現「⚠️ 逾期 2 件」的提示列。');
+  report.push('到管理端案件列表按「重新整理」後：');
+  report.push('  · 4 天前與 12 天前那兩筆會出現在本月清單，紅底顯示「已 N 天未處理」');
+  report.push('  · 40 天前與 75 天前那兩筆落在之前的月份，');
+  report.push('    要點「本月」卡片切換月份才看得到清單，');
+  report.push('    但「未處理」與「逾期」的統計數字現在就會把它們算進去');
+  report.push('    （那兩個統計是全部時間範圍，不受月份影響）');
   report.push('');
   report.push('（逾期門檻是 3 天，設定在 gas/Config.js 的 CASE_LIST.OVERDUE_DAYS）');
 

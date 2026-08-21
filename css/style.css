@@ -1238,11 +1238,3 @@ input[type="date"] {
 
 /* 案件摘要上的「已指派給誰」 */
 .case-assigned { color: var(--brand); }
-
-/* 員工端查詢頁的處理者電話，點一下直接撥號 */
-.handler-phone {
-  color: var(--brand);
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}

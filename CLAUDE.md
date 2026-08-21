@@ -164,6 +164,21 @@ manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin
 建立帳號時由 `generateInitialPassword()` 隨機產生，印在 Apps Script 的「執行紀錄」上，
 登入後強制使用者改掉。
 
+### 12. 改欄位定義＝改資料結構，順序不可顛倒
+
+`XXX_COLUMNS`（`gas/Config.js`）就是資料結構的定義。
+加一個欄位進去之後，`buildColumnMap()` 在 Sheet 找不到該欄位就會**丟出例外**，
+所有讀那張表的功能會一起壞掉。
+
+**正確順序：先升級 Sheet，再部署程式。** 反過來做的話，
+從部署到使用者跑完升級程式的這段時間，功能是全壞的。
+
+實際踩過：把「電話」加進 `ADMIN_COLUMNS` 後直接部署，
+結果超級管理者完全無法登入，只看到「系統出了問題」。
+
+寫入也要小心：一律用 `writeRowByColumns()`，它會依表頭定位。
+自己照順序從第 1 欄寫到第 N 欄的話，Sheet 上多一欄就會整批錯位寫進隔壁，而且不會報錯。
+
 ### 11. 寫進 Sheet 的字串欄一律「先設格式，再寫值」
 
 用 `writeRowByColumns()` 或 `setTextCell()`（都在 `gas/Utils.js` / `gas/Auth.js`）。

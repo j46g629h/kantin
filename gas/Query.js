@@ -97,17 +97,16 @@ function isDeletedRow(values, colMap) {
  *
  * 只回傳員工需要看到的欄位——工號、姓名與稽核欄位都不回傳。
  *
- * ⚠️ 處理者的姓名與電話是例外，刻意回傳給員工：
- *    讓員工知道現在是誰在處理、可以打給誰問，不必再打去總機轉一圈。
- *    也因為這樣，「管理者名單」的電話欄請填**公務分機**，不要填私人手機
- *    （這支 API 不需要登入，任何知道案件編號的人都看得到）。
+ * ⚠️ 處理者姓名是例外，刻意回傳給員工：
+ *    讓員工知道現在是誰在處理，要問的時候找得到人。
+ *    只回姓名、不回聯絡方式——這支 API 不需要登入，
+ *    任何知道案件編號的人都看得到，姓名已經足夠。
  */
 function buildPublicCase(values, colMap, handlerMap) {
   const handler = resolveHandler(values[colMap.handler - 1], handlerMap || {});
 
   return {
-    handler_name:  handler.name,
-    handler_phone: handler.phone,
+    handler_name: handler.name,
     case_id:         str(values[colMap.case_id - 1]),
     submit_time:     formatCellTime(values[colMap.submit_time - 1]),
     location_code:   str(values[colMap.location_code - 1]),

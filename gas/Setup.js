@@ -421,7 +421,7 @@ function addAdminAccount(account, name, email, role) {
   const salt     = generateSalt();
   const row      = sheet.getLastRow() + 1;
 
-  writeRowByColumns(sheet, row, ADMIN_COLUMNS, {
+  writeRowByColumns(sheet, SHEETS.ADMINS, row, ADMIN_COLUMNS, {
     name:           str(name) || acct,
     account:        acct,
     email:          str(email),
@@ -527,51 +527,71 @@ function setDropdown(sheet, col, values) {
 
 
 /**
- * 升級：在「管理者名單」新增「電話」欄。
+ * 建立初始的「處理者」名單。
  *
- * 用途：管理者處理案件時可以指派負責人，員工在查詢頁就會看到
- * 「目前由某某處理，電話 XXXX」，不必再打去總機問。
+ * 處理者放在「選項設定」分頁（類型填 HANDLER），跟餐廳、問題分類同一套機制。
+ * 這支函式只是幫你把現有的管理者帶進去當起點，
+ * **之後你直接在「選項設定」分頁增修就好，不必再執行這支程式**：
  *
- * ⚠️ 請填**公務分機**，不要填私人手機。
- *    員工端查詢頁不需要登入，任何知道案件編號的人都看得到這組號碼。
+ *   類型      代碼      中文顯示    印尼文顯示   排序  啟用
+ *   HANDLER   HDL_04    陳大廚      Chef Chen    4     TRUE
  *
- * 重複執行是安全的：已經有這一欄就會略過。
+ * 說明：
+ *   - 代碼隨你取，只要不重複（建議沿用 HDL_ 開頭）
+ *   - 中文顯示 = 要給大家看的名字。姓名不需要翻譯，兩欄填一樣即可
+ *   - 某人離職時把「啟用」改成 FALSE，**不要刪除該列**，
+ *     否則他以前處理過的案件會查不到名字
  *
- * 執行方式：函式下拉選單選 migrateAddAdminPhone → 按 ▷ 執行 → 看執行紀錄
+ * 重複執行是安全的：已存在的代碼會略過。
  */
-function migrateAddAdminPhone() {
-  const sheet = getSheet(SHEETS.ADMINS);
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const report = [];
+function setupHandlerOptions() {
+  const options = getSheet(SHEETS.OPTIONS);
+  const lastRow = options.getLastRow();
 
-  if (headers.indexOf('電話') !== -1) {
-    const msg = '－ 「' + SHEETS.ADMINS + '」已經有「電話」欄，不需要再升級。';
+  const existingCodes = lastRow > 1
+    ? options.getRange(2, 2, lastRow - 1, 1).getValues().map(function (r) { return str(r[0]).toUpperCase(); })
+    : [];
+
+  // 用現有的管理者當起點
+  const admins = readAllAdmins().filter(function (a) {
+    return str(a.status).toUpperCase() === ADMIN_STATUS.ACTIVE;
+  });
+
+  if (!admins.length) {
+    const msg = '管理者名單裡沒有啟用中的帳號，沒有可帶入的處理者。\n'
+              + '你也可以直接到「選項設定」分頁自己加，類型填 HANDLER。';
     Logger.log(msg);
     return msg;
   }
 
-  // 插在「Email」右邊，聯絡方式放在一起比較好讀
-  const emailIndex = headers.indexOf('Email');
-  if (emailIndex === -1) throw new Error('找不到「Email」欄，請先確認分頁結構');
+  const report = [];
+  let added = 0;
 
-  const newCol = emailIndex + 2;
-  sheet.insertColumnAfter(emailIndex + 1);
+  admins.forEach(function (admin, i) {
+    const code = 'HDL_' + ('0' + (i + 1)).slice(-2);
+    if (existingCodes.indexOf(code) !== -1) {
+      report.push('－ ' + code + ' 已存在，略過');
+      return;
+    }
 
-  sheet.getRange(1, newCol).setValue('電話');
-  sheet.getRange(1, newCol)
-    .setFontWeight('bold')
-    .setBackground('#e8eaed')
-    .setVerticalAlignment('middle');
-  sheet.setColumnWidth(newCol, 110);
+    const name = str(admin.name) || str(admin.account);
+    // 姓名不需要翻譯，中印兩欄填一樣
+    options.appendRow([HANDLER_OPTION_TYPE, code, name, name, i + 1, true]);
+    report.push('✔ ' + code + '  ' + name);
+    added++;
+  });
 
-  // 分機可能有前導零，一定要設成純文字
-  sheet.getRange(2, newCol, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+  // 清掉快取，新名單立刻生效，不用等 10 分鐘
+  CacheService.getScriptCache().remove('options');
 
-  report.push('✔ 「' + SHEETS.ADMINS + '」已新增「電話」欄（第 ' + newCol + ' 欄）');
-  report.push('    格式已設為純文字，分機的前導零不會被吃掉');
   report.push('');
-  report.push('接下來請到「' + SHEETS.ADMINS + '」分頁，把每位管理者的公務分機填進去。');
-  report.push('沒填的話，員工查詢時只會看到處理者姓名，不會顯示電話。');
+  report.push(added > 0 ? '完成，新增 ' + added + ' 位處理者。' : '沒有新增任何項目。');
+  report.push('');
+  report.push('之後要增減處理者，直接到「選項設定」分頁加一列就好：');
+  report.push('  類型 HANDLER ／ 代碼自取 ／ 中文與印尼文都填姓名 ／ 排序 ／ 啟用 TRUE');
+  report.push('離職的人請把「啟用」改成 FALSE，不要刪除該列，');
+  report.push('否則他以前處理過的案件會查不到名字。');
+  report.push('（改完最多 10 分鐘生效，想立刻生效可執行 clearOptionsCache()）');
 
   const text = report.join(String.fromCharCode(10));
   Logger.log(text);

@@ -103,25 +103,32 @@ function buildColumnMap(sheetName, columnDefs) {
 /**
  * 依欄位定義把一整列寫進 Sheet。
  *
- * ⚠️ 順序很重要：一定要先設格式再寫值。
- *    直接寫值的話，Sheet 會自己判斷型別——
+ * ⚠️ 兩個都很重要：
+ *
+ * 1. **先設格式再寫值。** 直接寫值的話 Sheet 會自己判斷型別——
  *    工號 0012345 會變成 12345，64 位數的密碼雜湊會變成科學記號。
  *
+ * 2. **依表頭決定欄位位置，不可假設順序。**
+ *    早期版本是照 columnDefs 的順序從第 1 欄寫到第 N 欄，
+ *    只要 Sheet 上多一欄、少一欄或順序被動過，資料就會整批錯位寫進隔壁欄，
+ *    而且完全不會報錯。
+ *
  * @param {Sheet}  sheet      目標分頁
+ * @param {string} sheetName  分頁名稱（用來查表頭）
  * @param {number} row        列號（1 起算）
  * @param {Array}  columnDefs 欄位定義
  * @param {Object} data       { 欄位代碼: 值 }，沒給的欄位留空字串
  */
-function writeRowByColumns(sheet, row, columnDefs, data) {
-  const values  = columnDefs.map(function (c) {
-    const v = data[c.code];
-    return (v === undefined || v === null) ? '' : v;
-  });
-  const formats = columnDefs.map(function (c) { return c.format; });
+function writeRowByColumns(sheet, sheetName, row, columnDefs, data) {
+  const colMap = buildColumnMap(sheetName, columnDefs);
 
-  const range = sheet.getRange(row, 1, 1, columnDefs.length);
-  range.setNumberFormats([formats]);   // 先設格式
-  range.setValues([values]);           // 再寫值
+  columnDefs.forEach(function (col) {
+    const value = data[col.code];
+    const cell  = sheet.getRange(row, colMap[col.code]);
+
+    cell.setNumberFormat(col.format);                                  // 先設格式
+    cell.setValue((value === undefined || value === null) ? '' : value); // 再寫值
+  });
 }
 
 

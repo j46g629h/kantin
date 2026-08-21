@@ -76,7 +76,6 @@ const I18N = {
     'query.noReply':     '尚未回覆，我們正在處理中',
     'query.photos':      '照片',
     'query.handler':     '目前由誰處理',
-    'query.handlerPhone':'聯絡電話',
 
     // --- 提交成功 ---
     'success.title':    '送出成功',
@@ -206,7 +205,7 @@ const I18N = {
     'admin.reply.noChange':   '沒有任何變更',
     'admin.reply.handler':    '指派處理者',
     'admin.reply.noHandler':  '不指派',
-    'admin.reply.handlerHint':'指派後，員工查詢時就看得到是誰在處理、可以打給誰',
+    'admin.reply.handlerHint':'指派後，員工查詢時就看得到目前是誰在處理',
 
     // --- 管理端：月份 ---
     'admin.month.pick':    '選擇月份',
@@ -299,7 +298,6 @@ const I18N = {
     'query.noReply':     'Belum dibalas, masih kami proses ya',
     'query.photos':      'Foto',
     'query.handler':     'Ditangani oleh',
-    'query.handlerPhone':'Nomor kontak',
 
     // --- Berhasil ---
     'success.title':    'Laporan Terkirim!',
@@ -429,7 +427,7 @@ const I18N = {
     'admin.reply.noChange':   'Tidak ada perubahan',
     'admin.reply.handler':    'Tugaskan ke',
     'admin.reply.noHandler':  'Belum ditugaskan',
-    'admin.reply.handlerHint':'Setelah ditugaskan, karyawan bisa lihat siapa yang menangani dan nomor kontaknya',
+    'admin.reply.handlerHint':'Setelah ditugaskan, karyawan bisa lihat siapa yang sedang menangani',
 
     // --- Admin: bulan ---
     'admin.month.pick':    'Pilih bulan',

@@ -170,7 +170,7 @@ function matchCaseFilter(item, filter, selectedMonth) {
   if (filter.keyword) {
     const haystack = [
       item.case_id, item.emp_id, item.emp_name, item.description,
-      item.handler.name, item.handler.account,
+      item.handler.name, item.handler.code,
     ].join(' ').toLowerCase();
     if (haystack.indexOf(filter.keyword) === -1) return false;
   }
@@ -219,8 +219,8 @@ function buildAdminCase(values, colMap, now, handlerMap) {
     status_code:    statusCode,
 
     /**
-     * 處理者。Sheet 存的是帳號，這裡換成 { account, name, phone }。
-     * 姓名與電話每次讀取都重新查，某人改名或換分機時歷史案件也會跟著更新。
+     * 處理者。Sheet 存的是代碼，這裡換成 { code, name }。
+     * 姓名每次讀取都重新查，某人改名時歷史案件也會跟著更新。
      */
     handler:        resolveHandler(values[colMap.handler - 1], handlerMap || {}),
     response:       str(values[colMap.response - 1]),
@@ -271,16 +271,16 @@ function updateCase(params, session) {
   const caseId     = str(params.case_id).toUpperCase();
   const statusCode = str(params.status_code).toUpperCase();
   const response   = str(params.response);
-  const handler    = str(params.handler_account).toLowerCase();   // 空字串 = 不指派
+  const handler    = str(params.handler_code).toUpperCase();      // 空字串 = 不指派
 
   if (!caseId)     return fail('CASE_ID_REQUIRED', '缺少案件編號');
   if (!statusCode) return fail('STATUS_REQUIRED', '請選擇處理狀態');
 
-  // 指派的對象必須是名單上還在職的管理者。
+  // 指派的對象必須是選項設定裡還啟用中的處理者。
   // 不驗的話，有人改網頁原始碼就能把任意字串塞進處理者欄，
   // 員工查詢時就會看到一個查無此人的名字
   const handlerMap = buildHandlerMap();
-  if (handler && !canBeAssigned(handler, handlerMap)) {
+  if (handler && !canAssignHandler(handler, handlerMap)) {
     return fail('HANDLER_INVALID', '指派的處理者不存在或已停用');
   }
 

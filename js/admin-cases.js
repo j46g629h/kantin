@@ -21,7 +21,6 @@ const state = {
   loaded:  false,  // 是否已經成功載入過一次（用來分辨「還沒查」與「查無資料」）
 
   templates: [],   // 回覆範本
-  admins:    [],   // 可指派的處理者
   months:    [],   // 有資料的月份 [{month,count}]
   month:     '',   // 目前檢視的月份 YYYYMM（空 = 本月）
   saving:    false,
@@ -123,15 +122,13 @@ async function boot() {
     // 三件事同時發出，總等待時間等於最慢的那一個，不是三個相加。
     // 範本用 safeLoadTemplates()：範本讀不到只是少了快捷按鈕，
     // 不該讓整頁掛掉（Promise.all 只要有一個 reject 就全部失敗）
-    const [options, templates, admins] = await Promise.all([
+    const [options, templates] = await Promise.all([
       loadOptions(),
       safeLoadTemplates(),
-      safeLoadAdmins(),
       loadCases(),
     ]);
     state.options   = options;
     state.templates = templates;
-    state.admins    = admins;
 
     el.bootView.classList.add('hidden');
     el.adminBar.classList.remove('hidden');
@@ -205,21 +202,6 @@ async function safeLoadTemplates() {
   try {
     const result = await Api.getTemplates(AdminSession.token());
     return result.ok ? (result.data.templates || []) : [];
-  } catch (err) {
-    return [];
-  }
-}
-
-
-/**
- * 讀取可指派的處理者名單。
- * 跟範本一樣，讀不到就回傳空陣列——少了指派下拉還是能回覆，
- * 不該讓整個頁面進不去。
- */
-async function safeLoadAdmins() {
-  try {
-    const result = await Api.getAdminOptions(AdminSession.token());
-    return result.ok ? (result.data.admins || []) : [];
   } catch (err) {
     return [];
   }
@@ -643,14 +625,10 @@ function buildCaseDetail(item) {
     box.appendChild(row);
   }
 
-  // 處理者：後端回傳的是 { account, name, phone }
+  // 處理者：後端回傳的是 { code, name }
   const handler = item.handler || {};
   box.appendChild(detailRow(t('admin.case.handler'),
-    handler.name
-      ? escapeHtml(handler.name) +
-        (handler.phone ? ` <span class="case-emp-id">${escapeHtml(handler.phone)}</span>` : '')
-      : escapeHtml(t('admin.case.noHandler')),
-    true));
+    handler.name || t('admin.case.noHandler'), false));
 
   // 回覆
   const replyBox = document.createElement('div');
@@ -712,8 +690,10 @@ function buildReplyForm(item) {
   form.appendChild(select);
 
   // --- 指派處理者 ---
-  // 名單讀不到時就不顯示這一區，管理者照樣可以回覆
-  if (state.admins.length) {
+  // 名單來自「選項設定」分頁（類型 HANDLER），管理者自己加一列就多一個人。
+  // 名單是空的就不顯示這一區，管理者照樣可以回覆
+  const handlers = (state.options && state.options.HANDLER) || [];
+  if (handlers.length) {
     const handlerLabel = document.createElement('label');
     handlerLabel.className = 'reply-label';
     handlerLabel.textContent = t('admin.reply.handler');
@@ -727,25 +707,24 @@ function buildReplyForm(item) {
     none.textContent = t('admin.reply.noHandler');
     handlerSelect.appendChild(none);
 
-    state.admins.forEach((admin) => {
+    handlers.forEach((option) => {
       const node = document.createElement('option');
-      node.value = admin.account;
-      // 分機一起顯示，指派時就知道等一下要打給誰
-      node.textContent = admin.name + (admin.phone ? '（' + admin.phone + '）' : '');
+      node.value = option.code;
+      node.textContent = optionLabel(option);
       handlerSelect.appendChild(node);
     });
 
-    // 目前指派的人可能已經離職而不在清單裡，補一個選項免得選擇被清掉
-    if (draft.handler_account && !state.admins.some((a) => a.account === draft.handler_account)) {
+    // 目前指派的人可能已經停用而不在清單裡，補一個選項免得選擇被無聲清掉
+    if (draft.handler_code && !handlers.some((h) => h.code === draft.handler_code)) {
       const stale = document.createElement('option');
-      stale.value = draft.handler_account;
-      stale.textContent = (item.handler && item.handler.name) || draft.handler_account;
+      stale.value = draft.handler_code;
+      stale.textContent = (item.handler && item.handler.name) || draft.handler_code;
       handlerSelect.appendChild(stale);
     }
 
-    handlerSelect.value = draft.handler_account;
+    handlerSelect.value = draft.handler_code;
     handlerSelect.addEventListener('change', () => {
-      draft.handler_account = handlerSelect.value;
+      draft.handler_code = handlerSelect.value;
     });
     form.appendChild(handlerSelect);
 
@@ -860,7 +839,7 @@ function currentDraft(item) {
       case_id:         item.case_id,
       status_code:     item.status_code || 'ST_NEW',
       response:        item.response || '',
-      handler_account: (item.handler && item.handler.account) || '',
+      handler_code: (item.handler && item.handler.code) || '',
     };
   }
   return state.draft;
@@ -902,10 +881,10 @@ async function saveCase(item, draft, form) {
   }
 
   // 什麼都沒改就不要白跑一趟
-  const currentHandler = (item.handler && item.handler.account) || '';
+  const currentHandler = (item.handler && item.handler.code) || '';
   if (draft.status_code === item.status_code
       && response === (item.response || '')
-      && draft.handler_account === currentHandler) {
+      && draft.handler_code === currentHandler) {
     error.textContent = t('admin.reply.noChange');
     error.classList.remove('hidden');
     return;
@@ -917,7 +896,7 @@ async function saveCase(item, draft, form) {
 
   try {
     const result = await Api.updateCase(
-      AdminSession.token(), item.case_id, draft.status_code, response, draft.handler_account);
+      AdminSession.token(), item.case_id, draft.status_code, response, draft.handler_code);
 
     if (!result.ok) {
       if (result.error === 'UNAUTHORIZED') {

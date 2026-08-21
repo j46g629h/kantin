@@ -72,7 +72,7 @@ const MAX_CATEGORIES = 2;
 
 // ===== 選項設定分頁的類型 =====
 
-const OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS', 'PRIORITY'];
+const OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS', 'PRIORITY', 'HANDLER'];
 
 
 // ===== 快取秒數 =====
@@ -118,9 +118,6 @@ const DRIVE_IMAGE_FOLDER_NAME = '圖片';
  * 與 FEEDBACK_COLUMNS 同樣的規則：程式一律用 code 存取，
  * Sheet 上的中文表頭改了也不會壞（見 Utils.js 的 getAdminColumnMap）。
  *
- * ⚠️ 「電話」會顯示給員工看（查詢頁會列出處理者與聯絡電話），
- *    請填公務分機，不要填私人手機——員工端查詢不需要登入。
- *
  * ⚠️ 密碼雜湊與鹽值的格式一定要是純文字 '@'。
  *    雜湊是 64 個十六進位字元，剛好整串都是數字時（機率很低但存在），
  *    Sheet 會把它當成數字存成 1.23457E+63，密碼從此永遠對不起來。
@@ -131,7 +128,6 @@ const ADMIN_COLUMNS = [
   { code: 'email',          name: 'Email',        width: 200, format: '@' },
   { code: 'password_hash',  name: '密碼雜湊',     width: 260, format: '@' },
   { code: 'password_salt',  name: '密碼鹽值',     width: 140, format: '@' },
-  { code: 'phone',          name: '電話',         width: 110, format: '@' },
   { code: 'role',           name: '角色',         width:  80, format: '@' },
   { code: 'status',         name: '狀態',         width:  90, format: '@' },
   { code: 'must_change_pw', name: '需重設密碼',   width:  90, format: '@' },
@@ -232,13 +228,17 @@ const STATUS_REQUIRING_RESPONSE = ['ST_PROC', 'ST_DONE'];
 // ===== 處理者指派 =====
 
 /**
- * 「處理者」欄存的是管理者的**帳號**，不是姓名。
+ * 處理者名單放在「選項設定」分頁，類型填 HANDLER。
  *
- * 為什麼（設計約定第 1 條：存代碼不存顯示文字）：
- * 存姓名的話，某人改名或換電話之後，所有歷史案件都會停在舊資料。
- * 存帳號則是每次讀取時去「管理者名單」查最新的姓名與電話。
+ * 為什麼不用「管理者名單」：
+ * 處理者不一定是系統管理者——可能是廚房主管、清潔組長，
+ * 這些人不需要登入系統，沒必要為了被指派而幫他們開帳號。
+ * 放在選項設定就跟餐廳、問題分類一樣，加一列就多一個人，不必改程式。
  *
- * 舊資料的處理者欄存的是姓名，查不到對應帳號時會直接顯示原字串，
- * 不會變成空白，也不會出錯。
+ * 「處理者」欄存的是代碼（例如 HDL_01），不是姓名（設計約定第 1 條）。
+ * 顯示時才去選項設定查最新的姓名，這樣某人改名之後，
+ * 連歷史案件顯示的名字都會跟著更新。
+ *
+ * 舊資料的處理者欄存的是姓名，查不到代碼時會直接顯示原字串，不會變成空白。
  */
-const HANDLER_LOOKUP_FALLBACK_AS_NAME = true;
+const HANDLER_OPTION_TYPE = 'HANDLER';

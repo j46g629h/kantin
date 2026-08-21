@@ -34,11 +34,11 @@ const ROWS_SPEC = [
    'CAT_SERVICE', '', 4, '', '', 'ST_NEW', '', '', '', '', '', 's2', ''],
 
   ['PCI-202608-003', '@ISO:2026-08-10T18:00:00+07:00', 'A1234', '測試員工', 'ZH', 'LOC_02', 'MEAL_DINNER',
-   'CAT_FACILITY', '燈壞了', 3, '', '', 'ST_PROC', 'ming@test', '已安排維修',
+   'CAT_FACILITY', '燈壞了', 3, '', '', 'ST_PROC', 'HDL_01', '已安排維修',
    '@ISO:2026-08-11T09:00:00+07:00', '', '', 's3', ''],
 
   ['PCI-202607-004', '@ISO:2026-07-15T12:00:00+07:00', '0023456', 'Dewi', 'ID', 'LOC_R3', 'MEAL_LUNCH',
-   'CAT_OTHER', '希望多一點水果', 5, '', '', 'ST_DONE', 'ming@test', '已轉知廚房',
+   'CAT_OTHER', '希望多一點水果', 5, '', '', 'ST_DONE', 'HDL_01', '已轉知廚房',
    '@ISO:2026-07-16T09:00:00+07:00', '', '', 's4', ''],
 
   // 已軟刪除，任何結果都不該出現
@@ -58,15 +58,11 @@ const OPTIONS_SPEC = [
   ['STATUS',   'ST_NEW',  '未處理', 'Belum Diproses',  1, true],
   ['STATUS',   'ST_PROC', '處理中', 'Sedang Diproses', 2, true],
   ['STATUS',   'ST_DONE', '已結案', 'Selesai',         3, true],
-];
 
-// 管理者名單：姓名 / 帳號 / Email / 電話 / 密碼雜湊 / 密碼鹽值 / 角色 / 狀態 / 需重設 / 建立 / 最後登入
-const ADMIN_HEADERS = ['姓名','帳號','Email','電話','密碼雜湊','密碼鹽值','角色','狀態',
-  '需重設密碼','建立時間','最後登入時間'];
-const ADMINS_SPEC = [
-  ['王小明', 'ming@test',  'ming@test',  '3690', 'h', 's', 'SUPER', 'ACTIVE',   'FALSE', '', ''],
-  ['李美華', 'hua@test',   'hua@test',   '3691', 'h', 's', 'ADMIN', 'ACTIVE',   'FALSE', '', ''],
-  ['已離職', 'gone@test',  'gone@test',  '3692', 'h', 's', 'ADMIN', 'DISABLED', 'FALSE', '', ''],
+  // 處理者名單放在選項設定，管理者自己加一列就多一個人
+  ['HANDLER',  'HDL_01', '王小明', '王小明', 1, true],
+  ['HANDLER',  'HDL_02', '李美華', '李美華', 2, true],
+  ['HANDLER',  'HDL_03', '已離職', '已離職', 3, false],   // 停用：不可指派，但舊案件仍要查得到名字
 ];
 
 // 回覆範本：代碼 / 分類 / 中文內容 / 印尼文內容
@@ -108,7 +104,6 @@ const sandbox = {
         if (name === '回報資料')  return makeSheet(sandbox.__ROWS, HEADERS);
         if (name === '選項設定')  return makeSheet(sandbox.__OPTIONS, OPTION_HEADERS);
         if (name === '回覆範本')  return makeSheet(sandbox.__TEMPLATES, TEMPLATE_HEADERS);
-        if (name === '管理者名單') return makeSheet(sandbox.__ADMINS, ADMIN_HEADERS);
         return null;
       },
     }),
@@ -194,8 +189,7 @@ vm.runInContext(
      });
    });
    __OPTIONS   = ${JSON.stringify(OPTIONS_SPEC)};
-   __TEMPLATES = ${JSON.stringify(TEMPLATES_SPEC)};
-   __ADMINS    = ${JSON.stringify(ADMINS_SPEC)};`, sandbox);
+   __TEMPLATES = ${JSON.stringify(TEMPLATES_SPEC)};`, sandbox);
 
 // 3) 載入要測的程式
 ['Config.js', 'Utils.js', 'Options.js', 'Query.js', 'Cases.js'].forEach((f) => {
@@ -211,16 +205,10 @@ vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
   .match(/function hasOptionCode[\s\S]*?\n}/)[0], sandbox);
 
-// Auth.js 整個載進來會連帶需要一堆服務（CacheService 之類），只取用得到的函式
+// Auth.js 整個載進來會連帶需要一堆服務（CacheService 之類），只取用得到的那一支。
+// 處理者相關的函式已經搬到 Options.js，那個檔案是整個載入的
 const AUTH_SRC = fs.readFileSync(path.join(ROOT, 'gas', 'Auth.js'), 'utf8');
-['setTextCell', 'readAllAdmins', 'buildHandlerMap', 'canBeAssigned', 'resolveHandler',
- 'getAdminOptions', 'normalizeRole', 'isTrue'].forEach((fn) => {
-  const found = AUTH_SRC.match(new RegExp('function ' + fn + '[\\s\\S]*?\\n}'));
-  if (!found) throw new Error('Auth.js 裡找不到 ' + fn);
-  vm.runInContext(found[0], sandbox);
-});
-
-// getAdminColumnMap 住在 Utils.js，已經載入了
+vm.runInContext(AUTH_SRC.match(/function setTextCell[\s\S]*?\n}/)[0], sandbox);
 
 
 // ---- 開始測試 ----
@@ -434,51 +422,61 @@ check('選了沒資料的月份仍列在選單裡',
   run({ month: '202601' }).data.available_months.some(m => m.month === '202601'), true);
 check('沒資料的月份件數為 0', run({ month: '202601' }).data.stats.month_count, 0);
 
-console.log('\n【20】處理者指派');
-check('指派給在職管理者',
+console.log('\n【20】處理者指派（名單來自選項設定）');
+check('指派給啟用中的處理者',
   update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: '處理中',
-           handler_account: 'hua@test' }).ok, true);
-check('Sheet 存的是帳號不是姓名', cellOf('PCI-202608-002', '處理者'), 'hua@test');
+           handler_code: 'HDL_02' }).ok, true);
+check('Sheet 存的是代碼不是姓名', cellOf('PCI-202608-002', '處理者'), 'HDL_02');
 
 const assigned = run({}).data.cases.find(c => c.case_id === 'PCI-202608-002');
 check('回傳時換成姓名', assigned.handler.name, '李美華');
-check('回傳時帶出電話', assigned.handler.phone, '3691');
-check('回傳時保留帳號', assigned.handler.account, 'hua@test');
+check('回傳時保留代碼', assigned.handler.code, 'HDL_02');
+check('不回傳內部的 active 欄位', 'active' in assigned.handler, false);
 
-check('指派給不存在的人 → 擋下',
+check('指派給不存在的代碼 → 擋下',
   update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: 'x',
-           handler_account: 'nobody@test' }).error, 'HANDLER_INVALID');
-check('指派給已停用的管理者 → 擋下',
+           handler_code: 'HDL_99' }).error, 'HANDLER_INVALID');
+check('指派給已停用的處理者 → 擋下',
   update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: 'x',
-           handler_account: 'gone@test' }).error, 'HANDLER_INVALID');
-check('大小寫不影響',
+           handler_code: 'HDL_03' }).error, 'HANDLER_INVALID');
+check('代碼大小寫不影響',
   update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: '處理中2',
-           handler_account: 'HUA@TEST' }).ok, true);
+           handler_code: 'hdl_02' }).ok, true);
 check('不指派也可以（留空）',
   update({ case_id: 'PCI-202608-002', status_code: 'ST_NEW', response: '',
-           handler_account: '' }).ok, true);
+           handler_code: '' }).ok, true);
 check('留空時處理者被清掉', cellOf('PCI-202608-002', '處理者'), '');
 
 console.log('\n【21】處理者與最後更新者是兩回事');
 update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: '由美華負責',
-         handler_account: 'hua@test' });
-check('處理者 = 被指派的人', cellOf('PCI-202608-002', '處理者'), 'hua@test');
+         handler_code: 'HDL_02' });
+check('處理者 = 被指派的人', cellOf('PCI-202608-002', '處理者'), 'HDL_02');
 check('最後更新者 = 實際按儲存的人', cellOf('PCI-202608-002', '最後更新者'), '王小明');
+
+console.log('\n【21b】已停用的處理者，舊案件仍要顯示得出姓名');
+setCell('PCI-202608-002', '處理者', 'HDL_03');
+const byGone = run({}).data.cases.find(c => c.case_id === 'PCI-202608-002');
+check('停用者的姓名仍查得到', byGone.handler.name, '已離職');
+check('但不能再指派給他',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: 'x',
+           handler_code: 'HDL_03' }).error, 'HANDLER_INVALID');
 
 console.log('\n【22】舊資料相容：處理者欄存的是姓名');
 setCell('PCI-202608-003', '處理者', '某位舊同事');
 const legacy = run({}).data.cases.find(c => c.case_id === 'PCI-202608-003');
-check('查不到帳號就當成姓名顯示', legacy.handler.name, '某位舊同事');
-check('沒有電話可查', legacy.handler.phone, '');
-check('帳號留空', legacy.handler.account, '');
+check('查不到代碼就當成姓名顯示', legacy.handler.name, '某位舊同事');
+check('代碼留空', legacy.handler.code, '');
 
-console.log('\n【23】getAdminOptions：只列在職的，且不含 Email');
-const opts = vm.runInContext(`getAdminOptions({}, {name:'王小明'})`, sandbox);
-check('ok', opts.ok, true);
-check('排除已停用的', opts.data.admins.map(a => a.account), ['ming@test', 'hua@test']);
-check('帶姓名', opts.data.admins[1].name, '李美華');
-check('帶電話', opts.data.admins[0].phone, '3690');
-check('不回傳 Email', 'email' in opts.data.admins[0], false);
+console.log('\n【23】處理者名單來自選項設定');
+const handlers = vm.runInContext(`readOptionsFromSheet().HANDLER`, sandbox);
+check('getOptions 只回傳啟用中的', handlers.map(h => h.code), ['HDL_01', 'HDL_02']);
+check('姓名放在中文欄', handlers[0].label_zh, '王小明');
+check('依排序欄排序', handlers.map(h => h.sort), [1, 2]);
+
+const map = vm.runInContext(`buildHandlerMap()`, sandbox);
+check('對照表包含已停用的（給舊案件查姓名用）', Object.keys(map).sort(),
+  ['HDL_01', 'HDL_02', 'HDL_03']);
+check('停用者標記為 inactive', map.HDL_03.active, false);
 
 console.log(`\n===== 通過 ${pass} 項，失敗 ${failCount} 項 =====\n`);
 process.exit(failCount ? 1 : 0);

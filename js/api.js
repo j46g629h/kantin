@@ -108,20 +108,15 @@ const Api = {
     return this.post({ action: 'getTemplates', token });
   },
 
-  /** 可以被指派為處理者的管理者清單（只有在職的） */
-  getAdminOptions(token) {
-    return this.post({ action: 'getAdminOptions', token });
-  },
-
   /** 更新案件狀態、回覆與指派的處理者 */
-  updateCase(token, caseId, statusCode, response, handlerAccount) {
+  updateCase(token, caseId, statusCode, response, handlerCode) {
     return this.post({
-      action:         'updateCase',
+      action:       'updateCase',
       token,
-      case_id:        caseId,
-      status_code:    statusCode,
+      case_id:      caseId,
+      status_code:  statusCode,
       response,
-      handler_account: handlerAccount || '',
+      handler_code: handlerCode || '',
     });
   },
 
@@ -159,7 +154,7 @@ function errorMessage(result) {
  * 快取鍵名帶版本號。選項的「結構」有變動時（例如新增一種類型）就把 v 往上加，
  * 舊版快取會自動失效。
  */
-const OPTIONS_CACHE_KEY = 'kantin_options_v2';
+const OPTIONS_CACHE_KEY = 'kantin_options_v3';
 
 /** 快取有效期。過期就重新跟後端要一次。 */
 const OPTIONS_CACHE_TTL_MS = 30 * 60 * 1000;   // 30 分鐘
@@ -172,6 +167,8 @@ const OPTIONS_CACHE_TTL_MS = 30 * 60 * 1000;   // 30 分鐘
  * 這裡也會擋下來，不會讓使用者看到「有標題卻沒有按鈕」的空白區塊。
  */
 const REQUIRED_OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS'];
+// ⚠️ HANDLER 刻意不列進來。處理者名單一開始是空的，
+//    列進必要類型的話會讓整個頁面判定「選項資料不完整」而進不去。
 
 
 /**
