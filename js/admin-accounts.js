@@ -207,9 +207,10 @@ async function createAdmin(event) {
 
     // 先把密碼收好再重畫。這是它唯一一次出現的機會
     state.password = {
-      account:  result.data.account,
-      password: result.data.initial_password,
-      mode:     'create',
+      account:   result.data.account,
+      password:  result.data.initial_password,
+      mode:      'create',
+      generated: true,          // 新增帳號的初始密碼一定是系統產生的
     };
 
     closeAddForm();
@@ -264,41 +265,184 @@ async function changeStatus(account, status) {
 }
 
 
-/** 重設他人密碼 */
-async function resetPassword(account) {
+/**
+ * 重設他人密碼。
+ *
+ * 先開一個對話框讓超級管理者選密碼要怎麼來：
+ *   - 系統產生（預設）：12 碼隨機，猜不到
+ *   - 自己設定：方便記住，但幾個人共用同一組的話，
+ *     只要其中一個沒改密碼又外流，其他人的帳號等於一起破了
+ *
+ * 兩種都會要求對方第一次登入立刻改掉。
+ */
+function resetPassword(account) {
   const admin = findAdmin(account);
   if (!admin || state.busy) return;
+  openResetDialog(admin);
+}
 
+
+/**
+ * 重設密碼的對話框。
+ *
+ * 用自建對話框而不是 confirm()：confirm() 只能給一個是 / 否，
+ * 沒辦法讓人選密碼來源、也沒辦法在同一個畫面上輸入密碼。
+ */
+function openResetDialog(admin) {
   const who = admin.name || admin.account;
-  if (!confirm(t('accounts.confirmReset').replace('{name}', who))) return;
 
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <form class="pw-box pw-box-form" id="resetForm" novalidate>
+      <h2 class="pw-title">${escapeHtml(t('accounts.resetTitle').replace('{name}', who))}</h2>
+      <p class="pw-who">${escapeHtml(admin.account)}</p>
+
+      <label class="pw-choice">
+        <input type="radio" name="pwMode" value="auto" checked>
+        <span>
+          <span class="pw-choice-title">${escapeHtml(t('accounts.pwModeAuto'))}</span>
+          <span class="pw-choice-hint">${escapeHtml(t('accounts.pwModeAutoHint'))}</span>
+        </span>
+      </label>
+
+      <label class="pw-choice">
+        <input type="radio" name="pwMode" value="manual">
+        <span>
+          <span class="pw-choice-title">${escapeHtml(t('accounts.pwModeManual'))}</span>
+          <span class="pw-choice-hint">${escapeHtml(t('accounts.pwModeManualHint'))}</span>
+        </span>
+      </label>
+
+      <div class="pw-manual hidden" id="manualBox">
+        <label class="filter-label" for="newPw">${escapeHtml(t('accounts.pwInput'))}</label>
+        <input type="password" id="newPw" autocomplete="new-password" spellcheck="false"
+               placeholder="${escapeHtml(t('accounts.pwInputPh'))}">
+        <label class="pw-show">
+          <input type="checkbox" id="showPw">
+          <span>${escapeHtml(t('accounts.pwShow'))}</span>
+        </label>
+      </div>
+
+      <p class="pw-warn">${escapeHtml(t('accounts.resetWarn'))}</p>
+
+      <div id="resetError" class="result error hidden"></div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn-primary btn-inline" id="resetGo">
+          ${escapeHtml(t('accounts.resetConfirm'))}
+        </button>
+        <button type="button" class="btn-secondary btn-inline" id="resetCancel">
+          ${escapeHtml(t('accounts.cancel'))}
+        </button>
+      </div>
+    </form>`;
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('no-scroll');
+
+  const manualBox = overlay.querySelector('#manualBox');
+  const newPw     = overlay.querySelector('#newPw');
+  const errorBox  = overlay.querySelector('#resetError');
+  const goBtn     = overlay.querySelector('#resetGo');
+
+  const close = function () {
+    overlay.remove();
+    document.body.classList.remove('no-scroll');
+  };
+
+  overlay.querySelectorAll('input[name="pwMode"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      const manual = radio.value === 'manual' && radio.checked;
+      manualBox.classList.toggle('hidden', !manual);
+      hide(errorBox);
+      if (manual) newPw.focus();
+    });
+  });
+
+  // 打錯字是這裡最常見的失誤，而且要等對方登不進去才會發現，
+  // 所以給一個「看一眼確認」的開關
+  overlay.querySelector('#showPw').addEventListener('change', function (e) {
+    newPw.type = e.target.checked ? 'text' : 'password';
+  });
+
+  overlay.querySelector('#resetCancel').addEventListener('click', close);
+
+  overlay.querySelector('#resetForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const manual   = overlay.querySelector('input[name="pwMode"]:checked').value === 'manual';
+    const password = manual ? newPw.value.trim() : '';
+
+    // 前端先擋掉不合規則的密碼，省一趟 3～8 秒的往返。後端一樣會再檢查一次
+    if (manual) {
+      const ruleError = passwordRuleError(password);
+      if (ruleError) { show(errorBox, t(ruleError)); newPw.focus(); return; }
+    }
+
+    goBtn.disabled = true;
+    goBtn.textContent = t('accounts.resetting');
+    hide(errorBox);
+
+    doResetPassword(admin.account, password, errorBox, function () {
+      goBtn.disabled = false;
+      goBtn.textContent = t('accounts.resetConfirm');
+    }, close);
+  });
+
+  overlay.querySelector('input[name="pwMode"]').focus();
+}
+
+
+/**
+ * 密碼規則檢查（規格 §5.5）。
+ * 後端 gas/Auth.js 的 validatePasswordRule() 是同一份規則，兩邊要一致。
+ * 回傳的是 i18n 的錯誤鍵，通過就回傳空字串。
+ */
+function passwordRuleError(password) {
+  if (password.length < 8)      return 'err.PASSWORD_TOO_SHORT';
+  if (!/[A-Za-z]/.test(password)) return 'err.PASSWORD_NEEDS_LETTER';
+  if (!/[0-9]/.test(password))    return 'err.PASSWORD_NEEDS_DIGIT';
+  return '';
+}
+
+
+/** 真正送出重設請求 */
+async function doResetPassword(account, password, errorBox, restoreBtn, closeDialog) {
   state.busy = account;
-  renderList();
   hide(el.listError);
 
   try {
-    const result = await Api.resetAdminPassword(AdminSession.token(), account);
+    const result = await Api.resetAdminPassword(AdminSession.token(), account, password);
 
     if (!result.ok) {
-      show(el.listError, errorMessage(result));
+      // 錯誤留在對話框裡顯示，輸入的密碼不清掉，改一下就能再送一次
+      show(errorBox, errorMessage(result));
+      restoreBtn();
       return;
     }
 
     state.password = {
-      account:  result.data.account,
-      password: result.data.initial_password,
-      mode:     'reset',
+      account:   result.data.account,
+      password:  result.data.initial_password,
+      mode:      'reset',
+      generated: result.data.generated !== false,
     };
 
+    closeDialog();
     await loadAdmins();
 
   } catch (err) {
-    show(el.listError, t('err.NETWORK'));
+    show(errorBox, t('err.NETWORK'));
+    restoreBtn();
+    return;
+
   } finally {
     state.busy = '';
     renderAll();
-    renderPasswordBox();
   }
+
+  renderPasswordBox();
 }
 
 
@@ -463,7 +607,12 @@ function bindRowButtons() {
 function renderPasswordBox() {
   if (!state.password) return;
 
-  const { account, password, mode } = state.password;
+  const { account, password, mode, generated } = state.password;
+
+  // 系統產生的密碼查不回來，關掉就沒了，要用比較強的措辭；
+  // 自己輸入的那組本人知道，講「只出現這一次」反而是騙人的
+  const warnText = generated ? t('accounts.pwWarn') : t('accounts.pwCustomNote');
+  const warnClass = generated ? 'pw-warn' : 'pw-next';
 
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
@@ -480,8 +629,8 @@ function renderPasswordBox() {
         ${escapeHtml(t('accounts.pwCopy'))}
       </button>
 
-      <p class="pw-warn">${escapeHtml(t('accounts.pwWarn'))}</p>
-      <p class="pw-next">${escapeHtml(t('accounts.pwNext'))}</p>
+      <p class="${warnClass}">${escapeHtml(warnText)}</p>
+      ${generated ? `<p class="pw-next">${escapeHtml(t('accounts.pwNext'))}</p>` : ''}
 
       <button type="button" class="btn-primary" id="pwDone">
         ${escapeHtml(t('accounts.pwDone'))}

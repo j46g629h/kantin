@@ -186,7 +186,18 @@ function adminOpSetStatus(params, session) {
 // ===== resetPassword：重設他人密碼 =====
 
 /**
- * 重設別人的密碼，產生一組新的隨機密碼並要求對方下次登入立刻改掉。
+ * 重設別人的密碼，並要求對方下次登入立刻改掉。
+ *
+ * 密碼有兩種來源：
+ *   - 沒帶 new_password  → 系統產生一組 12 碼的隨機密碼（預設，比較安全）
+ *   - 有帶 new_password  → 用超級管理者自己輸入的那組
+ *
+ * ⚠️ 自訂密碼一定要用 `new_password` 這個欄位名稱。
+ *    `gas/Main.js` 的 SENSITIVE_PARAMS 會把它遮成 ***，
+ *    換成別的名字的話，這支 API 一旦出錯，明文密碼會原封不動被寫進「錯誤日誌」分頁。
+ *
+ * 不論哪一種都會把「需重設密碼」設成 TRUE：
+ * 超級管理者知道別人的密碼只該是過渡狀態，對方一登入就要換成只有他自己知道的。
  *
  * 順便解除登入鎖定——「連續輸錯 5 次被鎖住」正是最常來求救的情境，
  * 重設完還要對方再等 15 分鐘實在沒有道理。
@@ -198,12 +209,26 @@ function adminOpResetPassword(params, session) {
   if (!admin) return fail('ADMIN_NOT_FOUND', '查無此帳號');
 
   // 改自己的密碼要走「變更密碼」（需要輸入舊密碼）。
-  // 從這裡改的話，等於是把自己的密碼換成一組隨機字串然後被登出，沒有任何好處
+  // 從這裡改的話，自己會立刻被登出，而且繞過了「要先證明你知道舊密碼」這一關
   if (account === str(session.account).toLowerCase()) {
     return fail('ADMIN_SELF_RESET', '要改自己的密碼請用「變更密碼」');
   }
 
-  const password = generateInitialPassword();
+  // str() 會去掉頭尾空白。這跟 adminLogin() 一致——
+  // 那裡收到的密碼也會被 trim，所以前後有空白的密碼本來就登不進去，
+  // 與其讓人設一組永遠對不起來的密碼，不如在這裡就先修掉
+  const custom = str(params.new_password);
+  let password;
+
+  if (custom) {
+    // 自訂密碼一樣要過規格 §5.5 的規則，不能因為是超級管理者設的就放行
+    const ruleError = validatePasswordRule(custom);
+    if (ruleError) return fail(ruleError, '密碼不符合規則');
+    password = custom;
+  } else {
+    password = generateInitialPassword();
+  }
+
   setAdminPassword(admin.row, password, true);   // true = 下次登入強制改掉
   clearLoginFailures(account);                   // 順手解除鎖定
 
@@ -214,6 +239,7 @@ function adminOpResetPassword(params, session) {
     account:          account,
     name:             str(admin.name),
     initial_password: password,
+    generated:        !custom,          // 前端用它決定要不要顯示「只出現這一次」的警告
     revoked_sessions: revoked,
   });
 }

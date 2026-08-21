@@ -1533,3 +1533,65 @@ input[type="date"] {
   white-space: nowrap;
 }
 .admin-bar-link:hover { text-decoration: underline; }
+
+
+/* --- 重設密碼對話框 --- */
+
+.pw-box-form { text-align: left; }
+
+.pw-choice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 44px;              /* 觸控目標 */
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/*
+ * 被選到的那一項要一眼看得出來，不能只靠圓點那幾個像素。
+ * `:has()` 在很舊的瀏覽器上不支援——那種情況只是少了底色，
+ * 圓點還是會顯示選中狀態，功能不受影響。
+ */
+.pw-choice:has(input:checked) {
+  background: var(--brand-light);
+  border-color: var(--brand-border);
+}
+
+.pw-choice input { margin-top: 3px; flex: none; }
+
+.pw-choice-title {
+  display: block;
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+
+.pw-choice-hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.pw-manual { margin: 4px 0 12px; }
+
+.pw-manual input[type="password"],
+.pw-manual input[type="text"] {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.pw-show {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}

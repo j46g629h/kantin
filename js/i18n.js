@@ -269,6 +269,20 @@ const I18N = {
     'accounts.pwCopied':     '已複製',
     'accounts.pwDone':       '我已經記下來了',
 
+    // 重設密碼對話框
+    'accounts.resetTitle':   '重設「{name}」的密碼',
+    'accounts.resetWarn':    '他目前的密碼與登入都會立刻失效。',
+    'accounts.pwModeAuto':   '系統產生一組隨機密碼',
+    'accounts.pwModeAutoHint':'12 個字，猜不到，建議用這個',
+    'accounts.pwModeManual': '我自己設定',
+    'accounts.pwModeManualHint':'方便你記住，但請不要幾個人共用同一組',
+    'accounts.pwInput':      '新密碼',
+    'accounts.pwInputPh':    '至少 8 個字，要有英文字母和數字',
+    'accounts.pwShow':       '顯示密碼',
+    'accounts.resetConfirm': '確定重設',
+    'accounts.resetting':    '重設中…',
+    'accounts.pwCustomNote': '這是你剛才輸入的密碼。對方第一次登入時，系統會要求他改成自己的。',
+
     // 提示
     'accounts.lastSuperHint':'系統至少要保留一位啟用中的超級管理者',
     'accounts.selfHint':     '不能停用自己的帳號',
@@ -563,6 +577,20 @@ const I18N = {
     'accounts.pwCopy':       'Salin kata sandi',
     'accounts.pwCopied':     'Tersalin',
     'accounts.pwDone':       'Sudah saya catat',
+
+    // Dialog reset kata sandi
+    'accounts.resetTitle':   'Reset kata sandi "{name}"',
+    'accounts.resetWarn':    'Kata sandi dan sesi login dia sekarang langsung tidak berlaku.',
+    'accounts.pwModeAuto':   'Sistem buatkan kata sandi acak',
+    'accounts.pwModeAutoHint':'12 karakter, tidak bisa ditebak — ini yang disarankan',
+    'accounts.pwModeManual': 'Saya tentukan sendiri',
+    'accounts.pwModeManualHint':'Lebih gampang diingat, tapi jangan dipakai untuk beberapa orang sekaligus',
+    'accounts.pwInput':      'Kata sandi baru',
+    'accounts.pwInputPh':    'Minimal 8 karakter, harus ada huruf dan angka',
+    'accounts.pwShow':       'Tampilkan kata sandi',
+    'accounts.resetConfirm': 'Reset Sekarang',
+    'accounts.resetting':    'Mereset…',
+    'accounts.pwCustomNote': 'Ini kata sandi yang tadi kamu ketik. Saat pertama masuk, dia akan diminta menggantinya sendiri.',
 
     // Petunjuk
     'accounts.lastSuperHint':'Sistem harus punya minimal satu admin utama yang aktif',

@@ -410,6 +410,68 @@ check('每個帳號的鹽值都不一樣',
   rawRow('ming@pci')[4] !== rawRow('baru@pci')[4], true);
 
 
+console.log('\n===== resetPassword：超級管理者自己設定密碼 =====\n');
+
+// 規則檢查一樣要跑，不能因為是超級管理者設的就放行（規格 §5.5）
+check('太短 → 擋下',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'Ab1' }).error,
+  'PASSWORD_TOO_SHORT');
+check('沒有英文字母 → 擋下',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'12345678' }).error,
+  'PASSWORD_NEEDS_LETTER');
+check('沒有數字 → 擋下',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'abcdefgh' }).error,
+  'PASSWORD_NEEDS_DIGIT');
+
+const beforeBadReset = rawRow('ming@pci')[3];
+callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'Ab1' });
+check('被擋下時密碼沒有被改動', rawRow('ming@pci')[3], beforeBadReset);
+
+// 成功路徑
+const CUSTOM = 'Kantin2026';
+const saltBeforeCustom = rawRow('ming@pci')[4];
+const customReset = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:CUSTOM });
+
+check('自訂密碼重設成功',      customReset.ok, true);
+check('回傳的就是輸入那組',    customReset.data.initial_password, CUSTOM);
+check('標記為「非系統產生」',  customReset.data.generated, false);
+check('用這組密碼登得進去',    login('ming@pci', CUSTOM).ok, true);
+check('自訂密碼一樣要求首次登入改掉', rawRow('ming@pci')[7], 'TRUE');
+check('自訂密碼一樣換新鹽值',  rawRow('ming@pci')[4] !== saltBeforeCustom, true);
+check('Sheet 上存的仍是雜湊，不是明文',
+  rawRow('ming@pci').indexOf(CUSTOM) === -1, true);
+
+// 前後空白：adminLogin() 收到密碼也會 trim，所以這裡先修掉才不會設出一組永遠登不進去的密碼
+const spaced = callAs(SUPER_SESSION, { op:'resetPassword', account:'hua@pci', new_password:'  Kantin2026  ' });
+check('前後空白會被去掉',      spaced.data.initial_password, 'Kantin2026');
+
+// 沒帶 new_password 就退回系統產生
+const autoReset = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci' });
+check('沒帶 new_password → 系統產生',   autoReset.data.generated, true);
+check('系統產生的是 12 碼',             autoReset.data.initial_password.length, 12);
+check('只打空白 → 也視為沒帶，系統產生',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'   ' }).data.generated, true);
+
+// 自訂密碼一樣要作廢對方的 token 與解除鎖定
+evalIn(`revokeSessionsForAccount('ming@pci')`);
+const liveToken = login('ming@pci', callAs(SUPER_SESSION,
+  { op:'resetPassword', account:'ming@pci', new_password:'Kantin2027' }).data.initial_password).data.token;
+const afterCustom = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'Kantin2028' });
+check('自訂密碼一樣會作廢對方 token', afterCustom.data.revoked_sessions, 1);
+check('那支 token 真的失效',
+  evalIn(`readSession(${JSON.stringify(liveToken)}) === null`), true);
+
+// 自己不能用這條路徑改自己的密碼，帶了自訂密碼也一樣
+check('帶自訂密碼改自己 → 一樣擋下',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'super@pci', new_password:'Kantin2026' }).error,
+  'ADMIN_SELF_RESET');
+
+// 收尾：把王小明的密碼設回前一段那組。
+// 這一段改過他的密碼，不還原的話後面 setRole 的測試會登不進去——
+// 而且失敗訊息會指向 setRole，跟真正的原因差了十萬八千里。
+callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci',
+                        new_password: reset.data.initial_password });
+
 console.log('\n===== setRole：調整角色 =====\n');
 
 check('角色代碼亂填 → 擋下',

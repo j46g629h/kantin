@@ -141,9 +141,26 @@ const Api = {
     return this.post({ action: 'manageAdmin', token, op: 'setStatus', account, status });
   },
 
-  /** 重設他人密碼。成功時 data.initial_password 是一次性的新密碼 */
-  resetAdminPassword(token, account) {
-    return this.post({ action: 'manageAdmin', token, op: 'resetPassword', account });
+  /**
+   * 重設他人密碼。
+   *
+   * newPassword 留空 → 系統產生一組隨機密碼（預設）
+   * newPassword 有值 → 用超級管理者自己輸入的那組
+   *
+   * 成功時 data.initial_password 是要交給對方的密碼，
+   * data.generated 表示它是不是系統產生的。
+   *
+   * ⚠️ 欄位名稱一定要是 new_password：後端的錯誤日誌只遮罩這個名字，
+   *    換成別的名字的話，出錯時明文密碼會被寫進 Sheet。
+   */
+  resetAdminPassword(token, account, newPassword) {
+    return this.post({
+      action:       'manageAdmin',
+      token,
+      op:           'resetPassword',
+      account,
+      new_password: newPassword || '',
+    });
   },
 
   /**
