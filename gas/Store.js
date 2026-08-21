@@ -103,3 +103,39 @@ function storeSweepExpired() {
     return 0;
   }
 }
+
+
+/**
+ * 列出所有以某個前綴開頭、且尚未過期的資料。
+ *
+ * 用途：把某個帳號手上的所有 token 一次找出來作廢（見 revokeSessionsForAccount）。
+ * token 的 key 是 `admin_token_<隨機 UUID>`，光看 key 認不出是誰的，
+ * 只能全部讀出來、逐一看內容裡的帳號。
+ *
+ * 管理者只有個位數，token 也只有個位數，全部讀出來完全不影響效能。
+ *
+ * @param  {string} prefix 只要這個前綴開頭的（不給就全部）
+ * @return {Array} [{ key, value }, ...]，value 是當初存進去的字串
+ */
+function storeEntries(prefix) {
+  const out = [];
+  try {
+    const all = PropertiesService.getScriptProperties().getProperties();
+    const now = Date.now();
+
+    Object.keys(all).forEach(function (key) {
+      if (prefix && key.indexOf(prefix) !== 0) return;
+      try {
+        const parsed = JSON.parse(all[key]);
+        if (!parsed || parsed.v === undefined) return;
+        if (parsed.e && parsed.e < now) return;      // 過期的當作不存在
+        out.push({ key: key, value: parsed.v });
+      } catch (e) {
+        // 不是這個格式存的（可能是別的用途），不要動它
+      }
+    });
+  } catch (e) {
+    Logger.log('storeEntries 失敗（回傳空清單）: ' + e);
+  }
+  return out;
+}

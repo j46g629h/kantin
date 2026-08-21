@@ -60,6 +60,10 @@ const ROUTES = {
   getCaseList:         function (p) { return withAuth(p, function (s) { return getCaseList(p, s); }); },
   getTemplates:        function (p) { return withAuth(p, function (s) { return getTemplates(p, s); }); },
   updateCase:          function (p) { return withAuth(p, function (s) { return updateCase(p, s); }); },
+
+  // --- 管理端：需要 token 且必須是 SUPER ---
+  // 第三個參數 true = 只有超級管理者能執行（見 gas/Auth.js 的 withAuth）
+  manageAdmin:         function (p) { return withAuth(p, function (s) { return manageAdmin(p, s); }, true); },
 };
 
 

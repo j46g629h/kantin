@@ -57,12 +57,13 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 | `query.html` | 員工 | 查詢案件進度 |
 | `admin.html` | 管理者 | 登入 + 強制變更初始密碼（同一頁，避免按上一頁繞過） |
 | `admin-cases.html` | 管理者 | 案件列表、案件回覆與結案 |
+| `admin-accounts.html` | 超級管理者 | 帳號管理（新增 / 停用 / 重設密碼）|
 
 **Sheet 分頁**：`回報資料`、`員工名冊`、`管理者名單`、`選項設定`、`回覆範本`、`系統計數`、`錯誤日誌`
 
 **後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Store`（附有效期的鍵值儲存）/ `Main`（路由）/ `Auth`（登入與權限）/
 `Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
-`Setup`（一次性腳本與維運工具）
+`Admins`（帳號管理，僅 SUPER）/ `Setup`（一次性腳本與維運工具）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -109,21 +110,24 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 ### 5. 改前端檔案後，一定要更新資源版本號
 
-**五個 HTML 檔**（`index.html` / `report.html` / `query.html` / `admin.html` / `admin-cases.html`）
-引用 CSS 與 JS 時都帶 `?v=1.7`。
+**六個 HTML 檔**（`index.html` / `report.html` / `query.html` /
+`admin.html` / `admin-cases.html` / `admin-accounts.html`）
+引用 CSS 與 JS 時都帶 `?v=1.8`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
 畫面會用「錯誤的方式」壞掉——曾經因為 API 欄位改名，
 使用者點下去整個清單消失且不顯示任何訊息。
 
-**改法：** 五個 HTML 檔一起把 `?v=` 後面的數字往上加，
-建議與 `js/config.js` 的 `SYSTEM_INFO.version` 保持一致。
+**改法：** 六個 HTML 檔一起把 `?v=` 後面的數字往上加，
+並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 1.7 改成 1.8
-sed -i 's/?v=1\.7/?v=1.8/g' index.html report.html query.html admin.html admin-cases.html
+# 例如從 1.8 改成 1.9
+sed -i 's/?v=1\.8/?v=1.9/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
 ```
+
+改完用這行確認沒有漏掉：`grep -rn "v=1\.8" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -216,6 +220,39 @@ storeSweepExpired();                // Properties 沒有自動過期，登入時
 
 驗證方式：`node tools/test-store.js`
 
+### 14. 改動帳號之後，一定要把對方的 token 作廢
+
+`withAuth()` 只讀 token 裡的 session **快照**，不會回頭查 Sheet。
+所以把某人停用之後，他手上那支 token 在效期內（6 小時）**照樣能改案件、能結案**——
+「停用」等於沒有生效。把 SUPER 降成 ADMIN 也一樣，他那個分頁裡的角色還是舊的。
+
+停用 / 改角色 / 重設密碼三個動作，都要呼叫 `revokeSessionsForAccount(account)`
+（在 `gas/Auth.js`）。它靠 `storeEntries()` 把該帳號的所有 token 找出來刪掉。
+
+> 這件事做得到，正是因為 token 改存在 `PropertiesService` 而不是 `CacheService`
+> （見第 13 條）——存進去的東西是真的列得出來、刪得掉的。
+
+**為什麼不改成「每次請求都回查 Sheet」：** 那樣每支 API 都要多讀一次管理者名單，
+Apps Script 本來就慢（每次回應 3～8 秒），不值得為了一年用不到幾次的情況天天付這個成本。
+
+### 15. 帳號管理的三條安全規則
+
+`gas/Admins.js` 的 `guardLastActiveSuper()` 擋掉這三件事，前端也把對應的按鈕變灰：
+
+| 擋什麼 | 為什麼 |
+|---|---|
+| 停用 / 降級自己 | 手滑就把自己關在門外 |
+| 停用 / 降級**最後一位啟用中的 SUPER** | 系統會變成沒有人進得去帳號管理頁，只能回 Apps Script 編輯器手動救 |
+| 重設自己的密碼 | 等於把自己的密碼換成一組隨機字串然後被登出，沒有任何好處。要改自己的密碼走「變更密碼」 |
+
+前端把按鈕變灰只是體驗（還附上 tooltip 說明原因），**真正的把關在後端**——
+`manageAdmin` 被 `withAuth(p, handler, true)` 包住，非 SUPER 一律回 `FORBIDDEN`。
+
+另外，`adminOpList()` 回傳前一定要經過 `toSafeAdmin()`。
+`readAllAdmins()` 讀的是整列，裡面就有 `password_hash` 與 `password_salt`，
+直接回傳等於把整份密碼資料送到瀏覽器上。`toSafeAdmin()` 採白名單寫法，
+日後 `ADMIN_COLUMNS` 加了新欄位也不會不小心跟著漏出去。
+
 ---
 
 ## 常見陷阱
@@ -269,7 +306,11 @@ clasp.cmd pull                             # 從線上拉回（很少用）
 ```bash
 node tools/test-cases-api.js   # 管理端案件 API（篩選 / 排序 / 統計 / 逾期 / 回覆 / 指派）
 node tools/test-store.js       # 附有效期的鍵值儲存
+node tools/test-admin-api.js   # 帳號管理 API（權限 / 新增 / 停用 / 重設密碼 / token 作廢）
 ```
+
+⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。
+寫死 `D:/Claude/KANTIN` 的話，在 macOS 那台會直接爆掉。
 
 用假的 Apps Script 服務（`SpreadsheetApp` / `Utilities` / `Session`）在 Node 裡跑 `getCaseList`，
 不必部署、不必登入就能驗證篩選、排序、統計、逾期判斷。改到 `gas/Cases.js` 就順手跑一次。
@@ -282,7 +323,23 @@ sandbox 裡的 `x instanceof Date` 會是 false（跨 realm 的建構子不同�
 
 1. 改 `gas/` 底下的檔案
 2. 串接檢查（模擬 Apps Script 共用全域範圍，可抓出重複宣告）：
-   `cat gas/Config.js gas/Utils.js gas/Main.js gas/*.js > /tmp/all.js && node --check /tmp/all.js`
+
+   ```bash
+   cat gas/*.js > /tmp/all.js && node --check /tmp/all.js
+   ```
+
+   ⚠️ 不要寫成 `cat gas/Config.js gas/Utils.js gas/Main.js gas/*.js`——
+   `gas/*.js` 已經包含前面那三個檔案，串兩次必然報
+   `SyntaxError: Identifier 'SHEET_ID' has already been declared`，
+   看起來像程式有錯，其實是指令本身的問題。
+
+   `node --check` 抓得到重複的 `const`，**但抓不到重複的 `function`**
+   （重複的函式宣告在 JS 裡是合法的，後面那個會無聲蓋掉前面那個）。
+   新增函式時順手跑這行確認沒撞名：
+
+   ```bash
+   grep -oh "^function [a-zA-Z0-9_]*" gas/*.js | sort | uniq -d
+   ```
 3. `clasp.cmd push -f`
 4. `clasp.cmd redeploy <deploymentId> -d "說明"`
 5. 用 curl 打 API 驗證

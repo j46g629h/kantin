@@ -406,3 +406,43 @@ function isTrue(value) {
   const s = str(value).toUpperCase();
   return s === 'TRUE' || s === 'Y' || s === 'YES' || s === '1';
 }
+
+
+// ===== 強制登出（帳號管理用）=====
+
+/**
+ * 把某個帳號手上的所有 token 全部作廢。
+ *
+ * ⚠️ 為什麼一定要有這一支：
+ *
+ * `withAuth()` 只讀 token 裡的 session 快照，**不會回頭查 Sheet**。
+ * 所以把某人停用之後，他手上那支 token 在效期內（6 小時）照樣能改案件、能結案——
+ * 「停用」等於沒有生效。把 SUPER 降成 ADMIN 也一樣：
+ * 他那個分頁裡的角色還是舊的。
+ *
+ * 每次改動帳號的狀態、角色或密碼，都要順手呼叫這一支。
+ *
+ * 這件事做得到，正是因為 token 改存在 PropertiesService 而不是 CacheService
+ * （見 gas/Store.js 開頭的事故說明）——存進去的東西是真的列得出來、刪得掉的。
+ *
+ * @param  {string} account 帳號
+ * @return {number} 作廢了幾支 token
+ */
+function revokeSessionsForAccount(account) {
+  const target = str(account).toLowerCase();
+  if (!target) return 0;
+
+  let count = 0;
+  storeEntries(CACHE_KEYS.TOKEN).forEach(function (entry) {
+    try {
+      const session = JSON.parse(entry.value);
+      if (session && str(session.account).toLowerCase() === target) {
+        storeRemove(entry.key);
+        count++;
+      }
+    } catch (e) {
+      // 內容壞掉的就別動它，交給 storeSweepExpired() 過期後清掉
+    }
+  });
+  return count;
+}

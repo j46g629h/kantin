@@ -385,3 +385,133 @@ const TEST_IMAGE_2 = [
   'RQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRR',
   'RQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQB//9k=',
 ].join('');
+
+
+// ===== 測試用的管理者帳號（關卡 3-5）=====
+
+/**
+ * 測試管理者的帳號網域。
+ *
+ * `.local` 是保留網域，永遠不會是真實信箱——
+ * 這樣萬一忘了清掉，第 4 階段的日報也不會真的寄出去。
+ * `removeTestAdmins()` 就是靠這個字串認出哪些是測試資料。
+ */
+const TEST_ADMIN_DOMAIN = '@kantin.local';
+
+
+/**
+ * 產生 5 個測試用的一般管理者帳號。
+ *
+ * 用途：帳號管理頁需要有多筆資料才看得出排版、排序與各個按鈕的樣子。
+ * 一個一個手動建太慢，而且驗收完還要一個一個刪。
+ *
+ * ⚠️ 這些是「用完就要丟」的假帳號，正式上線前一定要執行 removeTestAdmins()。
+ *
+ *    為什麼不能留著：規格 §10 的日報與月報會寄給「所有 ACTIVE 管理者」，
+ *    而且這些帳號從來沒有人登入過，密碼永遠停在初始密碼——
+ *    留 5 個在正式名單裡就是留 5 個沒人看管的入口。
+ *
+ * 刻意不填 Email：就算你忘了清，寄信也不會有收件人。
+ */
+function seedTestAdmins() {
+  const PEOPLE = [
+    { account: 'test01' + TEST_ADMIN_DOMAIN, name: '測試管理者一' },
+    { account: 'test02' + TEST_ADMIN_DOMAIN, name: '測試管理者二' },
+    { account: 'test03' + TEST_ADMIN_DOMAIN, name: '測試管理者三' },
+    { account: 'test04' + TEST_ADMIN_DOMAIN, name: '測試管理者四' },
+    { account: 'test05' + TEST_ADMIN_DOMAIN, name: '測試管理者五' },
+  ];
+
+  const sheet  = getSheet(SHEETS.ADMINS);
+  const report = ['===== 產生測試管理者帳號 ====='];
+  let created = 0;
+
+  PEOPLE.forEach(function (person) {
+    if (findAdminByAccount(person.account)) {
+      report.push('－ ' + person.account + '　已存在，略過');
+      return;
+    }
+
+    const password = generateInitialPassword();
+    const salt     = generateSalt();
+
+    writeRowByColumns(sheet, SHEETS.ADMINS, sheet.getLastRow() + 1, ADMIN_COLUMNS, {
+      name:           person.name,
+      account:        person.account,
+      email:          '',                    // 刻意留空，見上面的說明
+      password_hash:  hashPassword(password, salt),
+      password_salt:  salt,
+      role:           ADMIN_ROLES.ADMIN,
+      status:         ADMIN_STATUS.ACTIVE,
+      must_change_pw: 'TRUE',
+      created_at:     new Date(),
+      last_login_at:  '',
+    });
+
+    report.push('✔ ' + person.account + '　' + person.name + '　密碼：' + password);
+    created++;
+  });
+
+  report.push('');
+  report.push('建立 ' + created + ' 個。密碼只出現在這一次的執行紀錄。');
+  report.push('⚠️ 正式上線前務必執行 removeTestAdmins() 全部清掉。');
+
+  const msg = report.join('\n');
+  Logger.log(msg);
+  return msg;
+}
+
+
+/**
+ * 把 seedTestAdmins() 建立的測試帳號全部刪掉，並作廢它們手上的 token。
+ *
+ * 這裡是真的刪除列，不是標記停用——因為它們本來就不該存在，
+ * 留著只會讓「這個人到底是誰」變成日後的疑問。
+ *
+ * 管理者名單刪列是安全的：所有查找都用帳號（findAdminByAccount），
+ * 沒有任何地方依賴列號。這跟「回報資料」不同，那裡才必須用軟刪除。
+ *
+ * ⚠️ 由下往上刪。由上往下刪的話，刪掉第 3 列之後原本的第 4 列會變成第 3 列，
+ *    接著刪「第 4 列」就會刪到別人。
+ */
+function removeTestAdmins() {
+  const sheet  = getSheet(SHEETS.ADMINS);
+  const report = ['===== 清除測試管理者帳號 ====='];
+
+  const targets = readAllAdmins().filter(function (admin) {
+    return str(admin.account).toLowerCase().indexOf(TEST_ADMIN_DOMAIN) >= 0;
+  });
+
+  if (targets.length === 0) {
+    const none = '沒有找到任何測試帳號（' + TEST_ADMIN_DOMAIN + '），不需要清除。';
+    Logger.log(none);
+    return none;
+  }
+
+  let removed = 0, revoked = 0;
+
+  // 由下往上刪，列號才不會在刪除過程中位移
+  targets.sort(function (a, b) { return b.row - a.row; }).forEach(function (admin) {
+    const account = str(admin.account).toLowerCase();
+
+    // 安全網：萬一有人把測試帳號升級成唯一的超級管理者，刪掉就沒人管得了帳號了
+    if (normalizeRole(admin.role) === ADMIN_ROLES.SUPER
+        && normalizeAdminStatus(admin.status) === ADMIN_STATUS.ACTIVE
+        && countActiveSupers(readAllAdmins().map(toSafeAdmin)) <= 1) {
+      report.push('⚠ ' + account + '　是目前唯一啟用中的超級管理者，沒有刪除');
+      return;
+    }
+
+    revoked += revokeSessionsForAccount(account);
+    sheet.deleteRow(admin.row);
+    report.push('✔ 已刪除 ' + account);
+    removed++;
+  });
+
+  report.push('');
+  report.push('刪除 ' + removed + ' 個帳號，同時作廢 ' + revoked + ' 支 token。');
+
+  const msg = report.join('\n');
+  Logger.log(msg);
+  return msg;
+}

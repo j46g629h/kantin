@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = 'D:/Claude/KANTIN';
+const ROOT = path.join(__dirname, '..');   // 不要寫死路徑，換到 macOS 也要能跑
 const TZ = 'Asia/Jakarta';
 const NOW_ISO = '2026-08-20T12:00:00+07:00';
 

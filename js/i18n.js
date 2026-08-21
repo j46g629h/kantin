@@ -215,6 +215,64 @@ const I18N = {
     'admin.period.total':   '共 {n} 件',
     'admin.month.label':    '{y} 年 {m} 月',
 
+    // --- 管理端：帳號管理（僅 SUPER）---
+    'accounts.entry':        '帳號管理',
+    'accounts.title':        '帳號管理',
+    'accounts.backToCases':  '回案件列表',
+    'accounts.loading':      '載入管理者名單…',
+    'accounts.count':        '共 {n} 位管理者',
+    'accounts.you':          '你',
+    'accounts.neverLoggedIn':'從未登入',
+    'accounts.lastLogin':    '最後登入',
+    'accounts.created':      '建立於',
+    'accounts.noEmail':      '未填 Email',
+    'accounts.mustChangePw': '尚未改過初始密碼',
+    'accounts.status.ACTIVE':  '啟用中',
+    'accounts.status.DISABLED':'已停用',
+
+    // 新增管理者
+    'accounts.add':          '新增管理者',
+    'accounts.addTitle':     '新增管理者',
+    'accounts.cancel':       '取消',
+    'accounts.fName':        '姓名',
+    'accounts.fNamePh':      '這個人的姓名',
+    'accounts.fAccount':     '登入帳號',
+    'accounts.fAccountPh':   '建議直接用 email',
+    'accounts.fEmail':       'Email（接收日報 / 月報）',
+    'accounts.fEmailPh':     '可以留空',
+    'accounts.fRole':        '角色',
+    'accounts.roleHint':     '超級管理者可以管理帳號，一般管理者只能處理案件',
+    'accounts.create':       '建立帳號',
+    'accounts.creating':     '建立中…',
+
+    // 動作
+    'accounts.disable':      '停用',
+    'accounts.enable':       '啟用',
+    'accounts.resetPw':      '重設密碼',
+    'accounts.working':      '處理中…',
+    'accounts.disabled':     '已停用 {name}',
+    'accounts.enabled':      '已啟用 {name}',
+    'accounts.kicked':       '（他目前的登入也一併失效了）',
+
+    // 確認
+    'accounts.confirmDisable':'確定要停用「{name}」嗎？\n\n他會立刻被登出，而且無法再登入。\n之後可以再啟用回來。',
+    'accounts.confirmEnable': '確定要重新啟用「{name}」嗎？',
+    'accounts.confirmReset':'確定要重設「{name}」的密碼嗎？\n\n系統會產生一組新的隨機密碼，\n他目前的密碼與登入都會立刻失效。',
+
+    // 一次性密碼
+    'accounts.pwTitle':      '請把這組密碼交給對方',
+    'accounts.pwCreated':    '帳號「{account}」建立完成',
+    'accounts.pwReset':      '已重設「{account}」的密碼',
+    'accounts.pwWarn':       '⚠️ 這組密碼只會出現這一次，關掉就看不到了。系統只存加密後的結果，查不回來。',
+    'accounts.pwNext':       '對方第一次登入時，系統會要求他立刻改成自己的密碼。',
+    'accounts.pwCopy':       '複製密碼',
+    'accounts.pwCopied':     '已複製',
+    'accounts.pwDone':       '我已經記下來了',
+
+    // 提示
+    'accounts.lastSuperHint':'系統至少要保留一位啟用中的超級管理者',
+    'accounts.selfHint':     '不能停用自己的帳號',
+
     // --- 管理端錯誤 ---
     'err.LOGIN_REQUIRED':       '請輸入帳號與密碼',
     'err.LOGIN_FAILED':         '帳號或密碼錯誤',
@@ -233,6 +291,19 @@ const I18N = {
     'err.STATUS_INVALID':       '處理狀態不正確，請重新選擇',
     'err.RESPONSE_REQUIRED':    '這個狀態必須填寫回覆內容',
     'err.HANDLER_INVALID':      '指派的處理者不存在或已停用，請重新選擇',
+    'err.UNKNOWN_OP':           '不支援的操作',
+    'err.ADMIN_ACCOUNT_REQUIRED':'請輸入帳號',
+    'err.ADMIN_NAME_REQUIRED':  '請輸入姓名',
+    'err.ADMIN_ACCOUNT_INVALID':'帳號不可以有空白',
+    'err.ADMIN_EMAIL_INVALID':  'Email 格式不正確',
+    'err.ADMIN_EXISTS':         '這個帳號已經存在了',
+    'err.ADMIN_NOT_FOUND':      '查無此帳號，請重新整理再試',
+    'err.ADMIN_STATUS_INVALID': '狀態不正確',
+    'err.ADMIN_ROLE_INVALID':   '角色不正確',
+    'err.ADMIN_SELF_FORBIDDEN': '不能停用自己的帳號',
+    'err.ADMIN_SELF_RESET':     '要改自己的密碼請用「變更密碼」',
+    'err.ADMIN_SELF_ROLE':      '不能調整自己的角色',
+    'err.ADMIN_LAST_SUPER':     '這是唯一一位啟用中的超級管理者，不能停用',
 
     // --- 頁尾系統資訊 ---
     'footer.version':    '系統版本',
@@ -439,6 +510,64 @@ const I18N = {
     'admin.period.total':   'total {n} laporan',
     'admin.month.label':    '{m}/{y}',
 
+    // --- Admin: kelola akun (khusus SUPER) ---
+    'accounts.entry':        'Kelola Akun',
+    'accounts.title':        'Kelola Akun',
+    'accounts.backToCases':  'Kembali ke daftar laporan',
+    'accounts.loading':      'Memuat daftar admin…',
+    'accounts.count':        'Total {n} admin',
+    'accounts.you':          'kamu',
+    'accounts.neverLoggedIn':'Belum pernah masuk',
+    'accounts.lastLogin':    'Terakhir masuk',
+    'accounts.created':      'Dibuat',
+    'accounts.noEmail':      'Email belum diisi',
+    'accounts.mustChangePw': 'Belum ganti kata sandi awal',
+    'accounts.status.ACTIVE':  'Aktif',
+    'accounts.status.DISABLED':'Nonaktif',
+
+    // Tambah admin
+    'accounts.add':          'Tambah Admin',
+    'accounts.addTitle':     'Tambah Admin',
+    'accounts.cancel':       'Batal',
+    'accounts.fName':        'Nama',
+    'accounts.fNamePh':      'Nama orangnya',
+    'accounts.fAccount':     'Akun untuk masuk',
+    'accounts.fAccountPh':   'Sebaiknya pakai email',
+    'accounts.fEmail':       'Email (untuk laporan harian / bulanan)',
+    'accounts.fEmailPh':     'Boleh dikosongkan',
+    'accounts.fRole':        'Peran',
+    'accounts.roleHint':     'Admin utama bisa kelola akun, admin biasa hanya menangani laporan',
+    'accounts.create':       'Buat Akun',
+    'accounts.creating':     'Membuat…',
+
+    // Tindakan
+    'accounts.disable':      'Nonaktifkan',
+    'accounts.enable':       'Aktifkan',
+    'accounts.resetPw':      'Reset Kata Sandi',
+    'accounts.working':      'Memproses…',
+    'accounts.disabled':     '{name} sudah dinonaktifkan',
+    'accounts.enabled':      '{name} sudah diaktifkan',
+    'accounts.kicked':       ' (sesi login-nya juga langsung berakhir)',
+
+    // Konfirmasi
+    'accounts.confirmDisable':'Yakin mau menonaktifkan "{name}"?\n\nDia akan langsung keluar dan tidak bisa masuk lagi.\nNanti bisa diaktifkan kembali.',
+    'accounts.confirmEnable': 'Yakin mau mengaktifkan kembali "{name}"?',
+    'accounts.confirmReset':'Yakin mau reset kata sandi "{name}"?\n\nSistem akan membuat kata sandi acak baru,\nkata sandi dan sesi login dia sekarang langsung tidak berlaku.',
+
+    // Kata sandi sekali tampil
+    'accounts.pwTitle':      'Berikan kata sandi ini ke orangnya',
+    'accounts.pwCreated':    'Akun "{account}" berhasil dibuat',
+    'accounts.pwReset':      'Kata sandi "{account}" sudah direset',
+    'accounts.pwWarn':       '⚠️ Kata sandi ini hanya muncul sekali. Kalau ditutup tidak bisa dilihat lagi — sistem cuma menyimpan versi terenkripsi.',
+    'accounts.pwNext':       'Saat pertama kali masuk, dia akan diminta menggantinya sendiri.',
+    'accounts.pwCopy':       'Salin kata sandi',
+    'accounts.pwCopied':     'Tersalin',
+    'accounts.pwDone':       'Sudah saya catat',
+
+    // Petunjuk
+    'accounts.lastSuperHint':'Sistem harus punya minimal satu admin utama yang aktif',
+    'accounts.selfHint':     'Tidak bisa menonaktifkan akun sendiri',
+
     // --- Pesan kesalahan admin ---
     'err.LOGIN_REQUIRED':       'Isi akun dan kata sandi dulu ya',
     'err.LOGIN_FAILED':         'Akun atau kata sandi salah',
@@ -457,6 +586,19 @@ const I18N = {
     'err.STATUS_INVALID':       'Status tidak valid, pilih ulang ya',
     'err.RESPONSE_REQUIRED':    'Status ini wajib diisi balasan',
     'err.HANDLER_INVALID':      'Penanggung jawab tidak ditemukan atau sudah nonaktif, pilih ulang ya',
+    'err.UNKNOWN_OP':           'Tindakan tidak didukung',
+    'err.ADMIN_ACCOUNT_REQUIRED':'Isi akun dulu ya',
+    'err.ADMIN_NAME_REQUIRED':  'Isi nama dulu ya',
+    'err.ADMIN_ACCOUNT_INVALID':'Akun tidak boleh ada spasi',
+    'err.ADMIN_EMAIL_INVALID':  'Format email tidak benar',
+    'err.ADMIN_EXISTS':         'Akun ini sudah ada',
+    'err.ADMIN_NOT_FOUND':      'Akun tidak ditemukan, coba muat ulang',
+    'err.ADMIN_STATUS_INVALID': 'Status tidak benar',
+    'err.ADMIN_ROLE_INVALID':   'Peran tidak benar',
+    'err.ADMIN_SELF_FORBIDDEN': 'Tidak bisa menonaktifkan akun sendiri',
+    'err.ADMIN_SELF_RESET':     'Untuk ganti kata sandi sendiri, pakai menu Ganti Kata Sandi',
+    'err.ADMIN_SELF_ROLE':      'Tidak bisa mengubah peran sendiri',
+    'err.ADMIN_LAST_SUPER':     'Ini satu-satunya admin utama yang aktif, tidak bisa dinonaktifkan',
 
     // --- Info sistem ---
     'footer.version':    'Versi',

@@ -5,7 +5,9 @@ const fs   = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const PORT = 5500;
+// 預設 5500；若環境變數指定了 PORT 就用它
+// （同時開兩個預覽時，第二個才不會因為連接埠被占用而啟動失敗）
+const PORT = Number(process.env.PORT) || 5500;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Kelola Akun · Kantin PCI</title>
+  <link rel="stylesheet" href="css/style.css?v=1.8">
+</head>
+<body>
+
+  <div class="page page-wide">
+
+    <!-- 頁首 -->
+    <header class="topbar">
+      <h1 class="topbar-title" id="pageTitle">Kelola Akun</h1>
+      <div class="lang-switch lang-switch-compact">
+        <button type="button" class="lang-btn" data-lang="id">ID</button>
+        <button type="button" class="lang-btn" data-lang="zh">中</button>
+      </div>
+    </header>
+
+    <!-- 登入者資訊列 -->
+    <div id="adminBar" class="admin-bar hidden">
+      <span class="admin-bar-who">
+        <span id="adminName"></span>
+        <span id="adminRole" class="tag"></span>
+      </span>
+      <button type="button" id="logoutBtn" class="admin-bar-logout">Keluar</button>
+    </div>
+
+    <main>
+      <!-- 驗證登入狀態中 -->
+      <div id="bootView" class="state-box">
+        <div class="spinner"></div>
+        <p id="bootText">Mengecek status login…</p>
+      </div>
+
+      <div id="errorView" class="result error hidden"></div>
+
+      <div id="mainView" class="hidden">
+
+        <a href="admin-cases.html" class="back-link" id="backLink">← Kembali ke daftar laporan</a>
+
+        <div class="list-bar">
+          <span id="countInfo" class="list-count"></span>
+          <button type="button" id="addBtn" class="btn-primary btn-inline">Tambah Admin</button>
+        </div>
+
+        <div id="actionNote" class="result ok hidden"></div>
+        <div id="listError" class="result error hidden"></div>
+
+        <!-- 新增管理者表單（預設收起） -->
+        <form id="addForm" class="filter-box add-form hidden" novalidate>
+          <h2 class="add-form-title" id="addFormTitle">Tambah Admin</h2>
+
+          <div class="filter-field filter-field-wide">
+            <label class="filter-label" for="fName" id="labelName">Nama</label>
+            <input type="text" id="fName" autocomplete="off">
+          </div>
+
+          <div class="filter-field filter-field-wide">
+            <label class="filter-label" for="fAccount" id="labelAccount">Akun</label>
+            <input type="text" id="fAccount" autocomplete="off" spellcheck="false" inputmode="email">
+          </div>
+
+          <div class="filter-field filter-field-wide">
+            <label class="filter-label" for="fEmail" id="labelEmail">Email</label>
+            <input type="text" id="fEmail" autocomplete="off" spellcheck="false" inputmode="email">
+          </div>
+
+          <div class="filter-field">
+            <label class="filter-label" for="fRole" id="labelRole">Peran</label>
+            <select id="fRole">
+              <option value="ADMIN"></option>
+              <option value="SUPER"></option>
+            </select>
+          </div>
+
+          <p class="field-hint" id="roleHint"></p>
+
+          <div id="addError" class="result error hidden"></div>
+
+          <div class="filter-actions">
+            <button type="submit" id="createBtn" class="btn-primary btn-inline">Buat Akun</button>
+            <button type="button" id="cancelBtn" class="btn-secondary btn-inline">Batal</button>
+          </div>
+        </form>
+
+        <!-- 載入中 -->
+        <div id="listLoading" class="state-box hidden">
+          <div class="spinner"></div>
+          <p id="listLoadingText">Memuat daftar admin…</p>
+        </div>
+
+        <div id="adminList"></div>
+      </div>
+    </main>
+
+    <footer class="site-footer" id="siteFooter"></footer>
+
+  </div>
+
+  <script src="js/config.js?v=1.8"></script>
+  <script src="js/i18n.js?v=1.8"></script>
+  <script src="js/ui.js?v=1.8"></script>
+  <script src="js/api.js?v=1.8"></script>
+  <script src="js/admin-session.js?v=1.8"></script>
+  <script src="js/admin-accounts.js?v=1.8"></script>
+
+</body>
+</html>

@@ -64,6 +64,7 @@ const el = {
   adminName: document.getElementById('adminName'),
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
+  accountsLink: document.getElementById('accountsLink'),
   pageTitle: document.getElementById('pageTitle'),
 
   statNew:   document.getElementById('statNew'),
@@ -474,6 +475,11 @@ function renderTexts() {
     el.adminName.textContent = t('admin.hello')
       .replace('{name}', state.profile.name || state.profile.account);
     el.adminRole.textContent = adminRoleLabel(state.profile.role);
+
+    // 帳號管理只給超級管理者。藏起來只是不讓一般管理者看到用不到的東西，
+    // 後端的 withAuth(..., true) 才是真正擋得住的那一道
+    el.accountsLink.textContent = t('accounts.entry');
+    el.accountsLink.classList.toggle('hidden', !state.profile.is_super);
   }
 
   el.statNewLabel.textContent  = t('admin.stats.new');

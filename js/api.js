@@ -120,6 +120,42 @@ const Api = {
     });
   },
 
+  // ===== 帳號管理（僅 SUPER，規格 §5.4）=====
+  //
+  // 全部走同一支 manageAdmin，用 op 分動作。
+  // 後端會再驗一次角色（withAuth 的第三個參數），
+  // 前端把按鈕藏起來只是體驗，不是安全機制。
+
+  /** 列出所有管理者（不含任何密碼資料） */
+  listAdmins(token) {
+    return this.post({ action: 'manageAdmin', token, op: 'list' });
+  },
+
+  /** 新增管理者。成功時 data.initial_password 是一次性的初始密碼 */
+  createAdmin(token, { account, name, email, role }) {
+    return this.post({ action: 'manageAdmin', token, op: 'create', account, name, email, role });
+  },
+
+  /** 停用 / 啟用（status 傳 'ACTIVE' 或 'DISABLED'） */
+  setAdminStatus(token, account, status) {
+    return this.post({ action: 'manageAdmin', token, op: 'setStatus', account, status });
+  },
+
+  /** 重設他人密碼。成功時 data.initial_password 是一次性的新密碼 */
+  resetAdminPassword(token, account) {
+    return this.post({ action: 'manageAdmin', token, op: 'resetPassword', account });
+  },
+
+  /**
+   * 調整角色。
+   * 目前頁面上沒有這個按鈕（一般管理者不會升降級，交接改用「建新的 + 停用舊的」），
+   * 後端與這支包裝先留著，日後要開放時前端加個按鈕即可。
+   */
+  setAdminRole(token, account, role) {
+    return this.post({ action: 'manageAdmin', token, op: 'setRole', account, role });
+  },
+
+
   /** 變更自己的密碼 */
   adminChangePassword(token, oldPassword, newPassword) {
     return this.post({
