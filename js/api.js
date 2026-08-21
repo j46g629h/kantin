@@ -176,9 +176,14 @@ const Api = {
     });
   },
 
-  /** 修改管理者姓名（顯示用） */
-  setAdminName(token, account, name) {
-    return this.post({ action: 'manageAdmin', token, op: 'setName', account, name });
+  /**
+   * 修改管理者的姓名與 Email。
+   *
+   * 兩個一起送：它們是同一件事，拆成兩支的話要等兩趟 3～8 秒的往返。
+   * Email 留空代表不收報表。
+   */
+  setAdminProfile(token, account, name, email) {
+    return this.post({ action: 'manageAdmin', token, op: 'setProfile', account, name, email });
   },
 
   /**

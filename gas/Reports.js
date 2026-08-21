@@ -192,12 +192,12 @@ function buildDailyReportHtml(report, today) {
 
 
 /**
- * 建立「類型 → 代碼 → 顯示文字」的對照表，一次讀完選項設定。
+ * 建立「類型 → 代碼 → { zh, id }」的對照表，一次讀完選項設定。
  *
  * 為什麼不用現成的 getOptions()：那一支是給前端用的，
- * 回傳的是陣列而且分中印兩欄，這裡只需要能用代碼查名字。
+ * 回傳的是陣列，這裡需要的是能用代碼直接查的對照表。
  *
- * 信件裡顯示中文名稱（管理者看的），印尼文名稱在表頭已經標示欄位含意了。
+ * 兩種語言都留著，因為信件內容要並列顯示（見 optionText）。
  */
 function getOptionMaps() {
   const sheet   = getSheet(SHEETS.OPTIONS);
@@ -212,17 +212,35 @@ function getOptionMaps() {
     if (!type || !code) return;
 
     if (!maps[type]) maps[type] = {};
-    // 中文欄空白時退回印尼文欄，再空白就用代碼本身——不要讓儲存格變成空的
-    maps[type][code] = str(row[2]) || str(row[3]) || code;
+    maps[type][code] = { zh: str(row[2]), id: str(row[3]) };
   });
 
   return maps;
 }
 
 
-/** 用代碼查顯示文字；查不到就把代碼本身顯示出來（總比空白好排查） */
+/**
+ * 用代碼查顯示文字，**印尼文在前、中文在後**。
+ *
+ * 收信的人有印尼籍也有台籍，而管理者名單裡沒有記錄每個人的語言偏好。
+ * 與其為了寄信多加一個欄位，不如兩種都寫上去——
+ * 印尼文放前面是因為使用者以印尼籍同仁為主（與 app 的語言政策一致）。
+ *
+ * 三種特殊情況：
+ *   - 兩種語言的文字一樣（例如人名）→ 只顯示一次，不要變成「王小明 · 王小明」
+ *   - 只有一種有填 → 就顯示那一種
+ *   - 查不到代碼 → 顯示代碼本身，總比空白好排查
+ */
 function optionText(maps, type, code) {
   const key = str(code).toUpperCase();
   if (!key) return '';
-  return (maps[type] && maps[type][key]) ? maps[type][key] : key;
+
+  const entry = maps[type] && maps[type][key];
+  if (!entry) return key;
+
+  if (!entry.id) return entry.zh || key;
+  if (!entry.zh) return entry.id;
+  if (entry.id === entry.zh) return entry.id;
+
+  return entry.id + ' · ' + entry.zh;
 }

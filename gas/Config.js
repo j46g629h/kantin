@@ -109,7 +109,22 @@ const MAX_CATEGORIES = 2;
 
 // ===== 選項設定分頁的類型 =====
 
-const OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS', 'PRIORITY', 'HANDLER'];
+const OPTION_TYPES = ['LOCATION', 'MEAL', 'CATEGORY', 'STATUS', 'PRIORITY', 'HANDLER', 'REPORT_TO'];
+
+/**
+ * 報表額外收件人的類型代碼（規格 §10）。
+ *
+ * 收件人 = 啟用中的**超級管理者** ＋ 這份額外名單。
+ *
+ * 這一份放在「選項設定」分頁，跟處理者名單同一套作法（設計約定第 7 條）：
+ * 要多寄給廠長、秘書，就加一列、啟用打勾；不想寄了把啟用改成 FALSE，
+ * 不必刪掉那一列，也不必改程式。
+ *
+ * ⚠️ 這個類型的「代碼」欄放的是 **Email 地址**，不是代碼。
+ *    其他類型的代碼是 LOC_02 這種識別碼，這裡的識別碼本來就是信箱本身。
+ *    「中文顯示」欄放用途說明（例如「廠長」），只是給人看的備註。
+ */
+const REPORT_TO_OPTION_TYPE = 'REPORT_TO';
 
 
 // ===== 快取秒數 =====

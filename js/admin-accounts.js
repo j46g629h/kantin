@@ -494,6 +494,13 @@ function renameAdmin(account) {
       <label class="filter-label" for="newName">${escapeHtml(t('accounts.renameLabel'))}</label>
       <input type="text" id="newName" autocomplete="off" value="${escapeHtml(admin.name || '')}">
 
+      <label class="filter-label" for="newEmail" style="margin-top:12px;display:block;">
+        ${escapeHtml(t('accounts.fEmail'))}
+      </label>
+      <input type="text" id="newEmail" autocomplete="off" spellcheck="false" inputmode="email"
+             value="${escapeHtml(admin.email || '')}"
+             placeholder="${escapeHtml(t('accounts.fEmailPh'))}">
+
       <p class="pw-next">${escapeHtml(t('accounts.renameHint'))}</p>
 
       <div id="renameError" class="result error hidden"></div>
@@ -512,6 +519,7 @@ function renameAdmin(account) {
   document.body.classList.add('no-scroll');
 
   const input    = overlay.querySelector('#newName');
+  const emailBox = overlay.querySelector('#newEmail');
   const errorBox = overlay.querySelector('#renameError');
   const goBtn    = overlay.querySelector('#renameGo');
 
@@ -525,11 +533,16 @@ function renameAdmin(account) {
   overlay.querySelector('#renameForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const name = input.value.trim();
+    const name  = input.value.trim();
+    const email = emailBox.value.trim();
+
     if (!name) { show(errorBox, t('err.ADMIN_NAME_REQUIRED')); input.focus(); return; }
 
     // 沒有變更就不送出，省掉一趟 3～8 秒的往返
-    if (name === (admin.name || '')) { show(errorBox, t('accounts.renameNoChange')); return; }
+    if (name === (admin.name || '') && email === (admin.email || '')) {
+      show(errorBox, t('accounts.renameNoChange'));
+      return;
+    }
 
     goBtn.disabled = true;
     goBtn.textContent = t('accounts.renaming');
@@ -537,12 +550,13 @@ function renameAdmin(account) {
     state.busy = account;
 
     try {
-      const result = await Api.setAdminName(AdminSession.token(), account, name);
+      const result = await Api.setAdminProfile(AdminSession.token(), account, name, email);
 
       if (!result.ok) {
         show(errorBox, errorMessage(result));
         goBtn.disabled = false;
         goBtn.textContent = t('accounts.renameSave');
+        if (result.error === 'ADMIN_EMAIL_INVALID') emailBox.focus();
         return;
       }
 

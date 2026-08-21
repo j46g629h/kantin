@@ -23,28 +23,92 @@
 // ===== 收件人 =====
 
 /**
- * 取得報表的收件人（規格 §10：所有 ACTIVE 管理者）。
+ * 取得報表的收件人。
  *
- * 兩道篩選：
- *   1. 狀態是啟用中——離職停用的人不該再收到內部案件清單
- *   2. Email 欄有填且長得像 email
+ * **收件人 = 啟用中的超級管理者 ＋「選項設定」裡類型為 REPORT_TO 的額外地址。**
  *
- * 第 2 道很重要：測試帳號的 Email 欄是刻意留空的，
- * 沒有這道篩選的話，每天早上都會有幾封信寄到不存在的地址。
+ * ⚠️ 這裡與規格 §10 原本寫的「所有 ACTIVE 管理者」不同，是刻意改的。
+ *    實際運作是超級管理者看完再交辦，一般管理者不需要每天收到全廠清單。
+ *
+ *    但要知道這件事的連帶影響：**日報是「今天該處理哪些案件」的行動清單。**
+ *    一般管理者收不到的話，他們不會主動知道有什麼要處理——
+ *    派工這件事就落在超級管理者身上。
+ *    哪天改成讓一般管理者自己認領案件，這裡要改回去。
+ *
+ * 額外名單放在「選項設定」分頁，跟處理者名單同一套作法（設計約定第 7 條）：
+ * 加一列、啟用打勾就生效，不必改程式。
+ *
+ * 三道篩選（三種來源都要過）：
+ *   1. 啟用中——停用的人不該再收到內部案件清單
+ *   2. Email 有填且格式正確——測試帳號的 Email 欄是刻意留空的，
+ *      沒這道的話每天都會有幾封信寄到不存在的地址
+ *   3. **同一個信箱只留一份**——兩個管理者帳號共用一個信箱是很常見的，
+ *      沒去重的話那個人每天會收到兩封一模一樣的信
  *
  * @return {Array} [{ email, name }, ...]
  */
 function getReportRecipients() {
-  return readAllAdmins()
-    .filter(function (admin) {
-      return normalizeAdminStatus(admin.status) === ADMIN_STATUS.ACTIVE;
-    })
-    .map(function (admin) {
-      return { email: str(admin.email), name: str(admin.name) };
-    })
-    .filter(function (person) {
-      return person.email && looksLikeEmail(person.email);
+  const list = [];
+
+  // --- 來源 1：啟用中的超級管理者 ---
+  readAllAdmins().forEach(function (admin) {
+    if (normalizeRole(admin.role) !== ADMIN_ROLES.SUPER) return;
+    if (normalizeAdminStatus(admin.status) !== ADMIN_STATUS.ACTIVE) return;
+    list.push({ email: str(admin.email), name: str(admin.name) });
+  });
+
+  // --- 來源 2：選項設定裡的額外地址 ---
+  getExtraReportRecipients().forEach(function (person) {
+    list.push(person);
+  });
+
+  // --- 過濾與去重 ---
+  const seen = {};
+  return list.filter(function (person) {
+    if (!person.email || !looksLikeEmail(person.email)) return false;
+
+    const key = person.email.toLowerCase();
+    if (seen[key]) return false;      // 同一個信箱只寄一次
+    seen[key] = true;
+    return true;
+  });
+}
+
+
+/**
+ * 讀「選項設定」分頁裡類型為 REPORT_TO 的額外收件人。
+ *
+ * 欄位對應（與其他選項類型不同，見 Config.js 的說明）：
+ *   代碼欄     → Email 地址
+ *   中文顯示欄 → 用途說明（廠長、秘書…），只是備註
+ *   啟用欄     → FALSE 就跳過，不必刪掉那一列
+ *
+ * 讀取失敗回傳空陣列：少幾個額外收件人不該讓整封日報都寄不出去。
+ */
+function getExtraReportRecipients() {
+  try {
+    const sheet   = getSheet(SHEETS.OPTIONS);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    const out = [];
+
+    sheet.getRange(2, 1, lastRow - 1, 6).getValues().forEach(function (row) {
+      if (str(row[0]).toUpperCase() !== REPORT_TO_OPTION_TYPE) return;
+      if (!isTrue(row[5])) return;      // 啟用欄沒打勾就跳過
+
+      const email = str(row[1]);
+      if (!email) return;
+
+      out.push({ email: email, name: str(row[2]) || str(row[3]) || email });
     });
+
+    return out;
+
+  } catch (e) {
+    logError('getExtraReportRecipients', '', e, {});
+    return [];
+  }
 }
 
 

@@ -56,16 +56,20 @@ const ROWS_SPEC = [
 const ADMIN_HEADERS = ['姓名','帳號','Email','密碼雜湊','密碼鹽值','角色','狀態','需重設密碼',
   '建立時間','最後登入時間','密碼最後變更時間'];
 
+// 收件人 = 啟用中的超級管理者 + 選項設定的額外名單，
+// 所以這份名單刻意讓每一種「該收 / 不該收」的情況都出現一次
 const ADMINS_SPEC = [
-  ['系統管理者', 'super@pci', 'super@pci.com', 'h', 's', 'SUPER', 'ACTIVE',   'FALSE', '', '', ''],
-  ['王小明',     'ming@pci',  'ming@pci.com',  'h', 's', 'ADMIN', 'ACTIVE',   'FALSE', '', '', ''],
-  // 停用中 → 不該收到信
-  ['李美華',     'hua@pci',   'hua@pci.com',   'h', 's', 'ADMIN', 'DISABLED', 'FALSE', '', '', ''],
-  // Email 空白（測試帳號就是這樣）→ 不該收到信
-  ['測試管理者一','test01@kantin.local', '',   'h', 's', 'ADMIN', 'ACTIVE',   'TRUE',  '', '', ''],
+  ['系統管理者', 'super@pci',  'super@pci.com',  'h', 's', 'SUPER', 'ACTIVE',   'FALSE', '', '', ''],
+  ['系統管理者2','super2@pci', 'super2@pci.com', 'h', 's', 'SUPER', 'ACTIVE',   'FALSE', '', '', ''],
+  // 一般管理者 → 不該收到（規格 §10 已改成只寄超級管理者）
+  ['王小明',     'ming@pci',   'ming@pci.com',   'h', 's', 'ADMIN', 'ACTIVE',   'FALSE', '', '', ''],
+  // 停用中的超級管理者 → 不該收到
+  ['李美華',     'hua@pci',    'hua@pci.com',    'h', 's', 'SUPER', 'DISABLED', 'FALSE', '', '', ''],
+  // Email 空白（測試帳號就是這樣）→ 不該收到
+  ['測試管理者一','test01@kantin.local', '',     'h', 's', 'SUPER', 'ACTIVE',   'TRUE',  '', '', ''],
   // Email 打錯字 → 不該寄出去
-  ['打錯字的',   'typo@pci',  'not-an-email',  'h', 's', 'ADMIN', 'ACTIVE',   'FALSE', '', '', ''],
-  ['',           '',          '',              '',  '',  '',      '',         '',      '', '', ''],   // 空白列
+  ['打錯字的',   'typo@pci',   'not-an-email',   'h', 's', 'SUPER', 'ACTIVE',   'FALSE', '', '', ''],
+  ['',           '',           '',               '',  '',  '',      '',         '',      '', '', ''],   // 空白列
 ];
 
 const OPTION_HEADERS = ['類型', '代碼', '中文顯示', '印尼文顯示', '排序', '啟用'];
@@ -199,6 +203,7 @@ const AUTH_SRC   = fs.readFileSync(path.join(ROOT, 'gas', 'Auth.js'), 'utf8');
 const ADMINS_SRC = fs.readFileSync(path.join(ROOT, 'gas', 'Admins.js'), 'utf8');
 vm.runInContext(AUTH_SRC.match(/function readAllAdmins[\s\S]*?\n}\n/)[0], sandbox);
 vm.runInContext(AUTH_SRC.match(/function isTrue[\s\S]*?\n}/)[0], sandbox);
+vm.runInContext(AUTH_SRC.match(/function normalizeRole[\s\S]*?\n}/)[0], sandbox);
 vm.runInContext(ADMINS_SRC.match(/function normalizeAdminStatus[\s\S]*?\n}/)[0], sandbox);
 vm.runInContext(ADMINS_SRC.match(/function looksLikeEmail[\s\S]*?\n}/)[0], sandbox);
 
@@ -219,13 +224,14 @@ const reset  = () => { sandbox.__SENT__ = []; sandbox.__FAIL_FOR__ = []; sandbox
 console.log('\n===== getReportRecipients：收件人怎麼挑 =====\n');
 
 const recipients = evalIn('getReportRecipients()');
-check('只挑啟用中且 Email 正確的',
-  recipients.map((r) => r.email), ['super@pci.com', 'ming@pci.com']);
-check('停用中的不收信',   recipients.some((r) => r.email === 'hua@pci.com'), false);
+check('只挑啟用中的超級管理者',
+  recipients.map((r) => r.email), ['super@pci.com', 'super2@pci.com']);
+check('一般管理者不收信',     recipients.some((r) => r.email === 'ming@pci.com'), false);
+check('停用中的不收信',       recipients.some((r) => r.email === 'hua@pci.com'), false);
 check('Email 空白的不收信（測試帳號就是這種）',
   recipients.some((r) => r.name === '測試管理者一'), false);
 check('Email 格式錯的不收信', recipients.some((r) => r.email === 'not-an-email'), false);
-check('姓名有一起帶出來',    recipients[0].name, '系統管理者');
+check('姓名有一起帶出來',     recipients[0].name, '系統管理者');
 
 
 console.log('\n===== buildDailyReport：哪些案件該進日報 =====\n');
@@ -255,7 +261,7 @@ const result = evalIn('sendDailyReport()');
 
 check('寄給每一位收件人各一封', sandbox.__SENT__.length, 2);
 check('收件人正確',
-  sandbox.__SENT__.map((m) => m.to), ['super@pci.com', 'ming@pci.com']);
+  sandbox.__SENT__.map((m) => m.to), ['super@pci.com', 'super2@pci.com']);
 check('寄件人顯示名稱',        sandbox.__SENT__[0].name, 'PCI 餐廳回饋系統 · Kantin PCI');
 check('主旨含件數與逾期數',
   sandbox.__SENT__[0].subject, '[Kantin PCI] 3 laporan belum diproses (2 terlambat) · 未處理 3 件');
@@ -264,8 +270,8 @@ check('沒有寫錯誤日誌',        sandbox.__LOGS.length, 0);
 
 const html = sandbox.__SENT__[0].htmlBody;
 check('信裡有案件編號',        html.indexOf('PCI-202608-001') >= 0, true);
-check('地點顯示成中文名稱',    html.indexOf('第二餐廳') >= 0, true);
-check('分類複選以斜線並列',    html.indexOf('菜單口味 / 環境衛生') >= 0, true);
+check('地點雙語並列（印尼文在前）', html.indexOf('Kantin 2 · 第二餐廳') >= 0, true);
+check('分類複選以斜線並列',    html.indexOf('Rasa Makanan · 菜單口味 / Kebersihan · 環境衛生') >= 0, true);
 check('逾期列有紅底',          html.indexOf('background:#fef2f2;') >= 0, true);
 check('有連到案件列表的按鈕',
   html.indexOf('https://j46g629h.github.io/kantin_PCI_adidas/admin-cases.html') >= 0, true);
@@ -277,6 +283,76 @@ check('內容有做 HTML 跳脫（不會變成可執行的標籤）',
 check('跳脫後的原文仍看得到',
   evalIn(`escapeForHtml('<script>alert(1)</script>')`),
   '&lt;script&gt;alert(1)&lt;/script&gt;');
+
+
+console.log('\n===== 收件人：超級管理者 + 額外名單 =====\n');
+
+const base = evalIn('getReportRecipients()');
+check('基準：兩位啟用中的超級管理者',
+  base.map((r) => r.email), ['super@pci.com', 'super2@pci.com']);
+
+// 額外收件人放「選項設定」，類型 REPORT_TO，代碼欄放 Email（見 Config.js 說明）
+evalIn(`__OPTIONS.push(['REPORT_TO', 'boss@pci.com', '廠長', 'Kepala Pabrik', 1, true])`);
+check('額外名單會被加進來',
+  evalIn('getReportRecipients()').map((r) => r.email),
+  ['super@pci.com', 'super2@pci.com', 'boss@pci.com']);
+check('額外收件人的顯示名稱取自中文欄',
+  evalIn('getReportRecipients()')[2].name, '廠長');
+
+// 啟用欄 FALSE → 不寄，但那一列不必刪掉（設計約定第 7 條的作法）
+evalIn(`__OPTIONS.push(['REPORT_TO', 'left@pci.com', '已離職', '', 2, false])`);
+check('啟用欄 FALSE 的不寄',
+  evalIn('getReportRecipients()').some((r) => r.email === 'left@pci.com'), false);
+
+evalIn(`__OPTIONS.push(['REPORT_TO', 'not-an-email', '打錯字', '', 3, true])`);
+check('格式不對的額外地址不寄',
+  evalIn('getReportRecipients()').some((r) => r.email === 'not-an-email'), false);
+
+// 去重：兩個帳號共用一個信箱是很常見的，那個人不該每天收到兩封一樣的信
+evalIn(`__ADMINS.push(['共用信箱的', 'shared@pci', 'SUPER@PCI.COM', 'h', 's',
+                       'SUPER', 'ACTIVE', 'FALSE', '', '', ''])`);
+check('兩個管理者共用信箱 → 只留一份（大小寫也算同一個）',
+  evalIn('getReportRecipients()').filter((r) => r.email.toLowerCase() === 'super@pci.com').length, 1);
+
+evalIn(`__OPTIONS.push(['REPORT_TO', 'super2@pci.com', '重複的', '', 4, true])`);
+check('額外名單與管理者重複 → 也只留一份',
+  evalIn('getReportRecipients()').filter((r) => r.email.toLowerCase() === 'super2@pci.com').length, 1);
+
+// 實際寄信時就是這份去重後的名單
+reset();
+evalIn('sendDailyReport()');
+check('實際寄出的封數 = 去重後的人數', sandbox.__SENT__.length, 3);
+check('收件人正確',
+  sandbox.__SENT__.map((m) => m.to).sort(),
+  ['boss@pci.com', 'super2@pci.com', 'super@pci.com']);
+
+
+console.log('\n===== 信件內容：印尼文為主、中文為輔 =====\n');
+
+const bi = sandbox.__SENT__[0].htmlBody;
+check('地點並列兩種語言（印尼文在前）', bi.indexOf('Kantin 2 · 第二餐廳') >= 0, true);
+check('分類並列兩種語言',               bi.indexOf('Rasa Makanan · 菜單口味') >= 0, true);
+check('複選分類各自都並列',
+  bi.indexOf('Rasa Makanan · 菜單口味 / Kebersihan · 環境衛生') >= 0, true);
+check('標題印尼文在前', bi.indexOf('Laporan Belum Diproses · 未處理案件清單') >= 0, true);
+check('表頭印尼文在前', bi.indexOf('Kantin · 地點') >= 0, true);
+
+// 兩種語言一樣時（例如人名）不要變成「王小明 · 王小明」
+check('兩種語言相同 → 只顯示一次',
+  evalIn(`optionText(getOptionMaps(), 'HANDLER', 'HDL_01')`), '王小明');
+check('兩種語言都有 → 印尼文在前',
+  evalIn(`optionText(getOptionMaps(), 'REPORT_TO', 'boss@pci.com')`), 'Kepala Pabrik · 廠長');
+check('只有中文有填 → 就顯示中文',
+  evalIn(`optionText(getOptionMaps(), 'REPORT_TO', 'left@pci.com')`), '已離職');
+check('查不到代碼 → 顯示代碼本身（總比空白好排查）',
+  evalIn(`optionText(getOptionMaps(), 'LOCATION', 'LOC_XX')`), 'LOC_XX');
+
+// ⚠️ 收尾：這一段動過共用的假資料，一定要還原。
+//    不還原的話，後面「沒有任何收件人」那組測試會因為額外名單還在而永遠失敗，
+//    而失敗訊息會指向那一組，跟真正的原因差很遠
+evalIn(`__OPTIONS = ${JSON.stringify(OPTIONS_SPEC)}`);
+evalIn(`__ADMINS  = ${JSON.stringify(ADMINS_SPEC)}`);
+check('收尾還原成功', evalIn('getReportRecipients()').length, 2);
 
 
 console.log('\n===== 空信規則與失敗處理 =====\n');
@@ -300,7 +376,7 @@ evalIn(`__ROWS = ${JSON.stringify(ROWS_SPEC)}.map(function (row) {
 reset();
 sandbox.__FAIL_FOR__ = ['super@pci.com'];
 const partial = evalIn('sendDailyReport()');
-check('一個失敗不影響其他人',      sandbox.__SENT__.map((m) => m.to), ['ming@pci.com']);
+check('一個失敗不影響其他人',      sandbox.__SENT__.map((m) => m.to), ['super2@pci.com']);
 check('失敗有寫進錯誤日誌',        sandbox.__LOGS.length, 1);
 check('錯誤日誌記下是哪個收件人',
   String(sandbox.__LOGS[0][4]).indexOf('super@pci.com') >= 0, true);

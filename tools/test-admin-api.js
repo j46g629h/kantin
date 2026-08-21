@@ -639,9 +639,9 @@ check('已停用的超級管理者可以降級（不影響可用人數）',
 console.log('\n===== setName：修改姓名 =====\n');
 
 check('姓名空白 → 擋下',
-  callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'  ' }).error, 'ADMIN_NAME_REQUIRED');
+  callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'  ' }).error, 'ADMIN_NAME_REQUIRED');
 check('不存在的帳號 → 擋下',
-  callAs(SUPER_SESSION, { op:'setName', account:'ghost@pci', name:'鬼' }).error, 'ADMIN_NOT_FOUND');
+  callAs(SUPER_SESSION, { op:'setProfile', account:'ghost@pci', name:'鬼' }).error, 'ADMIN_NOT_FOUND');
 
 // 讓王小明先登入，等一下要確認改名「不會」把他登出
 evalIn(`revokeSessionsForAccount('ming@pci')`);
@@ -652,7 +652,7 @@ check('改名前 token 有效', evalIn(`readSession(${JSON.stringify(nameToken)}
 check('session 裡是舊名字',
   evalIn(`readSession(${JSON.stringify(nameToken)}).name`), '王小明');
 
-const renamed = callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'王大明' });
+const renamed = callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'王大明' });
 check('改名成功',            renamed.data.changed, true);
 check('Sheet 上寫成新名字',  rawRow('ming@pci')[0], '王大明');
 
@@ -665,17 +665,40 @@ check('但 session 裡的名字有跟著換',
 check('回報有更新幾支 session', renamed.data.updated_sessions, 1);
 check('改名後密碼不受影響',    login('ming@pci', mingPw).ok, true);
 
-check('名字沒有變 → 不動作',
-  callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'王大明' }).data,
-  { account:'ming@pci', name:'王大明', changed:false, updated_sessions:0 });
+check('名字與 Email 都沒變 → 不動作',
+  callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'王大明',
+                          email: rawRow('ming@pci')[2] }).data,
+  { account:'ming@pci', name:'王大明', email:'ming@pci.com',
+    changed:false, updated_sessions:0 });
+
+// Email 相關
+check('Email 格式錯 → 擋下',
+  callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'王大明',
+                          email:'not-an-email' }).error, 'ADMIN_EMAIL_INVALID');
+check('被擋下時 Email 沒被改動', rawRow('ming@pci')[2], 'ming@pci.com');
+
+const mailChanged = callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci',
+                                            name:'王大明', email:'ken@pouchen.com' });
+check('改 Email 成功',        mailChanged.data.email_changed, true);
+check('姓名沒動就不算變更',   mailChanged.data.name_changed, false);
+check('Sheet 上寫進新 Email', rawRow('ming@pci')[2], 'ken@pouchen.com');
+check('只改 Email 不必動 session', mailChanged.data.updated_sessions, 0);
+
+check('Email 可以清空（代表不收報表）',
+  callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'王大明', email:'' })
+    .data.email_changed, true);
+check('清空後 Sheet 上是空字串', rawRow('ming@pci')[2], '');
+
+// 復原給後面的測試用
+callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'王大明', email:'ming@pci.com' });
 
 check('前後空白會被去掉',
-  callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'  王小明  ' }).data.name, '王小明');
+  callAs(SUPER_SESSION, { op:'setProfile', account:'ming@pci', name:'  王小明  ' }).data.name, '王小明');
 
 // 改自己的名字是允許的（跟停用 / 改角色 / 重設密碼不同，這個沒有風險）
 check('可以改自己的名字',
-  callAs(SUPER_SESSION, { op:'setName', account:'super@pci', name:'系統管理員' }).data.changed, true);
-check('改回來', callAs(SUPER_SESSION, { op:'setName', account:'super@pci', name:'系統管理者' }).ok, true);
+  callAs(SUPER_SESSION, { op:'setProfile', account:'super@pci', name:'系統管理員' }).data.changed, true);
+check('改回來', callAs(SUPER_SESSION, { op:'setProfile', account:'super@pci', name:'系統管理者' }).ok, true);
 
 // updateSessionsForAccount 只動該動的
 evalIn(`__PROPS = {}`);

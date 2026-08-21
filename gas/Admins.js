@@ -7,7 +7,7 @@
  *   setStatus      停用 / 啟用
  *   resetPassword  重設他人密碼（回傳一次性的新密碼）
  *   setRole        調整角色
- *   setName        修改姓名
+ *   setProfile     修改姓名與 Email
  *
  * 路由在 gas/Main.js，用 withAuth(p, handler, true) 包起來——
  * 第三個參數 true 就是「只有 SUPER 能用」（見設計約定第 8 條）。
@@ -57,7 +57,7 @@ function manageAdmin(params, session) {
     setstatus:     adminOpSetStatus,
     resetpassword: adminOpResetPassword,
     setrole:       adminOpSetRole,
-    setname:       adminOpSetName,
+    setprofile:    adminOpSetProfile,
   };
 
   const operation = operations[op];
@@ -327,12 +327,18 @@ function adminOpSetRole(params, session) {
 }
 
 
-// ===== setName：修改姓名 =====
+// ===== setProfile：修改姓名與 Email =====
 
 /**
- * 修改管理者的姓名（顯示用）。
+ * 修改管理者的顯示資料：姓名與 Email。
  *
- * ⚠️ 兩件事要知道：
+ * 兩個一起改是刻意的——它們是同一件事（「這個人的基本資料」），
+ * 拆成兩支 API 的話，改完姓名再改 Email 要等兩趟 3～8 秒的往返。
+ *
+ * Email 可以清空（留白就是不收報表），但有填就必須是正確格式。
+ *
+ *
+ * ⚠️ 三件事要知道：
  *
  * 1. **不作廢對方的 token，改成就地更新。**
  *    停用 / 改角色 / 重設密碼要把人踢出去，因為權限或憑證變了。
@@ -344,8 +350,12 @@ function adminOpSetRole(params, session) {
  *    `回報資料` 的「最後更新者」存的是當下的姓名，不是帳號。
  *    這跟「處理者」存代碼的作法不同，而且是刻意的——
  *    那是稽核紀錄，本來就該保留「當時是誰按的儲存」。
+ *
+ * 3. **Email 是報表的收件地址**（規格 §10）。
+ *    改掉它就等於改了每天日報寄到哪裡。
+ *    兩個帳號填同一個信箱是允許的，寄信時會自動去重，不會收到兩封。
  */
-function adminOpSetName(params, session) {
+function adminOpSetProfile(params, session) {
   const account = str(params.account).toLowerCase();
   const name    = str(params.name);
 
@@ -354,23 +364,50 @@ function adminOpSetName(params, session) {
   const admin = findAdminByAccount(account);
   if (!admin) return fail('ADMIN_NOT_FOUND', '查無此帳號');
 
-  const before = str(admin.name);
-  if (before === name) {
-    return ok({ account: account, name: name, changed: false, updated_sessions: 0 });
+  /**
+   * ⚠️ 「沒帶 email 參數」與「email 帶空字串」是兩件不同的事：
+   *
+   *   沒帶      → 不要動它（只想改姓名）
+   *   帶空字串  → 明確要清空（這個人不收報表）
+   *
+   *   不區分的話，任何只想改姓名的呼叫都會默默把 Email 洗掉——
+   *   而 Email 是報表的收件地址，洗掉了只會表現成「他從此收不到信」，
+   *   沒有人會聯想到是改名字造成的。這是測試抓出來的。
+   */
+  const hasEmailParam = params.email !== undefined && params.email !== null;
+  const email = hasEmailParam ? str(params.email) : str(admin.email);
+
+  if (email && !looksLikeEmail(email)) {
+    return fail('ADMIN_EMAIL_INVALID', 'Email 格式不正確');
   }
 
-  setTextCell(getSheet(SHEETS.ADMINS), admin.row, getAdminColumnMap().name, name);
+  const nameChanged  = str(admin.name)  !== name;
+  const emailChanged = hasEmailParam && str(admin.email) !== email;
 
-  // 對方正開著頁面的話，讓他的「你好，OOO」跟著換掉（但不把他登出）
-  const updated = updateSessionsForAccount(account, { name: name });
+  if (!nameChanged && !emailChanged) {
+    return ok({ account: account, name: name, email: email,
+                changed: false, updated_sessions: 0 });
+  }
 
-  // 改自己的名字也可以。這裡的 session 是 withAuth 傳進來的那一份物件，
-  // 改它可以讓「這一次請求之後」的行為正確，但真正存起來的是上面那一行
-  if (account === str(session.account).toLowerCase()) {
+  const sheet  = getSheet(SHEETS.ADMINS);
+  const colMap = getAdminColumnMap();
+
+  if (nameChanged)  setTextCell(sheet, admin.row, colMap.name,  name);
+  if (emailChanged) setTextCell(sheet, admin.row, colMap.email, email);
+
+  // 只有姓名進得了 session（Email 不在裡面），所以只有改名時才需要更新
+  const updated = nameChanged ? updateSessionsForAccount(account, { name: name }) : 0;
+
+  // 改自己的資料也可以。這裡的 session 是 withAuth 傳進來的那一份物件
+  if (nameChanged && account === str(session.account).toLowerCase()) {
     session.name = name;
   }
 
-  return ok({ account: account, name: name, changed: true, updated_sessions: updated });
+  return ok({
+    account: account, name: name, email: email,
+    changed: true, name_changed: nameChanged, email_changed: emailChanged,
+    updated_sessions: updated,
+  });
 }
 
 
