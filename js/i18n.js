@@ -273,9 +273,9 @@ const I18N = {
     'accounts.resetTitle':   '重設「{name}」的密碼',
     'accounts.resetWarn':    '他目前的密碼與登入都會立刻失效。',
     'accounts.pwModeAuto':   '系統產生一組隨機密碼',
-    'accounts.pwModeAutoHint':'12 個字，猜不到，建議用這個',
+    'accounts.pwModeAutoHint':'12 個字，猜不到。臨時要一組時用這個',
     'accounts.pwModeManual': '我自己設定',
-    'accounts.pwModeManualHint':'方便你記住，但請不要幾個人共用同一組',
+    'accounts.pwModeManualHint':'系統會擋掉跟其他管理者重複的密碼',
     'accounts.pwInput':      '新密碼',
     'accounts.pwInputPh':    '至少 8 個字，要有英文字母和數字',
     'accounts.pwShow':       '顯示密碼',
@@ -318,6 +318,8 @@ const I18N = {
     'err.ADMIN_SELF_RESET':     '要改自己的密碼請用「變更密碼」',
     'err.ADMIN_SELF_ROLE':      '不能調整自己的角色',
     'err.ADMIN_LAST_SUPER':     '這是唯一一位啟用中的超級管理者，不能停用',
+    'err.ADMIN_PASSWORD_SAME':  '這組密碼跟他現在用的一樣，等於沒有重設',
+    'err.ADMIN_PASSWORD_TAKEN': '已經有其他管理者在用這組密碼了，請換一組',
 
     // --- 頁尾系統資訊 ---
     'footer.version':    '系統版本',
@@ -582,9 +584,9 @@ const I18N = {
     'accounts.resetTitle':   'Reset kata sandi "{name}"',
     'accounts.resetWarn':    'Kata sandi dan sesi login dia sekarang langsung tidak berlaku.',
     'accounts.pwModeAuto':   'Sistem buatkan kata sandi acak',
-    'accounts.pwModeAutoHint':'12 karakter, tidak bisa ditebak — ini yang disarankan',
+    'accounts.pwModeAutoHint':'12 karakter, tidak bisa ditebak. Pakai ini kalau butuh cepat',
     'accounts.pwModeManual': 'Saya tentukan sendiri',
-    'accounts.pwModeManualHint':'Lebih gampang diingat, tapi jangan dipakai untuk beberapa orang sekaligus',
+    'accounts.pwModeManualHint':'Sistem akan menolak kata sandi yang sama dengan admin lain',
     'accounts.pwInput':      'Kata sandi baru',
     'accounts.pwInputPh':    'Minimal 8 karakter, harus ada huruf dan angka',
     'accounts.pwShow':       'Tampilkan kata sandi',
@@ -627,6 +629,8 @@ const I18N = {
     'err.ADMIN_SELF_RESET':     'Untuk ganti kata sandi sendiri, pakai menu Ganti Kata Sandi',
     'err.ADMIN_SELF_ROLE':      'Tidak bisa mengubah peran sendiri',
     'err.ADMIN_LAST_SUPER':     'Ini satu-satunya admin utama yang aktif, tidak bisa dinonaktifkan',
+    'err.ADMIN_PASSWORD_SAME':  'Kata sandi ini sama dengan yang dia pakai sekarang, jadi tidak ada yang berubah',
+    'err.ADMIN_PASSWORD_TAKEN': 'Kata sandi ini sudah dipakai admin lain, pakai yang lain ya',
 
     // --- Info sistem ---
     'footer.version':    'Versi',

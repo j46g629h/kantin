@@ -299,22 +299,22 @@ function openResetDialog(admin) {
       <p class="pw-who">${escapeHtml(admin.account)}</p>
 
       <label class="pw-choice">
-        <input type="radio" name="pwMode" value="auto" checked>
-        <span>
-          <span class="pw-choice-title">${escapeHtml(t('accounts.pwModeAuto'))}</span>
-          <span class="pw-choice-hint">${escapeHtml(t('accounts.pwModeAutoHint'))}</span>
-        </span>
-      </label>
-
-      <label class="pw-choice">
-        <input type="radio" name="pwMode" value="manual">
+        <input type="radio" name="pwMode" value="manual" checked>
         <span>
           <span class="pw-choice-title">${escapeHtml(t('accounts.pwModeManual'))}</span>
           <span class="pw-choice-hint">${escapeHtml(t('accounts.pwModeManualHint'))}</span>
         </span>
       </label>
 
-      <div class="pw-manual hidden" id="manualBox">
+      <label class="pw-choice">
+        <input type="radio" name="pwMode" value="auto">
+        <span>
+          <span class="pw-choice-title">${escapeHtml(t('accounts.pwModeAuto'))}</span>
+          <span class="pw-choice-hint">${escapeHtml(t('accounts.pwModeAutoHint'))}</span>
+        </span>
+      </label>
+
+      <div class="pw-manual" id="manualBox">
         <label class="filter-label" for="newPw">${escapeHtml(t('accounts.pwInput'))}</label>
         <input type="password" id="newPw" autocomplete="new-password" spellcheck="false"
                placeholder="${escapeHtml(t('accounts.pwInputPh'))}">
@@ -374,7 +374,11 @@ function openResetDialog(admin) {
     const manual   = overlay.querySelector('input[name="pwMode"]:checked').value === 'manual';
     const password = manual ? newPw.value.trim() : '';
 
-    // 前端先擋掉不合規則的密碼，省一趟 3～8 秒的往返。後端一樣會再檢查一次
+    // 前端先擋掉不合規則的密碼，省一趟 3～8 秒的往返。後端一樣會再檢查一次。
+    //
+    // 「不可以跟其他管理者重複」這一條前端檢查不了，也不該檢查得了——
+    // 那需要拿到所有人的密碼雜湊，而管理端頁面的原始碼在 GitHub 上是公開的。
+    // 那條規則由後端回 ADMIN_PASSWORD_TAKEN，錯誤會顯示在這個對話框裡
     if (manual) {
       const ruleError = passwordRuleError(password);
       if (ruleError) { show(errorBox, t(ruleError)); newPw.focus(); return; }
@@ -390,7 +394,7 @@ function openResetDialog(admin) {
     }, close);
   });
 
-  overlay.querySelector('input[name="pwMode"]').focus();
+  newPw.focus();      // 預設就是「我自己設定」，直接讓游標停在密碼欄
 }
 
 
@@ -416,9 +420,12 @@ async function doResetPassword(account, password, errorBox, restoreBtn, closeDia
     const result = await Api.resetAdminPassword(AdminSession.token(), account, password);
 
     if (!result.ok) {
-      // 錯誤留在對話框裡顯示，輸入的密碼不清掉，改一下就能再送一次
+      // 錯誤留在對話框裡顯示，輸入的密碼不清掉，改一下就能再送一次。
+      // 「這組已經有人在用」是最常見的情況，游標直接回到密碼欄
       show(errorBox, errorMessage(result));
       restoreBtn();
+      const input = document.getElementById('newPw');
+      if (input && !input.closest('.hidden')) input.focus();
       return;
     }
 

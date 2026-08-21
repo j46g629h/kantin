@@ -112,7 +112,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 **六個 HTML 檔**（`index.html` / `report.html` / `query.html` /
 `admin.html` / `admin-cases.html` / `admin-accounts.html`）
-引用 CSS 與 JS 時都帶 `?v=1.9`。
+引用 CSS 與 JS 時都帶 `?v=2.0`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -123,11 +123,11 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 1.9 改成 2.0
-sed -i 's/?v=1\.9/?v=2.0/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
+# 例如從 2.0 改成 2.1
+sed -i 's/?v=2\.0/?v=2.1/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=1\.9" *.html`（應該一筆都查不到）
+改完用這行確認沒有漏掉：`grep -rn "v=2\.0" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -247,6 +247,12 @@ Apps Script 本來就慢（每次回應 3～8 秒），不值得為了一年用�
 
 前端把按鈕變灰只是體驗（還附上 tooltip 說明原因），**真正的把關在後端**——
 `manageAdmin` 被 `withAuth(p, handler, true)` 包住，非 SUPER 一律回 `FORBIDDEN`。
+
+**重設密碼時的「不可與他人重複」檢查，錯誤訊息絕不可以說是「誰」在用。**
+`findPasswordClash()` 只回傳有 / 沒有。說了是誰的話，超級管理者就能拿這支 API
+當試探器，一組一組猜出某個特定帳號的密碼。
+（比對方式是拿輸入的密碼、用每個人各自的鹽值分別重算一次雜湊——
+Sheet 裡只存雜湊，沒有任何地方存得回明文。）
 
 另外，`adminOpList()` 回傳前一定要經過 `toSafeAdmin()`。
 `readAllAdmins()` 讀的是整列，裡面就有 `password_hash` 與 `password_salt`，

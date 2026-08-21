@@ -221,9 +221,23 @@ function adminOpResetPassword(params, session) {
   let password;
 
   if (custom) {
-    // 自訂密碼一樣要過規格 §5.5 的規則，不能因為是超級管理者設的就放行
+    // 自訂密碼一樣要過規格 §5.5 的規則，不能因為是超級管理者設的就放行。
+    // 規則檢查放在重複檢查之前——它幾乎不花時間，重複檢查則要算好幾次雜湊
     const ruleError = validatePasswordRule(custom);
     if (ruleError) return fail(ruleError, '密碼不符合規則');
+
+    // 不可以跟現有管理者用同一組密碼
+    const clash = findPasswordClash(custom, account);
+    if (clash === 'self') {
+      return fail('ADMIN_PASSWORD_SAME', '這組密碼跟他現在用的一樣，等於沒有重設');
+    }
+    if (clash === 'other') {
+      // ⚠️ 絕對不可以說是「哪一位」在用。
+      //    說了的話，超級管理者就能用這支 API 反覆試探，
+      //    一組一組猜出某個特定帳號的密碼
+      return fail('ADMIN_PASSWORD_TAKEN', '已經有其他管理者在用這組密碼，請換一組');
+    }
+
     password = custom;
   } else {
     password = generateInitialPassword();
@@ -287,6 +301,52 @@ function adminOpSetRole(params, session) {
 
 
 // ===== 共用的守門與轉換 =====
+
+/**
+ * 檢查某組密碼是不是已經有管理者在用。
+ *
+ * ⚠️ 為什麼不是「把所有密碼拿出來比對」：Sheet 裡只存雜湊，**沒有任何地方存得回明文**。
+ *    所以只能反過來做——拿這組密碼，用每一位管理者「各自的鹽值」分別算一次雜湊，
+ *    看有沒有算出跟誰的一樣。每個人的鹽值都不同，這也正是鹽值的用意：
+ *    同一組密碼在不同帳號上會算出完全不同的雜湊，沒辦法一眼看出誰跟誰重複。
+ *
+ * ⚠️ 呼叫端絕對不可以把「是哪一位」回報給前端。
+ *    說了的話，超級管理者就能用這支 API 當試探器，
+ *    一組一組猜出某個特定帳號的密碼。只能回答「有」或「沒有」。
+ *
+ * 成本：每位管理者一次 hashPassword()，也就是 1000 次 SHA-256（約數十毫秒）。
+ * 管理者只有個位數，總共不到半秒，相對於 Apps Script 本來就要 3～8 秒的回應可以忽略。
+ * 哪天管理者變成好幾十位再來擔心這件事。
+ *
+ * 已停用的帳號也要檢查——他可能哪天被重新啟用。
+ *
+ * @param  {string} password      要檢查的明文密碼
+ * @param  {string} targetAccount 正在被重設的那個帳號
+ * @return {string} 'other'（別人在用）/ 'self'（就是他現在的密碼）/ ''（沒有重複）
+ */
+function findPasswordClash(password, targetAccount) {
+  const target = str(targetAccount).toLowerCase();
+  const admins = readAllAdmins();
+  let selfMatch = false;
+
+  for (let i = 0; i < admins.length; i++) {
+    const salt = str(admins[i].password_salt);
+    const hash = str(admins[i].password_hash);
+
+    // 還沒設過密碼的列（理論上不存在，但手動編輯過的 Sheet 什麼都可能有）
+    if (!salt || !hash) continue;
+
+    if (hashPassword(password, salt) === hash) {
+      if (str(admins[i].account).toLowerCase() === target) {
+        selfMatch = true;      // 先記著，繼續看有沒有別人也在用
+      } else {
+        return 'other';        // 別人在用比較嚴重，直接回報
+      }
+    }
+  }
+  return selfMatch ? 'self' : '';
+}
+
 
 /**
  * 擋掉「把自己鎖在門外」與「系統再也沒有超級管理者」兩種情況。

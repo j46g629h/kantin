@@ -441,9 +441,11 @@ check('自訂密碼一樣換新鹽值',  rawRow('ming@pci')[4] !== saltBeforeCus
 check('Sheet 上存的仍是雜湊，不是明文',
   rawRow('ming@pci').indexOf(CUSTOM) === -1, true);
 
-// 前後空白：adminLogin() 收到密碼也會 trim，所以這裡先修掉才不會設出一組永遠登不進去的密碼
-const spaced = callAs(SUPER_SESSION, { op:'resetPassword', account:'hua@pci', new_password:'  Kantin2026  ' });
-check('前後空白會被去掉',      spaced.data.initial_password, 'Kantin2026');
+// 前後空白：adminLogin() 收到密碼也會 trim，所以這裡先修掉才不會設出一組永遠登不進去的密碼。
+// ⚠️ 這裡刻意不能用 CUSTOM 那一組——王小明已經在用了，
+//    會被「不可與其他管理者重複」的規則擋下，測到的就不是空白處理了
+const spaced = callAs(SUPER_SESSION, { op:'resetPassword', account:'hua@pci', new_password:'  Spaced2026  ' });
+check('前後空白會被去掉',      spaced.data.initial_password, 'Spaced2026');
 
 // 沒帶 new_password 就退回系統產生
 const autoReset = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci' });
@@ -469,6 +471,71 @@ check('帶自訂密碼改自己 → 一樣擋下',
 // 收尾：把王小明的密碼設回前一段那組。
 // 這一段改過他的密碼，不還原的話後面 setRole 的測試會登不進去——
 // 而且失敗訊息會指向 setRole，跟真正的原因差了十萬八千里。
+callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci',
+                        new_password: reset.data.initial_password });
+
+
+console.log('\n===== resetPassword：不可與其他管理者的密碼重複 =====\n');
+
+// 先讓兩個帳號各有一組已知密碼
+const P_MING = 'MingOwn2026';
+const P_HUA  = 'HuaOwn2026';
+callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:P_MING });
+callAs(SUPER_SESSION, { op:'resetPassword', account:'hua@pci',  new_password:P_HUA  });
+
+// 把王小明的密碼設成李美華正在用的那組 → 要被擋下
+// （李美華在測試資料裡是停用狀態，所以驗證她的密碼沒被動到要比對雜湊，不能用登入）
+const huaHashBefore = rawRow('hua@pci')[3];
+const taken = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:P_HUA });
+check('與其他管理者重複 → 擋下', taken.error, 'ADMIN_PASSWORD_TAKEN');
+
+// 這一條是安全要求，不是體驗問題：訊息洩漏「是誰在用」的話，
+// 超級管理者就能用這支 API 當試探器，一組一組猜出特定帳號的密碼
+check('訊息不可以提到是哪個帳號',
+  /hua|美華|ming|小明|@pci/i.test(JSON.stringify(taken)), false);
+
+check('被擋下時密碼沒有被改動', login('ming@pci', P_MING).ok, true);
+check('被擋下時對方的密碼也沒被動到', rawRow('hua@pci')[3], huaHashBefore);
+
+// 設成他自己現在這組 → 也擋，但用另一個代碼（訊息比較貼切）
+check('與他自己目前的密碼相同 → 擋下',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:P_MING }).error,
+  'ADMIN_PASSWORD_SAME');
+
+// 沒重複的就放行
+const fresh = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'Brand2026New' });
+check('沒有重複 → 通過',       fresh.ok, true);
+check('新密碼可以登入',        login('ming@pci', 'Brand2026New').ok, true);
+check('舊密碼失效',            login('ming@pci', P_MING).error, 'LOGIN_FAILED');
+
+// 停用中的帳號也要算進去——他可能哪天被重新啟用
+callAs(SUPER_SESSION, { op:'setStatus', account:'hua@pci', status:'DISABLED' });
+check('已停用者的密碼也算重複',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:P_HUA }).error,
+  'ADMIN_PASSWORD_TAKEN');
+callAs(SUPER_SESSION, { op:'setStatus', account:'hua@pci', status:'ACTIVE' });
+
+// 大小寫不同就是不同的密碼（密碼本來就區分大小寫）
+check('只有大小寫不同 → 視為不重複',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:P_HUA.toUpperCase() }).ok,
+  true);
+
+// 系統產生那條路徑不受影響
+check('系統產生不會被重複檢查擋住',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci' }).data.generated, true);
+
+// 規則檢查要排在重複檢查前面（比較便宜，而且訊息更明確）
+check('太短時回的是規則錯誤，不是重複錯誤',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'Ab1' }).error,
+  'PASSWORD_TOO_SHORT');
+
+// findPasswordClash 本身
+check('查不到重複時回傳空字串',
+  evalIn(`findPasswordClash('NobodyUses9999', 'ming@pci')`), '');
+check('沒有密碼的空白列不會誤判',
+  evalIn(`findPasswordClash('', 'ming@pci')`), '');
+
+// 收尾：把王小明的密碼設回 setRole 那段要用的那組
 callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci',
                         new_password: reset.data.initial_password });
 
