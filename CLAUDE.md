@@ -112,7 +112,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 **六個 HTML 檔**（`index.html` / `report.html` / `query.html` /
 `admin.html` / `admin-cases.html` / `admin-accounts.html`）
-引用 CSS 與 JS 時都帶 `?v=2.0`。
+引用 CSS 與 JS 時都帶 `?v=2.1`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -123,11 +123,11 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 2.0 改成 2.1
-sed -i 's/?v=2\.0/?v=2.1/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
+# 例如從 2.1 改成 2.2
+sed -i 's/?v=2\.1/?v=2.2/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=2\.0" *.html`（應該一筆都查不到）
+改完用這行確認沒有漏掉：`grep -rn "v=2\.1" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -189,8 +189,31 @@ manageAdmin: function (p) { return withAuth(p, function (s) { return manageAdmin
 加一個欄位進去之後，`buildColumnMap()` 在 Sheet 找不到該欄位就會**丟出例外**，
 所有讀那張表的功能會一起壞掉。
 
-**正確順序：先升級 Sheet，再部署程式。** 反過來做的話，
+**兩種安全作法，選一種：**
+
+**A. 先升級 Sheet，再部署程式。** 反過來做的話，
 從部署到使用者跑完升級程式的這段時間，功能是全壞的。
+
+**B. 把新欄位標成 `optional: true`（推薦）。**
+這樣順序就不重要了——程式可以先部署（該功能暫時不顯示），
+使用者跑完升級才開始生效，中間完全沒有壞掉的空窗期。
+
+```js
+{ code: 'password_changed_at', name: '密碼最後變更時間', width: 140,
+  format: 'yyyy-mm-dd hh:mm:ss', optional: true },
+```
+
+`buildColumnMap()` 遇到標了 optional 又找不到的欄位會直接跳過，不丟例外。
+**代價是呼叫端一定要自己檢查**，因為那個欄號會是 `undefined`：
+
+```js
+if (colMap.password_changed_at) {
+  setDateCell(sheet, row, colMap.password_changed_at, new Date());
+}
+```
+
+漏了這個檢查的話，`getRange(row, undefined)` 會炸掉——
+等於把問題從「部署當下全壞」搬到「某個功能被用到時才壞」，那更難查。
 
 實際踩過：把「電話」加進 `ADMIN_COLUMNS` 後直接部署，
 結果超級管理者完全無法登入，只看到「系統出了問題」。
@@ -235,7 +258,28 @@ storeSweepExpired();                // Properties 沒有自動過期，登入時
 **為什麼不改成「每次請求都回查 Sheet」：** 那樣每支 API 都要多讀一次管理者名單，
 Apps Script 本來就慢（每次回應 3～8 秒），不值得為了一年用不到幾次的情況天天付這個成本。
 
-### 15. 帳號管理的三條安全規則
+### 15. 密碼查不回來，這不是權限問題
+
+有人會問「能不能讓超級管理者看到每個帳號目前的密碼」。**做不到，而且不該做。**
+
+Sheet 存的是加鹽 + SHA-256 迭代 1000 次的結果，這個運算單向不可逆——
+不是系統不給看，是連系統自己都算不回去。
+
+要能顯示，唯一辦法是改存明文，那代價是：任何拿到這份 Sheet 的人
+（帳號被盜、誤設分享、Google 端備份）就直接拿到全部管理者的密碼。
+
+**能給的替代資訊：**
+
+| 想知道什麼 | 給什麼 |
+|---|---|
+| 我剛剛的重設有沒有生效 | 「密碼最後變更時間」欄位 |
+| 這個人還在用別人幫他設的密碼嗎 | `需重設密碼 = TRUE`，列表上顯示「待本人自行設定密碼」 |
+| 我忘記幫他設的密碼是什麼 | 查不回來，重設一次就好（三個點擊） |
+
+⚠️ 「待本人自行設定密碼」這個標籤在「超級管理者剛幫他重設完」時**本來就該出現**，
+那不是 bug。它的意思是「這組密碼是別人設的，他還沒換成只有自己知道的」。
+
+### 16. 帳號管理的三條安全規則
 
 `gas/Admins.js` 的 `guardLastActiveSuper()` 擋掉這三件事，前端也把對應的按鈕變灰：
 

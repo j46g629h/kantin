@@ -453,6 +453,105 @@ async function doResetPassword(account, password, errorBox, restoreBtn, closeDia
 }
 
 
+/**
+ * 修改姓名。
+ *
+ * 只改顯示用的名字，不影響帳號、密碼、權限，所以不需要任何確認就能直接開表單。
+ * 對方不會被登出——後端會把他 session 裡的姓名就地換掉。
+ */
+function renameAdmin(account) {
+  const admin = findAdmin(account);
+  if (!admin || state.busy) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <form class="pw-box pw-box-form" id="renameForm" novalidate>
+      <h2 class="pw-title">${escapeHtml(t('accounts.renameTitle'))}</h2>
+      <p class="pw-who">${escapeHtml(admin.account)}</p>
+
+      <label class="filter-label" for="newName">${escapeHtml(t('accounts.renameLabel'))}</label>
+      <input type="text" id="newName" autocomplete="off" value="${escapeHtml(admin.name || '')}">
+
+      <p class="pw-next">${escapeHtml(t('accounts.renameHint'))}</p>
+
+      <div id="renameError" class="result error hidden"></div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn-primary btn-inline" id="renameGo">
+          ${escapeHtml(t('accounts.renameSave'))}
+        </button>
+        <button type="button" class="btn-secondary btn-inline" id="renameCancel">
+          ${escapeHtml(t('accounts.cancel'))}
+        </button>
+      </div>
+    </form>`;
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('no-scroll');
+
+  const input    = overlay.querySelector('#newName');
+  const errorBox = overlay.querySelector('#renameError');
+  const goBtn    = overlay.querySelector('#renameGo');
+
+  const close = function () {
+    overlay.remove();
+    document.body.classList.remove('no-scroll');
+  };
+
+  overlay.querySelector('#renameCancel').addEventListener('click', close);
+
+  overlay.querySelector('#renameForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const name = input.value.trim();
+    if (!name) { show(errorBox, t('err.ADMIN_NAME_REQUIRED')); input.focus(); return; }
+
+    // 沒有變更就不送出，省掉一趟 3～8 秒的往返
+    if (name === (admin.name || '')) { show(errorBox, t('accounts.renameNoChange')); return; }
+
+    goBtn.disabled = true;
+    goBtn.textContent = t('accounts.renaming');
+    hide(errorBox);
+    state.busy = account;
+
+    try {
+      const result = await Api.setAdminName(AdminSession.token(), account, name);
+
+      if (!result.ok) {
+        show(errorBox, errorMessage(result));
+        goBtn.disabled = false;
+        goBtn.textContent = t('accounts.renameSave');
+        return;
+      }
+
+      setNote('accounts.renamed', name, false);
+      close();
+      await loadAdmins();
+
+      // 改的如果是自己，資訊列的「你好，OOO」也要跟著換
+      if (account === state.self) {
+        AdminSession.patch({ name: name });
+        if (state.profile) state.profile.name = name;
+      }
+
+    } catch (err) {
+      show(errorBox, t('err.NETWORK'));
+      goBtn.disabled = false;
+      goBtn.textContent = t('accounts.renameSave');
+      return;
+
+    } finally {
+      state.busy = '';
+      renderAll();
+    }
+  });
+
+  input.focus();
+  input.select();
+}
+
+
 function findAdmin(account) {
   return state.admins.find(function (a) { return a.account === account; });
 }
@@ -555,6 +654,17 @@ function renderRow(admin) {
     ? `${escapeHtml(t('accounts.lastLogin'))}: ${escapeHtml(admin.last_login_at)}`
     : escapeHtml(t('accounts.neverLoggedIn'));
 
+  // 密碼最後變更時間。
+  //
+  // 這是「密碼到底能不能顯示出來」這個問題唯一給得出的答案——
+  // 密碼本身存的是單向雜湊，連系統自己都讀不回來。
+  // 能回答的是「這組密碼是什麼時候換的」，剛重設完就看得到剛剛的時間。
+  //
+  // 欄位是選填的：Sheet 還沒升級時後端回空字串，這一段就不顯示
+  const pwChanged = admin.password_changed_at
+    ? `${escapeHtml(t('accounts.pwChanged'))}: ${escapeHtml(admin.password_changed_at)}`
+    : '';
+
   const email = admin.email
     ? escapeHtml(admin.email)
     : `<span class="muted">${escapeHtml(t('accounts.noEmail'))}</span>`;
@@ -568,9 +678,15 @@ function renderRow(admin) {
         <div class="admin-row-meta">
           <span>${email}</span>
           <span>${lastLogin}</span>
+          ${pwChanged ? `<span>${pwChanged}</span>` : ''}
         </div>
       </div>
       <div class="admin-row-actions">
+        <button type="button" class="btn-secondary btn-small js-rename"
+                data-account="${escapeHtml(admin.account)}"
+                ${isBusy ? 'disabled' : ''}>
+          ${escapeHtml(isBusy ? t('accounts.working') : t('accounts.rename'))}
+        </button>
         <button type="button" class="btn-secondary btn-small js-reset"
                 data-account="${escapeHtml(admin.account)}"
                 ${isBusy || isSelf ? 'disabled' : ''}
@@ -598,6 +714,11 @@ function bindRowButtons() {
   el.adminList.querySelectorAll('.js-reset').forEach(function (btn) {
     btn.addEventListener('click', function () {
       resetPassword(btn.dataset.account);
+    });
+  });
+  el.adminList.querySelectorAll('.js-rename').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      renameAdmin(btn.dataset.account);
     });
   });
 }

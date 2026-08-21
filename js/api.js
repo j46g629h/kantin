@@ -163,6 +163,11 @@ const Api = {
     });
   },
 
+  /** 修改管理者姓名（顯示用） */
+  setAdminName(token, account, name) {
+    return this.post({ action: 'manageAdmin', token, op: 'setName', account, name });
+  },
+
   /**
    * 調整角色。
    * 目前頁面上沒有這個按鈕（一般管理者不會升降級，交接改用「建新的 + 停用舊的」），

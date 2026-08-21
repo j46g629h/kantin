@@ -1595,3 +1595,17 @@ input[type="date"] {
   font-size: var(--fs-sm);
   cursor: pointer;
 }
+
+
+/* --- 修改姓名對話框 --- */
+
+.pw-box-form input[type="text"] {
+  width: 100%;
+  margin-top: 4px;
+}
+
+/*
+ * 一列現在有三顆按鈕（改名字 / 重設密碼 / 停用）。
+ * 窄螢幕維持兩欄，第三顆自動掉到下一行——
+ * 硬擠成三欄的話，印尼文的「Reset Kata Sandi」會被切掉。
+ */

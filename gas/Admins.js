@@ -7,6 +7,7 @@
  *   setStatus      停用 / 啟用
  *   resetPassword  重設他人密碼（回傳一次性的新密碼）
  *   setRole        調整角色
+ *   setName        修改姓名
  *
  * 路由在 gas/Main.js，用 withAuth(p, handler, true) 包起來——
  * 第三個參數 true 就是「只有 SUPER 能用」（見設計約定第 8 條）。
@@ -56,6 +57,7 @@ function manageAdmin(params, session) {
     setstatus:     adminOpSetStatus,
     resetpassword: adminOpResetPassword,
     setrole:       adminOpSetRole,
+    setname:       adminOpSetName,
   };
 
   const operation = operations[op];
@@ -300,6 +302,53 @@ function adminOpSetRole(params, session) {
 }
 
 
+// ===== setName：修改姓名 =====
+
+/**
+ * 修改管理者的姓名（顯示用）。
+ *
+ * ⚠️ 兩件事要知道：
+ *
+ * 1. **不作廢對方的 token，改成就地更新。**
+ *    停用 / 改角色 / 重設密碼要把人踢出去，因為權限或憑證變了。
+ *    但只是改個名字就害對方工作到一半被登出，代價和收穫完全不成比例。
+ *    改用 updateSessionsForAccount() 把他 session 裡的姓名換掉，
+ *    他那個分頁的「你好，OOO」下一次重新整理就會是新的。
+ *
+ * 2. **歷史案件上的名字不會跟著改。**
+ *    `回報資料` 的「最後更新者」存的是當下的姓名，不是帳號。
+ *    這跟「處理者」存代碼的作法不同，而且是刻意的——
+ *    那是稽核紀錄，本來就該保留「當時是誰按的儲存」。
+ */
+function adminOpSetName(params, session) {
+  const account = str(params.account).toLowerCase();
+  const name    = str(params.name);
+
+  if (!name) return fail('ADMIN_NAME_REQUIRED', '請輸入姓名');
+
+  const admin = findAdminByAccount(account);
+  if (!admin) return fail('ADMIN_NOT_FOUND', '查無此帳號');
+
+  const before = str(admin.name);
+  if (before === name) {
+    return ok({ account: account, name: name, changed: false, updated_sessions: 0 });
+  }
+
+  setTextCell(getSheet(SHEETS.ADMINS), admin.row, getAdminColumnMap().name, name);
+
+  // 對方正開著頁面的話，讓他的「你好，OOO」跟著換掉（但不把他登出）
+  const updated = updateSessionsForAccount(account, { name: name });
+
+  // 改自己的名字也可以。這裡的 session 是 withAuth 傳進來的那一份物件，
+  // 改它可以讓「這一次請求之後」的行為正確，但真正存起來的是上面那一行
+  if (account === str(session.account).toLowerCase()) {
+    session.name = name;
+  }
+
+  return ok({ account: account, name: name, changed: true, updated_sessions: updated });
+}
+
+
 // ===== 共用的守門與轉換 =====
 
 /**
@@ -404,6 +453,10 @@ function toSafeAdmin(admin) {
     must_change_password: isTrue(admin.must_change_pw),
     created_at:           formatAdminTime(admin.created_at),
     last_login_at:        formatAdminTime(admin.last_login_at),
+
+    // 選填欄位。Sheet 上還沒有這一欄時，readAllAdmins() 讀出來是 undefined，
+    // formatAdminTime() 會回傳空字串，前端就不顯示這一段
+    password_changed_at:  formatAdminTime(admin.password_changed_at),
   };
 }
 

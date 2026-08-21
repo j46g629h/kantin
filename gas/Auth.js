@@ -368,6 +368,12 @@ function setAdminPassword(row, newPassword, forceChangeOnNextLogin) {
   setTextCell(sheet, row, colMap.password_hash,  hash);
   setTextCell(sheet, row, colMap.password_salt,  salt);
   setTextCell(sheet, row, colMap.must_change_pw, forceChangeOnNextLogin ? 'TRUE' : 'FALSE');
+
+  // 「密碼最後變更時間」是選填欄位，Sheet 上還沒有的話 colMap 裡就沒有它。
+  // 一定要先檢查再寫，否則 getRange(row, undefined) 會炸掉
+  if (colMap.password_changed_at) {
+    setDateCell(sheet, row, colMap.password_changed_at, new Date());
+  }
 }
 
 
@@ -409,6 +415,44 @@ function isTrue(value) {
 
 
 // ===== 強制登出（帳號管理用）=====
+
+/**
+ * 就地更新某個帳號所有 token 裡的內容（不作廢，人不會被登出）。
+ *
+ * 用途：超級管理者改了某人的姓名之後，對方那個分頁上的「你好，OOO」要跟著變。
+ *
+ * 為什麼不用 revokeSessionsForAccount()：那會把人踢出去。
+ * 停用、改角色、重設密碼踢人是應該的（權限或憑證變了），
+ * 但只是改個名字就害對方工作到一半被登出，代價和收穫完全不成比例。
+ *
+ * @param  {string} account 帳號
+ * @param  {Object} changes 要覆蓋進 session 的欄位，例如 { name: '新名字' }
+ * @return {number} 更新了幾支 token
+ */
+function updateSessionsForAccount(account, changes) {
+  const target = str(account).toLowerCase();
+  if (!target || !changes) return 0;
+
+  let count = 0;
+  storeEntries(CACHE_KEYS.TOKEN).forEach(function (entry) {
+    try {
+      const session = JSON.parse(entry.value);
+      if (!session || str(session.account).toLowerCase() !== target) return;
+
+      Object.keys(changes).forEach(function (key) { session[key] = changes[key]; });
+
+      // 沿用原本的效期起算方式。改名不該讓對方的登入時間被延長，
+      // 但 storePut 只能重設效期——影響很小（最多多 6 小時），
+      // 比起把人登出，這是比較好的取捨
+      storePut(entry.key, JSON.stringify(session), AUTH.TOKEN_TTL);
+      count++;
+    } catch (e) {
+      // 內容壞掉的就別動它
+    }
+  });
+  return count;
+}
+
 
 /**
  * 把某個帳號手上的所有 token 全部作廢。

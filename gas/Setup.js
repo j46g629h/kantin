@@ -934,3 +934,56 @@ function normalizeEmployeeStatus() {
   Logger.log(text);
   return text;
 }
+
+
+/**
+ * 升級：在「管理者名單」加上「密碼最後變更時間」欄位。
+ *
+ * 為什麼需要它：管理者名單上看不出「我剛剛重設的密碼有沒有生效」。
+ * 密碼本身是查不回來的（Sheet 存的是單向雜湊），
+ * 能給的最有用的資訊就是「這組密碼是什麼時候換的」。
+ *
+ * ⚠️ 這一欄在 ADMIN_COLUMNS 裡標了 `optional: true`，
+ *    所以「先部署程式、後跑這支升級」是安全的——
+ *    還沒跑之前，帳號管理頁只是不顯示這個時間，其他功能完全正常。
+ *    這正是線上事故 1（加了欄位就部署，導致完全無法登入）的正確作法。
+ *
+ * 重複執行不會有事：已經有這一欄就直接跳過。
+ *
+ * 執行方式：Apps Script 編輯器 → 函式選 migrateAddPasswordChangedAt → 按 ▷ → 看執行紀錄
+ */
+function migrateAddPasswordChangedAt() {
+  const sheet   = getSheet(SHEETS.ADMINS);
+  const column  = ADMIN_COLUMNS.filter(function (c) { return c.code === 'password_changed_at'; })[0];
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  if (headers.indexOf(column.name) !== -1) {
+    const msg = '－ 「' + column.name + '」欄位已存在，不需要升級。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  // 加在最後一欄。writeRowByColumns() 是依表頭定位的，
+  // 所以位置放哪都不影響寫入正確性（設計約定第 12 條）
+  const col = sheet.getLastColumn() + 1;
+
+  sheet.getRange(1, col).setValue(column.name);
+  sheet.setColumnWidth(col, column.width);
+  sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setNumberFormat(column.format);
+
+  // 表頭樣式跟其他欄一致
+  const headerRange = sheet.getRange(1, 1, 1, col);
+  headerRange.setFontWeight('bold');
+
+  const msg = [
+    '✔ 已新增「' + column.name + '」欄位（第 ' + col + ' 欄）',
+    '',
+    '既有帳號這一欄是空的，這是正常的——',
+    '系統不知道他們的密碼是什麼時候設的，只能從下一次變更開始記錄。',
+    '',
+    '之後任何一次「重設密碼」或「變更密碼」都會自動填上時間。',
+  ].join('\n');
+
+  Logger.log(msg);
+  return msg;
+}

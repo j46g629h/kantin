@@ -133,6 +133,19 @@ const ADMIN_COLUMNS = [
   { code: 'must_change_pw', name: '需重設密碼',   width:  90, format: '@' },
   { code: 'created_at',     name: '建立時間',     width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
   { code: 'last_login_at',  name: '最後登入時間', width: 140, format: 'yyyy-mm-dd hh:mm:ss' },
+
+  /**
+   * 密碼最後變更時間。
+   *
+   * ⚠️ 標成 optional：Sheet 上還沒有這一欄時，程式照常運作（只是不顯示這個時間），
+   *    不會像線上事故 1 那樣連登入都進不去。
+   *    執行 Setup.gs 的 migrateAddPasswordChangedAt() 之後才會開始記錄。
+   *
+   * 為什麼需要它：管理者名單上看不出「我剛剛重設的密碼有沒有生效」。
+   * 密碼本身是查不回來的（存的是單向雜湊），能給的最有用資訊就是「什麼時候換的」。
+   */
+  { code: 'password_changed_at', name: '密碼最後變更時間', width: 140,
+    format: 'yyyy-mm-dd hh:mm:ss', optional: true },
 ];
 
 

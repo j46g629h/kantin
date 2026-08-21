@@ -91,7 +91,19 @@ function buildColumnMap(sheetName, columnDefs) {
   const map = {};
   columnDefs.forEach(function (col) {
     const index = headers.indexOf(col.name);
+
     if (index === -1) {
+      // 標了 optional 的欄位找不到就跳過，不要丟例外。
+      //
+      // ⚠️ 這是線上事故 1 的解藥（見 CLAUDE.md 設計約定第 12 條）：
+      //    那次把新欄位加進 ADMIN_COLUMNS 就直接部署，Sheet 上還沒有那一欄，
+      //    這裡一丟例外，連登入都進不去。
+      //
+      //    標成 optional 的話，順序就不重要了——程式可以先部署（該功能暫時不顯示），
+      //    使用者跑完升級程式才開始生效。
+      //
+      //    呼叫端一定要檢查 `if (colMap.xxx)` 再用，因為它可能是 undefined。
+      if (col.optional) return;
       throw new Error('「' + sheetName + '」分頁缺少欄位：' + col.name);
     }
     map[col.code] = index + 1;  // Sheet 的欄號從 1 開始

@@ -251,8 +251,11 @@ const listKeys = Object.keys(list1.data.admins[0]).sort();
 check('不含密碼雜湊',       listKeys.indexOf('password_hash') === -1, true);
 check('不含密碼鹽值',       listKeys.indexOf('password_salt') === -1, true);
 check('不含 Sheet 列號',    listKeys.indexOf('row') === -1,           true);
+// 這一項刻意寫死整份清單：白名單多一個欄位就會失敗，
+// 逼人回來確認「這一欄真的可以送到瀏覽器上嗎」
 check('回傳欄位就是白名單那幾個', listKeys,
-  ['account', 'created_at', 'email', 'last_login_at', 'must_change_password', 'name', 'role', 'status']);
+  ['account', 'created_at', 'email', 'last_login_at', 'must_change_password', 'name',
+   'password_changed_at', 'role', 'status']);
 
 check('超級管理者排在第一位', list1.data.admins[0].account, 'super@pci');
 check('其餘依帳號排序',
@@ -576,6 +579,91 @@ check('擋下後角色沒有被改動', rawRow('super@pci')[5], 'SUPER');
 
 check('已停用的超級管理者可以降級（不影響可用人數）',
   callAs(SUPER_SESSION, { op: 'setRole', account: 'super2@pci', role: 'ADMIN' }).data.changed, true);
+
+
+console.log('\n===== setName：修改姓名 =====\n');
+
+check('姓名空白 → 擋下',
+  callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'  ' }).error, 'ADMIN_NAME_REQUIRED');
+check('不存在的帳號 → 擋下',
+  callAs(SUPER_SESSION, { op:'setName', account:'ghost@pci', name:'鬼' }).error, 'ADMIN_NOT_FOUND');
+
+// 讓王小明先登入，等一下要確認改名「不會」把他登出
+evalIn(`revokeSessionsForAccount('ming@pci')`);
+const mingPw = callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'RenameTest2026' })
+  .data.initial_password;
+const nameToken = login('ming@pci', mingPw).data.token;
+check('改名前 token 有效', evalIn(`readSession(${JSON.stringify(nameToken)}) !== null`), true);
+check('session 裡是舊名字',
+  evalIn(`readSession(${JSON.stringify(nameToken)}).name`), '王小明');
+
+const renamed = callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'王大明' });
+check('改名成功',            renamed.data.changed, true);
+check('Sheet 上寫成新名字',  rawRow('ming@pci')[0], '王大明');
+
+// 這是這個功能的重點：不能像停用那樣把人踢出去，
+// 只是改個名字就害對方工作到一半被登出，代價和收穫不成比例
+check('改名不會把對方登出',
+  evalIn(`readSession(${JSON.stringify(nameToken)}) !== null`), true);
+check('但 session 裡的名字有跟著換',
+  evalIn(`readSession(${JSON.stringify(nameToken)}).name`), '王大明');
+check('回報有更新幾支 session', renamed.data.updated_sessions, 1);
+check('改名後密碼不受影響',    login('ming@pci', mingPw).ok, true);
+
+check('名字沒有變 → 不動作',
+  callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'王大明' }).data,
+  { account:'ming@pci', name:'王大明', changed:false, updated_sessions:0 });
+
+check('前後空白會被去掉',
+  callAs(SUPER_SESSION, { op:'setName', account:'ming@pci', name:'  王小明  ' }).data.name, '王小明');
+
+// 改自己的名字是允許的（跟停用 / 改角色 / 重設密碼不同，這個沒有風險）
+check('可以改自己的名字',
+  callAs(SUPER_SESSION, { op:'setName', account:'super@pci', name:'系統管理員' }).data.changed, true);
+check('改回來', callAs(SUPER_SESSION, { op:'setName', account:'super@pci', name:'系統管理者' }).ok, true);
+
+// updateSessionsForAccount 只動該動的
+evalIn(`__PROPS = {}`);
+const tA = evalIn(`createSession({account:'a@pci', name:'舊A', role:'ADMIN'})`);
+const tB = evalIn(`createSession({account:'b@pci', name:'舊B', role:'ADMIN'})`);
+check('只更新指定帳號的 session',
+  evalIn(`updateSessionsForAccount('a@pci', { name: '新A' })`), 1);
+check('A 的名字換了', evalIn(`readSession(${JSON.stringify(tA)}).name`), '新A');
+check('A 沒有被登出', evalIn(`readSession(${JSON.stringify(tA)}) !== null`), true);
+check('B 完全不受影響', evalIn(`readSession(${JSON.stringify(tB)}).name`), '舊B');
+check('帳號空白 → 什麼都不做', evalIn(`updateSessionsForAccount('', {name:'x'})`), 0);
+
+
+console.log('\n===== 選填欄位：密碼最後變更時間 =====\n');
+
+// 目前假 Sheet 的表頭「沒有」這一欄，等同還沒跑升級程式的正式環境。
+// 線上事故 1 就是這個情境——當時直接丟例外，連登入都進不去
+check('Sheet 還沒有這一欄 → buildColumnMap 不丟例外，回 undefined',
+  evalIn(`getAdminColumnMap().password_changed_at === undefined`), true);
+check('未升級時登入照常', login('ming@pci', 'RenameTest2026').ok, true);
+check('未升級時列表照常', callAs(SUPER_SESSION, { op:'list' }).ok, true);
+check('未升級時這個欄位回空字串',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins[0].password_changed_at, '');
+check('未升級時重設密碼照常',
+  callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'AfterMig2026' }).ok, true);
+
+// 模擬跑完 migrateAddPasswordChangedAt()：表頭多一欄
+ADMIN_HEADERS.push('密碼最後變更時間');
+sandbox.__ADMINS.forEach((row) => row.push(''));
+
+check('升級後 buildColumnMap 找得到',
+  evalIn(`getAdminColumnMap().password_changed_at`), ADMIN_HEADERS.length);
+check('升級前設的密碼沒有時間（系統不知道）',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.find(a => a.account === 'ming@pci').password_changed_at, '');
+
+callAs(SUPER_SESSION, { op:'resetPassword', account:'ming@pci', new_password:'Migrated2026' });
+check('升級後重設密碼會記下時間',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.find(a => a.account === 'ming@pci').password_changed_at,
+  '2026-08-20 12:00:00');
+check('別人的時間不受影響',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.find(a => a.account === 'hua@pci').password_changed_at, '');
+check('列表仍然不含密碼雜湊',
+  Object.keys(callAs(SUPER_SESSION, { op:'list' }).data.admins[0]).indexOf('password_hash'), -1);
 
 
 console.log('\n===== revokeSessionsForAccount：只砍該砍的 =====\n');
