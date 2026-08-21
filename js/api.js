@@ -91,8 +91,9 @@ const Api = {
    * @param {Object} filters 篩選條件（status_code / location_code / category_code /
    *                         date_from / date_to / keyword），空字串的會被拿掉
    */
-  getCaseList(token, filters = {}) {
+  getCaseList(token, filters = {}, month = '') {
     const payload = { action: 'getCaseList', token };
+    if (month) payload.month = month;
 
     // 空字串代表「不篩這一項」，不要送出去佔位
     Object.keys(filters).forEach((key) => {
@@ -107,14 +108,20 @@ const Api = {
     return this.post({ action: 'getTemplates', token });
   },
 
-  /** 更新案件狀態與回覆 */
-  updateCase(token, caseId, statusCode, response) {
+  /** 可以被指派為處理者的管理者清單（只有在職的） */
+  getAdminOptions(token) {
+    return this.post({ action: 'getAdminOptions', token });
+  },
+
+  /** 更新案件狀態、回覆與指派的處理者 */
+  updateCase(token, caseId, statusCode, response, handlerAccount) {
     return this.post({
-      action:      'updateCase',
+      action:         'updateCase',
       token,
-      case_id:     caseId,
-      status_code: statusCode,
+      case_id:        caseId,
+      status_code:    statusCode,
       response,
+      handler_account: handlerAccount || '',
     });
   },
 

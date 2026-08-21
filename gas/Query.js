@@ -39,7 +39,7 @@ function getCaseById(params) {
   const values = sheet.getRange(match.getRow(), 1, 1, sheet.getLastColumn()).getValues()[0];
   if (isDeletedRow(values, colMap)) return fail('CASE_NOT_FOUND', '查無此案件編號');
 
-  return ok({ cases: [buildPublicCase(values, colMap)] });
+  return ok({ cases: [buildPublicCase(values, colMap, buildHandlerMap())] });
 }
 
 
@@ -59,6 +59,7 @@ function getCasesByEmpId(params) {
   const colMap = getFeedbackColumnMap();
   const rows = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
   const target = empId.toUpperCase();
+  const handlerMap = buildHandlerMap();   // 一次建好，不要每筆案件各查一次名單
 
   // 排序用的時間另外存，不混進要回傳的資料裡——
   // 混在一起就得記得刪掉，而漏刪就會把內部欄位洩漏給前端
@@ -70,7 +71,7 @@ function getCasesByEmpId(params) {
     const submitTime = values[colMap.submit_time - 1];
     matched.push({
       sortKey: (submitTime instanceof Date) ? submitTime.getTime() : 0,
-      data:    buildPublicCase(values, colMap),
+      data:    buildPublicCase(values, colMap, handlerMap),
     });
   });
 
@@ -94,10 +95,19 @@ function isDeletedRow(values, colMap) {
 /**
  * 把一列資料整理成要回傳給員工的格式。
  *
- * 只回傳員工需要看到的欄位，工號、姓名、處理者、稽核欄位都不回傳。
+ * 只回傳員工需要看到的欄位——工號、姓名與稽核欄位都不回傳。
+ *
+ * ⚠️ 處理者的姓名與電話是例外，刻意回傳給員工：
+ *    讓員工知道現在是誰在處理、可以打給誰問，不必再打去總機轉一圈。
+ *    也因為這樣，「管理者名單」的電話欄請填**公務分機**，不要填私人手機
+ *    （這支 API 不需要登入，任何知道案件編號的人都看得到）。
  */
-function buildPublicCase(values, colMap) {
+function buildPublicCase(values, colMap, handlerMap) {
+  const handler = resolveHandler(values[colMap.handler - 1], handlerMap || {});
+
   return {
+    handler_name:  handler.name,
+    handler_phone: handler.phone,
     case_id:         str(values[colMap.case_id - 1]),
     submit_time:     formatCellTime(values[colMap.submit_time - 1]),
     location_code:   str(values[colMap.location_code - 1]),

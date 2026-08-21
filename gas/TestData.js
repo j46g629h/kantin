@@ -113,6 +113,87 @@ function seedTestFeedback() {
 
 
 /**
+ * 產生 2 筆「已經逾期」的測試案件。
+ *
+ * 為什麼需要另外做一支：submitFeedback 一律用當下時間當提交時間，
+ * 剛送出的案件是 0 天，永遠不會被判定為逾期。
+ * 所以這裡先正常提交，再把「提交時間」改成過去的日期。
+ *
+ * 產生的兩筆分別是 4 天前與 12 天前：
+ * 一筆剛過門檻（3 天），一筆明顯超時，方便對照天數計算對不對。
+ *
+ * ⚠️ 只有「未處理」的案件才會被判定為逾期，所以這兩筆會保持 ST_NEW。
+ */
+function seedOverdueCases() {
+  const OVERDUE_SPECS = [
+    { daysAgo: 4,  loc: 'LOC_04', meal: 'MEAL_LUNCH',     cat: 'CAT_HYGIENE', lang: 'ID', rating: 1,
+      desc: 'Lantai di dekat wastafel licin, hampir jatuh kemarin.' },
+    { daysAgo: 12, loc: 'LOC_02', meal: 'MEAL_BREAKFAST', cat: 'CAT_FACILITY', lang: 'ZH', rating: 2,
+      desc: '早餐區的保溫檯壞了，粥端上來已經是冷的，這個問題持續一段時間了。' },
+  ];
+
+  const employees = pickRandomActiveEmployees(OVERDUE_SPECS.length);
+  if (!employees.length) {
+    const msg = '員工名冊裡找不到任何在職員工，無法產生測試資料。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const sheet  = getSheet(SHEETS.FEEDBACK);
+  const colMap = getFeedbackColumnMap();
+  const report = ['開始產生 ' + OVERDUE_SPECS.length + ' 筆逾期測試案件…', ''];
+  let failed = 0;
+
+  OVERDUE_SPECS.forEach(function (spec, i) {
+    const result = submitFeedback({
+      emp_id:           employees[i % employees.length],
+      location_code:    spec.loc,
+      meal_code:        spec.meal,
+      category_code:    spec.cat,
+      description:      spec.desc,
+      rating:           spec.rating,
+      lang:             spec.lang,
+      client_submit_id: 'seed-overdue-' + Utilities.getUuid(),
+    });
+
+    if (!result.ok) {
+      failed++;
+      report.push('✘ 第 ' + (i + 1) + ' 筆失敗：' + result.error + ' — ' + result.message);
+      return;
+    }
+
+    // 把提交時間往回調。用 case_id 找列，不可以假設它在最後一列——
+    // 有人同時提交的話最後一列就不是我們剛建立的那筆了
+    const row = findCaseRow(sheet, colMap, result.data.case_id);
+    if (!row) {
+      failed++;
+      report.push('✘ ' + result.data.case_id + ' 建立後找不到，無法回溯日期');
+      return;
+    }
+
+    const backdated = new Date(Date.now() - spec.daysAgo * 86400000);
+    setDateCell(sheet, row, colMap.submit_time, backdated);
+
+    report.push('✔ ' + result.data.case_id + '  ' + spec.daysAgo + ' 天前  ' +
+                spec.loc + '  ' + spec.cat);
+  });
+
+  report.push('');
+  report.push('完成：成功 ' + (OVERDUE_SPECS.length - failed) + ' 筆，失敗 ' + failed + ' 筆。');
+  report.push('');
+  report.push('到管理端案件列表按「重新整理」，這兩筆應該會是紅底，');
+  report.push('編號旁邊顯示「已 4 天未處理」與「已 12 天未處理」，');
+  report.push('上方也會出現「⚠️ 逾期 2 件」的提示列。');
+  report.push('');
+  report.push('（逾期門檻是 3 天，設定在 gas/Config.js 的 CASE_LIST.OVERDUE_DAYS）');
+
+  const text = report.join(String.fromCharCode(10));
+  Logger.log(text);
+  return text;
+}
+
+
+/**
  * 從員工名冊隨機挑 n 位在職員工，回傳工號陣列。
  *
  * 名冊只有幾百筆，整張讀進來再洗牌就好。

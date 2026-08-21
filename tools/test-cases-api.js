@@ -34,11 +34,11 @@ const ROWS_SPEC = [
    'CAT_SERVICE', '', 4, '', '', 'ST_NEW', '', '', '', '', '', 's2', ''],
 
   ['PCI-202608-003', '@ISO:2026-08-10T18:00:00+07:00', 'A1234', '測試員工', 'ZH', 'LOC_02', 'MEAL_DINNER',
-   'CAT_FACILITY', '燈壞了', 3, '', '', 'ST_PROC', '王小明', '已安排維修',
+   'CAT_FACILITY', '燈壞了', 3, '', '', 'ST_PROC', 'ming@test', '已安排維修',
    '@ISO:2026-08-11T09:00:00+07:00', '', '', 's3', ''],
 
   ['PCI-202607-004', '@ISO:2026-07-15T12:00:00+07:00', '0023456', 'Dewi', 'ID', 'LOC_R3', 'MEAL_LUNCH',
-   'CAT_OTHER', '希望多一點水果', 5, '', '', 'ST_DONE', '王小明', '已轉知廚房',
+   'CAT_OTHER', '希望多一點水果', 5, '', '', 'ST_DONE', 'ming@test', '已轉知廚房',
    '@ISO:2026-07-16T09:00:00+07:00', '', '', 's4', ''],
 
   // 已軟刪除，任何結果都不該出現
@@ -58,6 +58,15 @@ const OPTIONS_SPEC = [
   ['STATUS',   'ST_NEW',  '未處理', 'Belum Diproses',  1, true],
   ['STATUS',   'ST_PROC', '處理中', 'Sedang Diproses', 2, true],
   ['STATUS',   'ST_DONE', '已結案', 'Selesai',         3, true],
+];
+
+// 管理者名單：姓名 / 帳號 / Email / 電話 / 密碼雜湊 / 密碼鹽值 / 角色 / 狀態 / 需重設 / 建立 / 最後登入
+const ADMIN_HEADERS = ['姓名','帳號','Email','電話','密碼雜湊','密碼鹽值','角色','狀態',
+  '需重設密碼','建立時間','最後登入時間'];
+const ADMINS_SPEC = [
+  ['王小明', 'ming@test',  'ming@test',  '3690', 'h', 's', 'SUPER', 'ACTIVE',   'FALSE', '', ''],
+  ['李美華', 'hua@test',   'hua@test',   '3691', 'h', 's', 'ADMIN', 'ACTIVE',   'FALSE', '', ''],
+  ['已離職', 'gone@test',  'gone@test',  '3692', 'h', 's', 'ADMIN', 'DISABLED', 'FALSE', '', ''],
 ];
 
 // 回覆範本：代碼 / 分類 / 中文內容 / 印尼文內容
@@ -99,6 +108,7 @@ const sandbox = {
         if (name === '回報資料')  return makeSheet(sandbox.__ROWS, HEADERS);
         if (name === '選項設定')  return makeSheet(sandbox.__OPTIONS, OPTION_HEADERS);
         if (name === '回覆範本')  return makeSheet(sandbox.__TEMPLATES, TEMPLATE_HEADERS);
+        if (name === '管理者名單') return makeSheet(sandbox.__ADMINS, ADMIN_HEADERS);
         return null;
       },
     }),
@@ -184,7 +194,8 @@ vm.runInContext(
      });
    });
    __OPTIONS   = ${JSON.stringify(OPTIONS_SPEC)};
-   __TEMPLATES = ${JSON.stringify(TEMPLATES_SPEC)};`, sandbox);
+   __TEMPLATES = ${JSON.stringify(TEMPLATES_SPEC)};
+   __ADMINS    = ${JSON.stringify(ADMINS_SPEC)};`, sandbox);
 
 // 3) 載入要測的程式
 ['Config.js', 'Utils.js', 'Options.js', 'Query.js', 'Cases.js'].forEach((f) => {
@@ -200,9 +211,16 @@ vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
   .match(/function hasOptionCode[\s\S]*?\n}/)[0], sandbox);
 
-// setTextCell 住在 Auth.js，整個檔案載進來會連帶需要一堆服務，只取這一支
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Auth.js'), 'utf8')
-  .match(/function setTextCell[\s\S]*?\n}/)[0], sandbox);
+// Auth.js 整個載進來會連帶需要一堆服務（CacheService 之類），只取用得到的函式
+const AUTH_SRC = fs.readFileSync(path.join(ROOT, 'gas', 'Auth.js'), 'utf8');
+['setTextCell', 'readAllAdmins', 'buildHandlerMap', 'canBeAssigned', 'resolveHandler',
+ 'getAdminOptions', 'normalizeRole', 'isTrue'].forEach((fn) => {
+  const found = AUTH_SRC.match(new RegExp('function ' + fn + '[\\s\\S]*?\\n}'));
+  if (!found) throw new Error('Auth.js 裡找不到 ' + fn);
+  vm.runInContext(found[0], sandbox);
+});
+
+// getAdminColumnMap 住在 Utils.js，已經載入了
 
 
 // ---- 開始測試 ----
@@ -225,19 +243,21 @@ if (sanity.data.cases[0].submit_time.indexOf('2026') !== 0) {
   process.exit(2);
 }
 
-console.log('\n【1】不帶篩選：應回傳 4 筆（軟刪除那筆要被排除），由新到舊');
+console.log('\n【1】不帶篩選：預設只看本月（202608），軟刪除那筆要被排除，由新到舊');
 let r = run({});
 check('ok', r.ok, true);
-check('總數', r.data.total, 4);
+check('本月總數', r.data.total, 3);
 check('順序（新→舊）', r.data.cases.map(c => c.case_id),
-  ['PCI-202608-002', 'PCI-202608-003', 'PCI-202608-001', 'PCI-202607-004']);
+  ['PCI-202608-002', 'PCI-202608-003', 'PCI-202608-001']);
 check('不含已刪除', r.data.cases.some(c => c.case_id === 'PCI-202608-005'), false);
+check('7 月那筆不在本月清單裡', r.data.cases.some(c => c.case_id === 'PCI-202607-004'), false);
 
 console.log('\n【2】統計卡片（不受篩選影響）');
 check('未處理', r.data.stats.new, 2);
 check('處理中', r.data.stats.processing, 1);
 check('已結案', r.data.stats.done, 1);
-check('本月(202608)', r.data.stats.this_month, 3);
+check('本月件數', r.data.stats.month_count, 3);
+check('選定月份', r.data.stats.month, '202608');
 check('逾期', r.data.stats.overdue, 1);
 
 console.log('\n【3】逾期判斷：未處理且滿 3 天');
@@ -261,8 +281,9 @@ check('提交時間格式', byId['PCI-202608-001'].submit_time, '2026-08-01 08:0
 console.log('\n【6】依狀態篩選');
 check('ST_NEW', run({ status_code: 'ST_NEW' }).data.cases.map(c => c.case_id),
   ['PCI-202608-002', 'PCI-202608-001']);
-check('ST_DONE', run({ status_code: 'ST_DONE' }).data.total, 1);
-check('篩選後統計不變', run({ status_code: 'ST_DONE' }).data.stats.new, 2);
+check('ST_DONE（在 7 月，本月查不到）', run({ status_code: 'ST_DONE' }).data.total, 0);
+check('指定 7 月才找得到', run({ month: '202607', status_code: 'ST_DONE' }).data.total, 1);
+check('篩選後全時間統計不變', run({ status_code: 'ST_DONE' }).data.stats.new, 2);
 
 console.log('\n【7】依地點 / 分類篩選');
 check('LOC_02', run({ location_code: 'LOC_02' }).data.total, 2);
@@ -270,19 +291,20 @@ check('複選案件的第 2 個分類也查得到', run({ category_code: 'CAT_HY
   ['PCI-202608-001']);
 check('CAT_TASTE', run({ category_code: 'CAT_TASTE' }).data.total, 1);
 
-console.log('\n【8】日期範圍（含起訖當天）');
+console.log('\n【8】日期範圍（含起訖當天，會與月份範圍疊加）');
 check('8/10 起（8/10 + 8/19）', run({ date_from: '2026-08-10' }).data.total, 2);
-check('到 8/10 止', run({ date_to: '2026-08-10' }).data.total, 3);
+check('到 8/10 止（8/01 + 8/10）', run({ date_to: '2026-08-10' }).data.total, 2);
 check('剛好 8/10 當天', run({ date_from: '2026-08-10', date_to: '2026-08-10' }).data.cases.map(c => c.case_id),
   ['PCI-202608-003']);
-check('7 月整月', run({ date_from: '2026-07-01', date_to: '2026-07-31' }).data.total, 1);
+check('7 月整月（要同時指定月份）',
+  run({ month: '202607', date_from: '2026-07-01', date_to: '2026-07-31' }).data.total, 1);
 
 console.log('\n【9】關鍵字（案件編號 / 工號 / 姓名 / 描述 / 處理者）');
 check('姓名（不分大小寫）', run({ keyword: 'budi' }).data.total, 1);
 check('描述', run({ keyword: '燈' }).data.total, 1);
 check('工號', run({ keyword: 'a1234' }).data.total, 1);
-check('處理者', run({ keyword: '王小明' }).data.total, 2);
-check('案件編號片段', run({ keyword: '202607' }).data.total, 1);
+check('處理者姓名（由帳號查出來的）', run({ keyword: '王小明' }).data.total, 1);
+check('案件編號片段（7 月）', run({ month: '202607', keyword: '202607' }).data.total, 1);
 check('查無', run({ keyword: 'zzzz' }).data.total, 0);
 
 console.log('\n【10】篩選條件可疊加');
@@ -291,15 +313,15 @@ check('LOC_02 + ST_NEW', run({ location_code: 'LOC_02', status_code: 'ST_NEW' })
 
 console.log('\n【11】limit 上限保護');
 check('limit=1', run({ limit: 1 }).data.returned, 1);
-check('limit=1 時 total 仍是全部', run({ limit: 1 }).data.total, 4);
-check('limit=99999 被夾到 MAX 而非爆掉', run({ limit: 99999 }).data.returned, 4);
+check('limit=1 時 total 仍是全部', run({ limit: 1 }).data.total, 3);
+check('limit=99999 被夾到 MAX 而非爆掉', run({ limit: 99999 }).data.returned, 3);
 
 
 // ===== updateCase =====
 
 function update(params) {
   return vm.runInContext(
-    `updateCase(${JSON.stringify(params)}, {name:'王小明', account:'admin@test'})`, sandbox);
+    `updateCase(${JSON.stringify(params)}, {name:'王小明', account:'ming@test'})`, sandbox);
 }
 
 /** 直接從假資料裡讀某一格，用來確認到底寫進去什麼 */
@@ -350,7 +372,7 @@ check('回傳 ok', saved.ok, true);
 check('回傳更新後的案件', saved.data.case.case_id, 'PCI-202608-001');
 check('狀態已更新', cellOf('PCI-202608-001', '處理狀態'), 'ST_PROC');
 check('回覆已寫入', cellOf('PCI-202608-001', '處理回覆'), '已請廚房調整鹹度。');
-check('處理者記錄為登入者', cellOf('PCI-202608-001', '處理者'), '王小明');
+check('沒指派時處理者留空', cellOf('PCI-202608-001', '處理者'), '');
 check('最後更新者', cellOf('PCI-202608-001', '最後更新者'), '王小明');
 check('處理時間已填入日期', isDateLike(cellOf('PCI-202608-001', '處理時間')), true);
 check('回傳的案件不含內部欄位', 'sort_key' in saved.data.case, false);
@@ -376,12 +398,13 @@ check('小寫案件編號也找得到',
   update({ case_id: 'pci-202608-003', status_code: 'ST_PROC', response: '維修中' }).ok, true);
 check('狀態代碼小寫會轉成大寫', cellOf('PCI-202608-003', '處理狀態'), 'ST_PROC');
 
-console.log('\n【17】更新後的統計會跟著變');
+console.log('\n【17】更新後的統計會跟著變（全時間範圍）');
 const after = run({});
 check('未處理剩 1 筆（002）', after.data.stats.new, 1);
 check('處理中 1 筆（003）', after.data.stats.processing, 1);
 check('已結案 2 筆（001 + 004）', after.data.stats.done, 2);
 check('逾期歸零', after.data.stats.overdue, 0);
+check('本月件數不受狀態變化影響', after.data.stats.month_count, 3);
 
 console.log('\n【18】getTemplates');
 const tpl = vm.runInContext(`getTemplates({}, {name:'王小明'})`, sandbox);
@@ -391,6 +414,71 @@ check('代碼', tpl.data.templates[0].code, 'TPL_01');
 check('分類', tpl.data.templates[2].category, 'CAT_FACILITY');
 check('中文內容', tpl.data.templates[0].content_zh, '已轉知廚房調整口味。');
 check('印尼文內容', tpl.data.templates[0].content_id, 'Sudah disampaikan ke dapur.');
+
+
+console.log('\n【19】月份選擇');
+const aug = run({ month: '202608' });
+check('8 月件數', aug.data.stats.month_count, 3);
+check('8 月清單', aug.data.total, 3);
+
+const jul = run({ month: '202607' });
+check('7 月件數', jul.data.stats.month_count, 1);
+check('7 月清單只有那一筆', jul.data.cases.map(c => c.case_id), ['PCI-202607-004']);
+check('全時間統計不受月份影響', jul.data.stats.new, aug.data.stats.new);
+
+check('可選月份由新到舊', run({}).data.available_months.map(m => m.month), ['202608', '202607']);
+check('可選月份帶件數', run({}).data.available_months.map(m => m.count), [3, 1]);
+check('月份格式 2026-08 也接受', run({ month: '2026-08' }).data.stats.month, '202608');
+check('亂填月份就回到本月', run({ month: 'abc' }).data.stats.month, '202608');
+check('選了沒資料的月份仍列在選單裡',
+  run({ month: '202601' }).data.available_months.some(m => m.month === '202601'), true);
+check('沒資料的月份件數為 0', run({ month: '202601' }).data.stats.month_count, 0);
+
+console.log('\n【20】處理者指派');
+check('指派給在職管理者',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: '處理中',
+           handler_account: 'hua@test' }).ok, true);
+check('Sheet 存的是帳號不是姓名', cellOf('PCI-202608-002', '處理者'), 'hua@test');
+
+const assigned = run({}).data.cases.find(c => c.case_id === 'PCI-202608-002');
+check('回傳時換成姓名', assigned.handler.name, '李美華');
+check('回傳時帶出電話', assigned.handler.phone, '3691');
+check('回傳時保留帳號', assigned.handler.account, 'hua@test');
+
+check('指派給不存在的人 → 擋下',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: 'x',
+           handler_account: 'nobody@test' }).error, 'HANDLER_INVALID');
+check('指派給已停用的管理者 → 擋下',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: 'x',
+           handler_account: 'gone@test' }).error, 'HANDLER_INVALID');
+check('大小寫不影響',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: '處理中2',
+           handler_account: 'HUA@TEST' }).ok, true);
+check('不指派也可以（留空）',
+  update({ case_id: 'PCI-202608-002', status_code: 'ST_NEW', response: '',
+           handler_account: '' }).ok, true);
+check('留空時處理者被清掉', cellOf('PCI-202608-002', '處理者'), '');
+
+console.log('\n【21】處理者與最後更新者是兩回事');
+update({ case_id: 'PCI-202608-002', status_code: 'ST_PROC', response: '由美華負責',
+         handler_account: 'hua@test' });
+check('處理者 = 被指派的人', cellOf('PCI-202608-002', '處理者'), 'hua@test');
+check('最後更新者 = 實際按儲存的人', cellOf('PCI-202608-002', '最後更新者'), '王小明');
+
+console.log('\n【22】舊資料相容：處理者欄存的是姓名');
+setCell('PCI-202608-003', '處理者', '某位舊同事');
+const legacy = run({}).data.cases.find(c => c.case_id === 'PCI-202608-003');
+check('查不到帳號就當成姓名顯示', legacy.handler.name, '某位舊同事');
+check('沒有電話可查', legacy.handler.phone, '');
+check('帳號留空', legacy.handler.account, '');
+
+console.log('\n【23】getAdminOptions：只列在職的，且不含 Email');
+const opts = vm.runInContext(`getAdminOptions({}, {name:'王小明'})`, sandbox);
+check('ok', opts.ok, true);
+check('排除已停用的', opts.data.admins.map(a => a.account), ['ming@test', 'hua@test']);
+check('帶姓名', opts.data.admins[1].name, '李美華');
+check('帶電話', opts.data.admins[0].phone, '3690');
+check('不回傳 Email', 'email' in opts.data.admins[0], false);
 
 console.log(`\n===== 通過 ${pass} 項，失敗 ${failCount} 項 =====\n`);
 process.exit(failCount ? 1 : 0);

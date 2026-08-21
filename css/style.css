@@ -1167,3 +1167,82 @@ input[type="date"] {
 .case-card.overdue .reply-form {
   background: var(--surface);
 }
+
+
+/* ===== 月份選擇 ===== */
+
+.stat-caret {
+  font-size: 10px;
+  color: var(--text-subtle);
+  line-height: 1;
+}
+
+.month-picker {
+  margin-bottom: var(--gap);
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.month-picker-title {
+  padding: 4px 8px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.month-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.month-item:active { background: var(--surface-alt); }
+
+.month-item.active {
+  color: var(--brand);
+  font-weight: 600;
+  background: var(--brand-light);
+}
+
+.month-count {
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.month-item.active .month-count { color: var(--brand); }
+
+
+/* ===== 指派處理者 ===== */
+
+.reply-form .reply-handler { margin-bottom: 4px; }
+
+.reply-handler-hint {
+  margin-bottom: 14px;
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
+}
+
+/* 案件摘要上的「已指派給誰」 */
+.case-assigned { color: var(--brand); }
+
+/* 員工端查詢頁的處理者電話，點一下直接撥號 */
+.handler-phone {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}

@@ -20,7 +20,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyYVxnV5AZtnGkLKf0mqRTq
  *    可以先問他看到的版本號，很好排查。
  */
 const SYSTEM_INFO = {
-  version: 'v1.4',
+  version: 'v1.5',
   year:    '2026',
 
   // 維護單位（依介面語言顯示對應版本）

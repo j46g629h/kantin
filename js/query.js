@@ -243,6 +243,15 @@ function buildCaseDetail(item) {
     box.appendChild(row);
   }
 
+  // 目前由誰處理。管理者指派之後才會有，沒指派就不顯示這一段——
+  // 顯示「尚未指派」對員工來說沒有意義，只會讓人覺得沒人理
+  if (item.handler_name) {
+    const phone = item.handler_phone
+      ? ` <a class="handler-phone" href="tel:${escapeHtml(item.handler_phone)}">${escapeHtml(item.handler_phone)}</a>`
+      : '';
+    box.appendChild(detailRow(t('query.handler'), escapeHtml(item.handler_name) + phone, true));
+  }
+
   // 管理者回覆
   const replyBox = document.createElement('div');
   replyBox.className = 'case-reply' + (item.response ? '' : ' empty');

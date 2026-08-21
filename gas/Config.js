@@ -118,6 +118,9 @@ const DRIVE_IMAGE_FOLDER_NAME = '圖片';
  * 與 FEEDBACK_COLUMNS 同樣的規則：程式一律用 code 存取，
  * Sheet 上的中文表頭改了也不會壞（見 Utils.js 的 getAdminColumnMap）。
  *
+ * ⚠️ 「電話」會顯示給員工看（查詢頁會列出處理者與聯絡電話），
+ *    請填公務分機，不要填私人手機——員工端查詢不需要登入。
+ *
  * ⚠️ 密碼雜湊與鹽值的格式一定要是純文字 '@'。
  *    雜湊是 64 個十六進位字元，剛好整串都是數字時（機率很低但存在），
  *    Sheet 會把它當成數字存成 1.23457E+63，密碼從此永遠對不起來。
@@ -128,6 +131,7 @@ const ADMIN_COLUMNS = [
   { code: 'email',          name: 'Email',        width: 200, format: '@' },
   { code: 'password_hash',  name: '密碼雜湊',     width: 260, format: '@' },
   { code: 'password_salt',  name: '密碼鹽值',     width: 140, format: '@' },
+  { code: 'phone',          name: '電話',         width: 110, format: '@' },
   { code: 'role',           name: '角色',         width:  80, format: '@' },
   { code: 'status',         name: '狀態',         width:  90, format: '@' },
   { code: 'must_change_pw', name: '需重設密碼',   width:  90, format: '@' },
@@ -223,3 +227,18 @@ const CASE_LIST = {
  * 只有「未處理」不強制——那本來就是還沒開始處理的意思。
  */
 const STATUS_REQUIRING_RESPONSE = ['ST_PROC', 'ST_DONE'];
+
+
+// ===== 處理者指派 =====
+
+/**
+ * 「處理者」欄存的是管理者的**帳號**，不是姓名。
+ *
+ * 為什麼（設計約定第 1 條：存代碼不存顯示文字）：
+ * 存姓名的話，某人改名或換電話之後，所有歷史案件都會停在舊資料。
+ * 存帳號則是每次讀取時去「管理者名單」查最新的姓名與電話。
+ *
+ * 舊資料的處理者欄存的是姓名，查不到對應帳號時會直接顯示原字串，
+ * 不會變成空白，也不會出錯。
+ */
+const HANDLER_LOOKUP_FALLBACK_AS_NAME = true;

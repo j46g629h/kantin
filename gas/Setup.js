@@ -526,6 +526,59 @@ function setDropdown(sheet, col, values) {
 }
 
 
+/**
+ * 升級：在「管理者名單」新增「電話」欄。
+ *
+ * 用途：管理者處理案件時可以指派負責人，員工在查詢頁就會看到
+ * 「目前由某某處理，電話 XXXX」，不必再打去總機問。
+ *
+ * ⚠️ 請填**公務分機**，不要填私人手機。
+ *    員工端查詢頁不需要登入，任何知道案件編號的人都看得到這組號碼。
+ *
+ * 重複執行是安全的：已經有這一欄就會略過。
+ *
+ * 執行方式：函式下拉選單選 migrateAddAdminPhone → 按 ▷ 執行 → 看執行紀錄
+ */
+function migrateAddAdminPhone() {
+  const sheet = getSheet(SHEETS.ADMINS);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const report = [];
+
+  if (headers.indexOf('電話') !== -1) {
+    const msg = '－ 「' + SHEETS.ADMINS + '」已經有「電話」欄，不需要再升級。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  // 插在「Email」右邊，聯絡方式放在一起比較好讀
+  const emailIndex = headers.indexOf('Email');
+  if (emailIndex === -1) throw new Error('找不到「Email」欄，請先確認分頁結構');
+
+  const newCol = emailIndex + 2;
+  sheet.insertColumnAfter(emailIndex + 1);
+
+  sheet.getRange(1, newCol).setValue('電話');
+  sheet.getRange(1, newCol)
+    .setFontWeight('bold')
+    .setBackground('#e8eaed')
+    .setVerticalAlignment('middle');
+  sheet.setColumnWidth(newCol, 110);
+
+  // 分機可能有前導零，一定要設成純文字
+  sheet.getRange(2, newCol, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+
+  report.push('✔ 「' + SHEETS.ADMINS + '」已新增「電話」欄（第 ' + newCol + ' 欄）');
+  report.push('    格式已設為純文字，分機的前導零不會被吃掉');
+  report.push('');
+  report.push('接下來請到「' + SHEETS.ADMINS + '」分頁，把每位管理者的公務分機填進去。');
+  report.push('沒填的話，員工查詢時只會看到處理者姓名，不會顯示電話。');
+
+  const text = report.join(String.fromCharCode(10));
+  Logger.log(text);
+  return text;
+}
+
+
 // ===== 輔助函式（只有這個檔案用得到）=====
 
 /** 取得分頁，不存在就建立 */

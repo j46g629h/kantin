@@ -75,6 +75,8 @@ const I18N = {
     'query.reply':       '管理者回覆',
     'query.noReply':     '尚未回覆，我們正在處理中',
     'query.photos':      '照片',
+    'query.handler':     '目前由誰處理',
+    'query.handlerPhone':'聯絡電話',
 
     // --- 提交成功 ---
     'success.title':    '送出成功',
@@ -202,6 +204,15 @@ const I18N = {
     'admin.reply.saving':     '儲存中…',
     'admin.reply.saved':      '已儲存 {id}',
     'admin.reply.noChange':   '沒有任何變更',
+    'admin.reply.handler':    '指派處理者',
+    'admin.reply.noHandler':  '不指派',
+    'admin.reply.handlerHint':'指派後，員工查詢時就看得到是誰在處理、可以打給誰',
+
+    // --- 管理端：月份 ---
+    'admin.month.pick':    '選擇月份',
+    'admin.month.label':   '{y} 年 {m} 月',
+    'admin.month.count':   '{n} 件',
+    'admin.month.current': '本月',
 
     // --- 管理端錯誤 ---
     'err.LOGIN_REQUIRED':       '請輸入帳號與密碼',
@@ -220,6 +231,7 @@ const I18N = {
     'err.STATUS_REQUIRED':      '請選擇處理狀態',
     'err.STATUS_INVALID':       '處理狀態不正確，請重新選擇',
     'err.RESPONSE_REQUIRED':    '這個狀態必須填寫回覆內容',
+    'err.HANDLER_INVALID':      '指派的處理者不存在或已停用，請重新選擇',
 
     // --- 頁尾系統資訊 ---
     'footer.version':    '系統版本',
@@ -286,6 +298,8 @@ const I18N = {
     'query.reply':       'Balasan dari Pengelola',
     'query.noReply':     'Belum dibalas, masih kami proses ya',
     'query.photos':      'Foto',
+    'query.handler':     'Ditangani oleh',
+    'query.handlerPhone':'Nomor kontak',
 
     // --- Berhasil ---
     'success.title':    'Laporan Terkirim!',
@@ -413,6 +427,15 @@ const I18N = {
     'admin.reply.saving':     'Menyimpan…',
     'admin.reply.saved':      '{id} sudah tersimpan',
     'admin.reply.noChange':   'Tidak ada perubahan',
+    'admin.reply.handler':    'Tugaskan ke',
+    'admin.reply.noHandler':  'Belum ditugaskan',
+    'admin.reply.handlerHint':'Setelah ditugaskan, karyawan bisa lihat siapa yang menangani dan nomor kontaknya',
+
+    // --- Admin: bulan ---
+    'admin.month.pick':    'Pilih bulan',
+    'admin.month.label':   '{m}/{y}',
+    'admin.month.count':   '{n} laporan',
+    'admin.month.current': 'Bulan ini',
 
     // --- Pesan kesalahan admin ---
     'err.LOGIN_REQUIRED':       'Isi akun dan kata sandi dulu ya',
@@ -431,6 +454,7 @@ const I18N = {
     'err.STATUS_REQUIRED':      'Pilih status dulu ya',
     'err.STATUS_INVALID':       'Status tidak valid, pilih ulang ya',
     'err.RESPONSE_REQUIRED':    'Status ini wajib diisi balasan',
+    'err.HANDLER_INVALID':      'Penanggung jawab tidak ditemukan atau sudah nonaktif, pilih ulang ya',
 
     // --- Info sistem ---
     'footer.version':    'Versi',

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Daftar Laporan · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=1.4">
+  <link rel="stylesheet" href="css/style.css?v=1.5">
 </head>
 <body>
 
@@ -50,11 +50,15 @@
             <span class="stat-num" id="statProc">–</span>
             <span class="stat-label" id="statProcLabel">Sedang Diproses</span>
           </button>
-          <button type="button" class="stat-card stat-month" data-status="">
+          <button type="button" class="stat-card stat-month" id="statMonthCard">
             <span class="stat-num" id="statMonth">–</span>
             <span class="stat-label" id="statMonthLabel">Bulan Ini</span>
+            <span class="stat-caret">▾</span>
           </button>
         </div>
+
+        <!-- 月份選單：點「本月」卡片才展開，只列出真的有資料的月份 -->
+        <div id="monthPicker" class="month-picker hidden"></div>
 
         <!-- 有逾期案件時才出現 -->
         <div id="overdueNote" class="overdue-note hidden"></div>
@@ -129,12 +133,12 @@
 
   </div>
 
-  <script src="js/config.js?v=1.4"></script>
-  <script src="js/i18n.js?v=1.4"></script>
-  <script src="js/ui.js?v=1.4"></script>
-  <script src="js/api.js?v=1.4"></script>
-  <script src="js/admin-session.js?v=1.4"></script>
-  <script src="js/admin-cases.js?v=1.4"></script>
+  <script src="js/config.js?v=1.5"></script>
+  <script src="js/i18n.js?v=1.5"></script>
+  <script src="js/ui.js?v=1.5"></script>
+  <script src="js/api.js?v=1.5"></script>
+  <script src="js/admin-session.js?v=1.5"></script>
+  <script src="js/admin-cases.js?v=1.5"></script>
 
 </body>
 </html>

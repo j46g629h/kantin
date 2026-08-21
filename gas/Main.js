@@ -59,6 +59,7 @@ const ROUTES = {
   adminChangePassword: function (p) { return withAuth(p, function (s) { return adminChangePassword(p, s); }); },
   getCaseList:         function (p) { return withAuth(p, function (s) { return getCaseList(p, s); }); },
   getTemplates:        function (p) { return withAuth(p, function (s) { return getTemplates(p, s); }); },
+  getAdminOptions:     function (p) { return withAuth(p, function (s) { return getAdminOptions(p, s); }); },
   updateCase:          function (p) { return withAuth(p, function (s) { return updateCase(p, s); }); },
 };
 

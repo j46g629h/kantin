@@ -21,6 +21,9 @@ const state = {
   loaded:  false,  // 是否已經成功載入過一次（用來分辨「還沒查」與「查無資料」）
 
   templates: [],   // 回覆範本
+  admins:    [],   // 可指派的處理者
+  months:    [],   // 有資料的月份 [{month,count}]
+  month:     '',   // 目前檢視的月份 YYYYMM（空 = 本月）
   saving:    false,
   savedMsg:  '',   // 儲存成功後短暫顯示的訊息
 
@@ -70,6 +73,8 @@ const el = {
   statNewLabel:   document.getElementById('statNewLabel'),
   statProcLabel:  document.getElementById('statProcLabel'),
   statMonthLabel: document.getElementById('statMonthLabel'),
+  statMonthCard:  document.getElementById('statMonthCard'),
+  monthPicker:    document.getElementById('monthPicker'),
   overdueNote:    document.getElementById('overdueNote'),
 
   filterToggle:     document.getElementById('filterToggle'),
@@ -118,13 +123,15 @@ async function boot() {
     // 三件事同時發出，總等待時間等於最慢的那一個，不是三個相加。
     // 範本用 safeLoadTemplates()：範本讀不到只是少了快捷按鈕，
     // 不該讓整頁掛掉（Promise.all 只要有一個 reject 就全部失敗）
-    const [options, templates] = await Promise.all([
+    const [options, templates, admins] = await Promise.all([
       loadOptions(),
       safeLoadTemplates(),
+      safeLoadAdmins(),
       loadCases(),
     ]);
     state.options   = options;
     state.templates = templates;
+    state.admins    = admins;
 
     el.bootView.classList.add('hidden');
     el.adminBar.classList.remove('hidden');
@@ -157,7 +164,7 @@ async function loadCases() {
   hide(el.listError);
 
   try {
-    const result = await Api.getCaseList(AdminSession.token(), filters);
+    const result = await Api.getCaseList(AdminSession.token(), filters, state.month);
 
     if (!result.ok) {
       if (result.error === 'UNAUTHORIZED') {
@@ -172,8 +179,13 @@ async function loadCases() {
     state.cases  = result.data.cases || [];
     state.total  = result.data.total || 0;
     state.stats  = result.data.stats || null;
+    state.months = result.data.available_months || [];
     state.openId = '';
     state.loaded = true;
+
+    // 後端會把實際採用的月份回傳（沒指定時就是本月），
+    // 存下來讓月份選單知道現在該highlight哪一個
+    if (state.stats && state.stats.month) state.month = state.stats.month;
 
   } catch (err) {
     show(el.listError, t('err.NETWORK'));
@@ -193,6 +205,21 @@ async function safeLoadTemplates() {
   try {
     const result = await Api.getTemplates(AdminSession.token());
     return result.ok ? (result.data.templates || []) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+
+/**
+ * 讀取可指派的處理者名單。
+ * 跟範本一樣，讀不到就回傳空陣列——少了指派下拉還是能回覆，
+ * 不該讓整個頁面進不去。
+ */
+async function safeLoadAdmins() {
+  try {
+    const result = await Api.getAdminOptions(AdminSession.token());
+    return result.ok ? (result.data.admins || []) : [];
   } catch (err) {
     return [];
   }
@@ -257,8 +284,8 @@ el.refreshBtn.addEventListener('click', async () => {
 });
 
 
-/** 統計卡片點一下就依該狀態篩選；再點一次取消 */
-document.querySelectorAll('.stat-card').forEach((card) => {
+/** 狀態卡片點一下就依該狀態篩選；再點一次取消 */
+document.querySelectorAll('.stat-card[data-status]').forEach((card) => {
   card.addEventListener('click', async () => {
     const status = card.dataset.status;
     filters.status_code = (filters.status_code === status) ? '' : status;
@@ -267,6 +294,73 @@ document.querySelectorAll('.stat-card').forEach((card) => {
     renderAll();
   });
 });
+
+
+/** 月份卡片：點一下展開月份選單 */
+el.statMonthCard.addEventListener('click', () => {
+  el.monthPicker.classList.toggle('hidden');
+  renderMonthPicker();
+});
+
+
+/**
+ * 畫出月份選單。
+ *
+ * 只列出真的有案件的月份——列出所有月份的話，
+ * 使用者會點到一個空白月份，然後懷疑是不是壞了。
+ */
+function renderMonthPicker() {
+  el.monthPicker.innerHTML = '';
+  if (el.monthPicker.classList.contains('hidden')) return;
+
+  const title = document.createElement('div');
+  title.className = 'month-picker-title';
+  title.textContent = t('admin.month.pick');
+  el.monthPicker.appendChild(title);
+
+  const thisMonth = currentYearMonth();
+
+  state.months.forEach((entry) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'month-item' + (entry.month === state.month ? ' active' : '');
+
+    const label = document.createElement('span');
+    label.textContent = monthLabel(entry.month)
+      + (entry.month === thisMonth ? '（' + t('admin.month.current') + '）' : '');
+
+    const count = document.createElement('span');
+    count.className = 'month-count';
+    count.textContent = t('admin.month.count').replace('{n}', entry.count);
+
+    btn.appendChild(label);
+    btn.appendChild(count);
+
+    btn.addEventListener('click', async () => {
+      state.month = entry.month;
+      el.monthPicker.classList.add('hidden');
+      await loadCases();
+      renderAll();
+    });
+
+    el.monthPicker.appendChild(btn);
+  });
+}
+
+
+/** YYYYMM → 依語言顯示的月份文字 */
+function monthLabel(month) {
+  const y = String(month).slice(0, 4);
+  const m = String(Number(String(month).slice(4, 6)));
+  return t('admin.month.label').replace('{y}', y).replace('{m}', m);
+}
+
+
+/** 目前年月 YYYYMM。用本機時區——管理者跟工廠在同一個時區 */
+function currentYearMonth() {
+  const now = new Date();
+  return String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0');
+}
 
 
 el.filterToggle.addEventListener('click', () => {
@@ -301,6 +395,23 @@ function hasActiveFilter() {
 }
 
 
+/**
+ * 清單是不是被「縮小過範圍」。
+ *
+ * 用來決定沒有資料時該說哪一句：
+ *   縮小過範圍 → 「沒有符合條件的案件」
+ *   沒縮小過   → 「目前還沒有任何回報」
+ *
+ * 看的不只是篩選條件，還包括「正在看哪個月」——
+ * 選了三月而三月剛好沒案件時，說「目前還沒有任何回報」
+ * 會讓人以為整個系統都是空的。
+ */
+function isNarrowedView() {
+  const viewing = state.month || currentYearMonth();
+  return hasActiveFilter() || viewing !== currentYearMonth();
+}
+
+
 // ===== 畫面 =====
 
 function renderAll() {
@@ -326,7 +437,7 @@ function renderTexts() {
 
   el.statNewLabel.textContent   = t('admin.stats.new');
   el.statProcLabel.textContent  = t('admin.stats.processing');
-  el.statMonthLabel.textContent = t('admin.stats.thisMonth');
+  // 月份卡片的標題由 renderStats() 決定（可能是「本月」也可能是某個月份）
 
   el.labelKeyword.textContent  = t('admin.filter.keyword');
   el.labelStatus.textContent   = t('admin.filter.status');
@@ -367,13 +478,23 @@ function renderStats() {
 
   el.statNew.textContent   = stats.new;
   el.statProc.textContent  = stats.processing;
-  el.statMonth.textContent = stats.this_month;
+  el.statMonth.textContent = stats.month_count;
+
+  // 月份卡片的標題跟著選定月份走；看的是本月就顯示「本月」
+  const viewing = state.month || currentYearMonth();
+  el.statMonthLabel.textContent = (viewing === currentYearMonth())
+    ? t('admin.stats.thisMonth')
+    : monthLabel(viewing);
 
   // 目前依哪個狀態篩選，那張卡片就highlight
-  document.querySelectorAll('.stat-card').forEach((card) => {
-    const active = !!card.dataset.status && card.dataset.status === filters.status_code;
-    card.classList.toggle('active', active);
+  document.querySelectorAll('.stat-card[data-status]').forEach((card) => {
+    card.classList.toggle('active', card.dataset.status === filters.status_code && !!filters.status_code);
   });
+
+  // 不是在看本月時，月份卡片也highlight，提醒現在看的不是當月
+  el.statMonthCard.classList.toggle('active', viewing !== currentYearMonth());
+
+  renderMonthPicker();
 
   if (stats.overdue > 0) {
     el.overdueNote.textContent = '⚠️ ' + t('admin.stats.overdue').replace('{n}', stats.overdue);
@@ -435,7 +556,7 @@ function renderListInner() {
     if (state.loaded) {
       const empty = document.createElement('div');
       empty.className = 'state-box';
-      empty.textContent = hasActiveFilter() ? t('admin.list.empty') : t('admin.list.emptyAll');
+      empty.textContent = isNarrowedView() ? t('admin.list.empty') : t('admin.list.emptyAll');
       el.caseList.appendChild(empty);
     }
     return;
@@ -469,6 +590,9 @@ function buildCaseCard(item) {
       `<div class="case-meta">${escapeHtml(labelOf('LOCATION', item.location_code))}` +
         ` · ${escapeHtml(labelOf('MEAL', item.meal_code))}` +
         ` · ${escapeHtml(item.emp_name || item.emp_id)}</div>` +
+      (item.handler && item.handler.name
+        ? `<div class="case-meta case-assigned">👤 ${escapeHtml(item.handler.name)}</div>`
+        : '') +
       `<div class="case-meta">${categoryChips(item)}` +
         `<span class="case-stars">${starText(item.rating)}</span></div>` +
     `</div>` +
@@ -519,8 +643,14 @@ function buildCaseDetail(item) {
     box.appendChild(row);
   }
 
+  // 處理者：後端回傳的是 { account, name, phone }
+  const handler = item.handler || {};
   box.appendChild(detailRow(t('admin.case.handler'),
-    item.handler || t('admin.case.noHandler'), false));
+    handler.name
+      ? escapeHtml(handler.name) +
+        (handler.phone ? ` <span class="case-emp-id">${escapeHtml(handler.phone)}</span>` : '')
+      : escapeHtml(t('admin.case.noHandler')),
+    true));
 
   // 回覆
   const replyBox = document.createElement('div');
@@ -580,6 +710,50 @@ function buildReplyForm(item) {
     renderReplyHint(form, draft);
   });
   form.appendChild(select);
+
+  // --- 指派處理者 ---
+  // 名單讀不到時就不顯示這一區，管理者照樣可以回覆
+  if (state.admins.length) {
+    const handlerLabel = document.createElement('label');
+    handlerLabel.className = 'reply-label';
+    handlerLabel.textContent = t('admin.reply.handler');
+    form.appendChild(handlerLabel);
+
+    const handlerSelect = document.createElement('select');
+    handlerSelect.className = 'reply-handler';
+
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = t('admin.reply.noHandler');
+    handlerSelect.appendChild(none);
+
+    state.admins.forEach((admin) => {
+      const node = document.createElement('option');
+      node.value = admin.account;
+      // 分機一起顯示，指派時就知道等一下要打給誰
+      node.textContent = admin.name + (admin.phone ? '（' + admin.phone + '）' : '');
+      handlerSelect.appendChild(node);
+    });
+
+    // 目前指派的人可能已經離職而不在清單裡，補一個選項免得選擇被清掉
+    if (draft.handler_account && !state.admins.some((a) => a.account === draft.handler_account)) {
+      const stale = document.createElement('option');
+      stale.value = draft.handler_account;
+      stale.textContent = (item.handler && item.handler.name) || draft.handler_account;
+      handlerSelect.appendChild(stale);
+    }
+
+    handlerSelect.value = draft.handler_account;
+    handlerSelect.addEventListener('change', () => {
+      draft.handler_account = handlerSelect.value;
+    });
+    form.appendChild(handlerSelect);
+
+    const handlerHint = document.createElement('div');
+    handlerHint.className = 'reply-handler-hint';
+    handlerHint.textContent = t('admin.reply.handlerHint');
+    form.appendChild(handlerHint);
+  }
 
   // --- 回覆內容 ---
   const contentLabel = document.createElement('label');
@@ -683,9 +857,10 @@ function renderReplyHint(form, draft) {
 function currentDraft(item) {
   if (!state.draft || state.draft.case_id !== item.case_id) {
     state.draft = {
-      case_id:     item.case_id,
-      status_code: item.status_code || 'ST_NEW',
-      response:    item.response || '',
+      case_id:         item.case_id,
+      status_code:     item.status_code || 'ST_NEW',
+      response:        item.response || '',
+      handler_account: (item.handler && item.handler.account) || '',
     };
   }
   return state.draft;
@@ -727,7 +902,10 @@ async function saveCase(item, draft, form) {
   }
 
   // 什麼都沒改就不要白跑一趟
-  if (draft.status_code === item.status_code && response === (item.response || '')) {
+  const currentHandler = (item.handler && item.handler.account) || '';
+  if (draft.status_code === item.status_code
+      && response === (item.response || '')
+      && draft.handler_account === currentHandler) {
     error.textContent = t('admin.reply.noChange');
     error.classList.remove('hidden');
     return;
@@ -739,7 +917,7 @@ async function saveCase(item, draft, form) {
 
   try {
     const result = await Api.updateCase(
-      AdminSession.token(), item.case_id, draft.status_code, response);
+      AdminSession.token(), item.case_id, draft.status_code, response, draft.handler_account);
 
     if (!result.ok) {
       if (result.error === 'UNAUTHORIZED') {

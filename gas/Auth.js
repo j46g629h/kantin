@@ -409,3 +409,89 @@ function isTrue(value) {
   const s = str(value).toUpperCase();
   return s === 'TRUE' || s === 'Y' || s === 'YES' || s === '1';
 }
+
+
+// ===== 處理者名單（給案件指派用）=====
+
+/**
+ * POST { action:'getAdminOptions', token }
+ *
+ * 回傳可以被指派為處理者的管理者清單（只有 ACTIVE 的）。
+ *
+ * 一般管理者也需要這份清單才能指派同事，所以不限 SUPER。
+ * 刻意**不回傳** Email——指派用不到，少一個個資外流的機會。
+ */
+function getAdminOptions(params, session) {
+  const list = readAllAdmins()
+    .filter(function (admin) {
+      return str(admin.status).toUpperCase() === ADMIN_STATUS.ACTIVE;
+    })
+    .map(function (admin) {
+      return {
+        account: str(admin.account).toLowerCase(),
+        name:    str(admin.name) || str(admin.account),
+        phone:   str(admin.phone),
+      };
+    });
+
+  return ok({ admins: list });
+}
+
+
+/**
+ * 建立「帳號 → { name, phone }」的對照表。
+ *
+ * 案件的「處理者」欄存的是帳號（設計約定第 1 條），
+ * 顯示的時候才去查最新的姓名與電話——這樣某人改名或換分機之後，
+ * 連歷史案件顯示的資料都會跟著更新。
+ *
+ * 一次建好整張表，不要每筆案件各查一次。
+ */
+function buildHandlerMap() {
+  const map = {};
+  readAllAdmins().forEach(function (admin) {
+    const account = str(admin.account).toLowerCase();
+    if (!account) return;
+    map[account] = {
+      account: account,
+      name:    str(admin.name) || account,
+      phone:   str(admin.phone),
+      active:  str(admin.status).toUpperCase() === ADMIN_STATUS.ACTIVE,
+    };
+  });
+  return map;
+}
+
+
+/**
+ * 這個帳號現在可以被指派為處理者嗎（存在，而且還在職）。
+ *
+ * ⚠️ 不能只看 buildHandlerMap() 裡有沒有這個 key。
+ *    那張表刻意包含已停用的管理者——離職者以前處理過的案件仍要顯示得出是誰處理的。
+ *    但「可以指派給誰」是另一回事，不能把新案子丟給已經離職的同事。
+ */
+function canBeAssigned(account, handlerMap) {
+  const found = handlerMap[str(account).toLowerCase()];
+  return !!found && found.active === true;
+}
+
+
+/**
+ * 把案件裡存的處理者值換成可顯示的資料。
+ *
+ * @param {string} raw 「處理者」欄的內容（帳號，或早期資料的姓名）
+ * @param {Object} handlerMap buildHandlerMap() 的結果
+ * @return {{account:string, name:string, phone:string}} 沒有指派時三個欄位都是空字串
+ */
+function resolveHandler(raw, handlerMap) {
+  const value = str(raw);
+  if (!value) return { account: '', name: '', phone: '' };
+
+  const found = handlerMap[value.toLowerCase()];
+  // 只挑顯示需要的欄位；internal 的 active 不要跟著回傳到 API 之外
+  if (found) return { account: found.account, name: found.name, phone: found.phone };
+
+  // 查不到就把原字串當成姓名顯示。
+  // 早期資料的處理者欄存的是姓名，這樣舊案件不會變成空白
+  return { account: '', name: value, phone: '' };
+}
