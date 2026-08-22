@@ -63,6 +63,19 @@ const SCHEDULED_JOBS = [
     },
     describe: '每月 1 日 ' + BACKUP.MONTHLY_HOUR + ':00 前後，複製整份 Sheet（關卡 4-4）',
   },
+  {
+    handler: 'deidentifyMonthly',
+    label:   '結案滿 13 個月去識別化',
+    build:   function () {
+      return ScriptApp.newTrigger('deidentifyMonthly')
+        .timeBased()
+        .onMonthDay(1)
+        .atHour(RETENTION.MONTHLY_HOUR)
+        .create();
+    },
+    describe: '每月 1 日 ' + RETENTION.MONTHLY_HOUR + ':00 前後，'
+            + '清工號 / 姓名 / 照片（關卡 4-5，會改資料）',
+  },
 ];
 
 
@@ -75,12 +88,13 @@ const SCHEDULED_JOBS = [
  *
  *    目前每月 1 日的順序：
  *
- *      02:00  backupMonthly     先把安全網架好
- *      08:00  sendMonthlyReport 再寄上個月的統計
+ *      02:00  backupMonthly      先把安全網架好
+ *      05:00  deidentifyMonthly  再清掉滿 13 個月的個資
+ *      08:00  sendMonthlyReport  最後寄上個月的統計
  *
- *    關卡 4-5 的去識別化要插在備份**之後**（規劃 05:00），
- *    而且它自己還會再檢查一次「有沒有近期備份」，沒有就拒絕執行——
- *    光靠時間排序是不夠的，萬一備份那次失敗了，時間再怎麼排也沒用。
+ *    **光靠時間排序是不夠的。** 萬一那天的備份剛好失敗，時間再怎麼排也沒用，
+ *    所以 deidentifyMonthly 自己還會再檢查一次「有沒有近期備份」，
+ *    沒有就拒絕執行（見 gas/Retention.js 的 requireRecentBackup）。
  */
 
 
@@ -109,6 +123,7 @@ function installTriggers() {
   report.push('⚠️ 實際執行時間會落在該小時內的某個時刻，不是準點，這是 Google 的排程方式。');
   report.push('');
   report.push('想先測試不要等：sendDailyReportNow() / sendMonthlyReportNow() / backupNow()。');
+  report.push('⚠️ 去識別化會改資料，先用 previewDeidentify() 試跑看名單，確認後才執行 deidentifyNow()。');
   report.push('想停掉全部排程：執行 removeTriggers()。');
 
   const msg = report.join('\n');
