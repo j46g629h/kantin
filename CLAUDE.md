@@ -65,7 +65,8 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 **後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Store`（附有效期的鍵值儲存）/ `Main`（路由）/ `Auth`（登入與權限）/
 `Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
 `Admins`（帳號管理，僅 SUPER）/ `Notify`（寄信共用）/ `Reports`（排程報表）/
-`Triggers`（排程安裝與移除）/ `Stats`（Dashboard 統計與月報統計）/ `Setup`（一次性腳本與維運工具）
+`Triggers`（排程安裝與移除）/ `Stats`（Dashboard 統計與月報統計）/
+`Backup`（每月備份 Sheet）/ `Setup`（一次性腳本與維運工具）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -389,6 +390,7 @@ node tools/test-store.js       # 附有效期的鍵值儲存
 node tools/test-admin-api.js   # 帳號管理 API（權限 / 新增 / 停用 / 重設密碼 / token 作廢）
 node tools/test-report-api.js  # 排程報表（收件人 / 日報 / 月報 / 空信規則 / 寄信失敗）
 node tools/test-stats-api.js   # Dashboard 統計（月 / 年 / 趨勢 / 各餐廳表現）
+node tools/test-backup-api.js  # 每月自動備份（保留份數 / 不誤刪使用者檔案 / 失敗處理）
 node tools/test-version-sync.js # 版本號與系統資訊有沒有漏改（見設計約定第 5 條）
 ```
 

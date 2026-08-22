@@ -51,7 +51,37 @@ const SCHEDULED_JOBS = [
     },
     describe: '每月 1 日 ' + REPORT.MONTHLY_HOUR + ':00 前後，統計上個月（規格 §10.2）',
   },
+  {
+    handler: 'backupMonthly',
+    label:   '每月自動備份',
+    build:   function () {
+      return ScriptApp.newTrigger('backupMonthly')
+        .timeBased()
+        .onMonthDay(1)
+        .atHour(BACKUP.MONTHLY_HOUR)
+        .create();
+    },
+    describe: '每月 1 日 ' + BACKUP.MONTHLY_HOUR + ':00 前後，複製整份 Sheet（關卡 4-4）',
+  },
 ];
+
+
+/**
+ * ⚠️ **同一天的排程，時間一定要錯開，而且要照該有的順序排。**
+ *
+ *    同一個小時的兩個觸發器**沒有先後順序保證**——Google 自己調度。
+ *    備份如果排在去識別化後面才跑，備到的就是已經被清掉的資料，
+ *    安全網等於不存在，而且完全看不出來哪裡不對。
+ *
+ *    目前每月 1 日的順序：
+ *
+ *      02:00  backupMonthly     先把安全網架好
+ *      08:00  sendMonthlyReport 再寄上個月的統計
+ *
+ *    關卡 4-5 的去識別化要插在備份**之後**（規劃 05:00），
+ *    而且它自己還會再檢查一次「有沒有近期備份」，沒有就拒絕執行——
+ *    光靠時間排序是不夠的，萬一備份那次失敗了，時間再怎麼排也沒用。
+ */
 
 
 /**
@@ -78,7 +108,7 @@ function installTriggers() {
   report.push('時區：' + Session.getScriptTimeZone());
   report.push('⚠️ 實際執行時間會落在該小時內的某個時刻，不是準點，這是 Google 的排程方式。');
   report.push('');
-  report.push('想先測試不要等：執行 sendDailyReportNow() 或 sendMonthlyReportNow()。');
+  report.push('想先測試不要等：sendDailyReportNow() / sendMonthlyReportNow() / backupNow()。');
   report.push('想停掉全部排程：執行 removeTriggers()。');
 
   const msg = report.join('\n');
