@@ -39,6 +39,18 @@ const SCHEDULED_JOBS = [
     },
     describe: '每天 ' + REPORT.DAILY_HOUR + ':00 前後（規格 §10.1）',
   },
+  {
+    handler: 'sendMonthlyReport',
+    label:   '每月統計月報',
+    build:   function () {
+      return ScriptApp.newTrigger('sendMonthlyReport')
+        .timeBased()
+        .onMonthDay(1)
+        .atHour(REPORT.MONTHLY_HOUR)
+        .create();
+    },
+    describe: '每月 1 日 ' + REPORT.MONTHLY_HOUR + ':00 前後，統計上個月（規格 §10.2）',
+  },
 ];
 
 
@@ -66,7 +78,7 @@ function installTriggers() {
   report.push('時區：' + Session.getScriptTimeZone());
   report.push('⚠️ 實際執行時間會落在該小時內的某個時刻，不是準點，這是 Google 的排程方式。');
   report.push('');
-  report.push('想先測試不要等：執行 sendDailyReportNow()。');
+  report.push('想先測試不要等：執行 sendDailyReportNow() 或 sendMonthlyReportNow()。');
   report.push('想停掉全部排程：執行 removeTriggers()。');
 
   const msg = report.join('\n');

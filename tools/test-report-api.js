@@ -4,6 +4,8 @@
  *   getReportRecipients  收件人怎麼挑
  *   buildDailyReport     哪些案件該進日報、排序、逾期計數
  *   sendDailyReport      空信規則、主旨、寄幾封、失敗處理
+ *   buildMonthlyStats    月報統計、未結案定義、與上個月比較
+ *   sendMonthlyReport    抓哪一個月、空月份照寄、月份代碼防呆
  *   HTML                 跳脫、逾期標紅、筆數上限
  *
  * 作法與其他兩支測試相同：把 Apps Script 的全域服務用假的頂上。
@@ -190,7 +192,7 @@ vm.runInContext(
    __OPTIONS = ${JSON.stringify(OPTIONS_SPEC)};`, sandbox);
 
 // 3) 載入要測的程式
-['Config.js', 'Utils.js', 'Options.js', 'Query.js', 'Cases.js', 'Notify.js', 'Reports.js'].forEach((f) => {
+['Config.js', 'Utils.js', 'Options.js', 'Query.js', 'Cases.js', 'Stats.js', 'Notify.js', 'Reports.js'].forEach((f) => {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', f), 'utf8'), sandbox, { filename: f });
 });
 
@@ -393,6 +395,142 @@ check('錯誤日誌說得出原因',
   String(sandbox.__LOGS[0][3]).indexOf('沒有任何可用的收件人') >= 0, true);
 sandbox.__ADMINS = savedAdmins;
 evalIn(`__ADMINS = ${JSON.stringify(ADMINS_SPEC)}`);
+
+
+console.log('\n===== 月份代碼的加減 =====\n');
+
+check('現在是哪一個月',        evalIn('currentMonthKey()'), '202608');
+check('上一個月',              evalIn(`previousMonthKey('202608')`), '202607');
+check('1 月的上一個月是去年 12 月', evalIn(`previousMonthKey('202601')`), '202512');
+check('12 月的上一個月',       evalIn(`previousMonthKey('202612')`), '202611');
+check('11 月的上一個月要補零', evalIn(`previousMonthKey('202611')`), '202610');
+check('月份名稱（印尼文）',    evalIn(`monthLabel('202607').id`), 'Juli 2026');
+check('月份名稱（中文）',      evalIn(`monthLabel('202607').zh`), '2026 年 7 月');
+
+
+console.log('\n===== buildMonthlyStats：月報統計 =====\n');
+
+const m8 = evalIn(`buildMonthlyStats('202608')`);
+
+check('只算當月的案件',        m8.total, 4);
+check('軟刪除的不算',
+  m8.open_cases.some((c) => c.case_id === 'PCI-202608-005'), false);
+check('平均滿意度只算有評分的', m8.avg_rating, 3);
+check('沒有結案 → 結案率 0',    m8.done_rate, 0);
+check('沒有結案 → 平均處理天數 null（不是 0）', m8.avg_days, null);
+
+// 未結案 = 不等於已結案，含「處理中」——與日報的「未處理」刻意不同
+check('未結案含處理中的案件',
+  m8.open_cases.some((c) => c.case_id === 'PCI-202608-003'), true);
+check('未結案件數',            m8.open_total, 4);
+check('放最久的排最前面',
+  m8.open_cases.map((c) => c.case_id),
+  ['PCI-202608-001', 'PCI-202608-003', 'PCI-202608-006', 'PCI-202608-002']);
+check('狀態空白的算成未處理',
+  m8.open_cases.find((c) => c.case_id === 'PCI-202608-006').status_code, 'ST_NEW');
+
+check('各餐廳表現（回報數多的排前面）',
+  m8.locations.map((l) => [l.code, l.total, l.avg_rating]),
+  [['LOC_02', 2, 2.5], ['LOC_04', 2, 3.5]]);
+
+// 複選：4 件案件卻有 5 個分類計次，這是對的（規格 §10 的提醒）
+check('分類按出現次數（總和會超過案件數）',
+  m8.by_category.reduce((sum, c) => sum + c.count, 0), 5);
+check('最多的分類排最前面',    m8.by_category[0].code, 'CAT_HYGIENE');
+
+check('有比上個月（202607 有資料）', m8.previous.month, '202607');
+check('上個月的總數',          m8.previous.total, 1);
+check('上個月的平均滿意度',    m8.previous.avg_rating, 5);
+check('上個月的結案率',        m8.previous.done_rate, 100);
+
+const m7 = evalIn(`buildMonthlyStats('202607')`);
+check('7 月全部結案 → 未結案 0', m7.open_total, 0);
+check('7 月結案率 100%',        m7.done_rate, 100);
+check('7 月平均處理天數（21 小時 → 0.9 天）', m7.avg_days, 0.9);
+check('6 月沒有資料 → previous 是 null（不是 0）', m7.previous, null);
+
+
+console.log('\n===== sendMonthlyReport：寄信 =====\n');
+
+reset();
+const mResult = evalIn('sendMonthlyReport()');
+
+// 每月 1 日跑，統計的是上個月。測試把「現在」固定在 8/20，所以抓的是 7 月
+check('沒指定月份 → 統計上個月',
+  sandbox.__SENT__[0].subject.indexOf('Juli 2026') >= 0, true);
+check('寄給每一位收件人各一封', sandbox.__SENT__.length, 2);
+check('主旨含件數',
+  sandbox.__SENT__[0].subject, '[Kantin PCI] Laporan Bulanan Juli 2026 · 2026 年 7 月月報（1 件）');
+check('回報寄出結果',          mResult.indexOf('已寄出 2 封') === 0, true);
+check('沒有寫錯誤日誌',        sandbox.__LOGS.length, 0);
+check('全部結案時給的是好消息，不是空表格',
+  sandbox.__SENT__[0].htmlBody.indexOf('Semua laporan sudah selesai') >= 0, true);
+
+reset();
+evalIn(`sendMonthlyReportFor('202608')`);
+const mHtml = sandbox.__SENT__[0].htmlBody;
+
+check('主旨在有未結案時會標出來',
+  sandbox.__SENT__[0].subject,
+  '[Kantin PCI] Laporan Bulanan Agustus 2026 · 2026 年 8 月月報（4 件，未結案 4 件）');
+check('標題印尼文在前',   mHtml.indexOf('Laporan Bulanan · 每月統計月報') >= 0, true);
+check('副標是月份',       mHtml.indexOf('Agustus 2026 · 2026 年 8 月') >= 0, true);
+check('有回報總數',       mHtml.indexOf('Total laporan · 回報總數') >= 0, true);
+check('有各餐廳表現',     mHtml.indexOf('Per kantin · 各餐廳表現') >= 0, true);
+check('地點雙語並列',     mHtml.indexOf('Kantin 2 · 第二餐廳') >= 0, true);
+check('有分類佔比',       mHtml.indexOf('Kategori masalah · 問題分類佔比') >= 0, true);
+check('分類雙語並列',     mHtml.indexOf('Kebersihan · 環境衛生') >= 0, true);
+check('有未結案清單',     mHtml.indexOf('未結案清單（4）') >= 0, true);
+check('未結案清單列出案件編號', mHtml.indexOf('PCI-202608-001') >= 0, true);
+check('沒有人動過的標紅',  mHtml.indexOf('background:#fef2f2;') >= 0, true);
+check('連到動態表',
+  mHtml.indexOf('https://j46g629h.github.io/kantin_PCI_adidas/admin-dashboard.html') >= 0, true);
+
+// 這一行不能省：複選會讓佔比加起來超過 100%，沒寫明的話會被當成算錯
+check('有註明佔比總和會超過 100%',
+  mHtml.indexOf('總和會超過 100%') >= 0, true);
+
+// 與上個月比較：8 月 4 件 vs 7 月 1 件、滿意度 3 vs 5、結案率 0% vs 100%
+check('回報數的比較',      mHtml.indexOf('▲ +3') >= 0, true);
+check('滿意度下降 → 紅字',
+  mHtml.indexOf('#b91c1c;font-size:12px;margin-top:2px;font-weight:bold;">▼ -2') >= 0, true);
+check('結案率下降 → 紅字', mHtml.indexOf('▼ -100%') >= 0, true);
+check('回報數不上色（變多不一定是壞事）',
+  mHtml.indexOf('#6b7280;font-size:12px;margin-top:2px;font-weight:bold;">▲ +3') >= 0, true);
+check('有說明括號裡是什麼', mHtml.indexOf('括號內為與上個月的比較') >= 0, true);
+
+
+console.log('\n===== 月報的空月份規則（與日報相反）=====\n');
+
+// 日報沒事就不寄；月報沒事**也要寄**——
+// 「上個月 0 件」可能是真的平靜，也可能是 QR Code 被撕掉了、沒人知道有這個系統
+reset();
+const emptyMonth = evalIn(`sendMonthlyReportFor('202601')`);
+check('沒有任何回報的月份 → 照樣寄', sandbox.__SENT__.length, 2);
+check('信裡明說這個月沒有回報',
+  sandbox.__SENT__[0].htmlBody.indexOf('這個月沒有任何回報') >= 0, true);
+check('數字沒有樣本時顯示破折號，不是 0',
+  sandbox.__SENT__[0].htmlBody.indexOf('—') >= 0, true);
+check('執行紀錄也說得出來',   emptyMonth.indexOf('共 0 件') >= 0, true);
+check('上個月也沒資料 → 不畫比較',
+  sandbox.__SENT__[0].htmlBody.indexOf('上個月沒有資料') >= 0, true);
+
+
+console.log('\n===== 月份代碼防呆 =====\n');
+
+// 月份代碼算壞時如果不擋，統計會靜靜回傳「0 件」——
+// 那跟「那個月真的沒人回報」看起來一模一樣，是最難發現的一種錯
+reset();
+let threw = '';
+try { evalIn(`sendMonthlyReportFor('2026-07')`); } catch (e) { threw = String(e.message || e); }
+check('月份代碼格式不對 → 丟例外', threw.indexOf('月份代碼不合法') >= 0, true);
+check('而且不會寄出任何信',     sandbox.__SENT__.length, 0);
+check('有寫進錯誤日誌',         sandbox.__LOGS.length, 1);
+
+reset();
+threw = '';
+try { evalIn(`sendMonthlyReportFor('')`); } catch (e) { threw = String(e.message || e); }
+check('空字串也擋下來',         threw.indexOf('月份代碼不合法') >= 0, true);
 
 
 console.log('\n===== 筆數上限 =====\n');

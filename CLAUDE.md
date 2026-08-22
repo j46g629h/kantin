@@ -65,7 +65,7 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 **後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Store`（附有效期的鍵值儲存）/ `Main`（路由）/ `Auth`（登入與權限）/
 `Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
 `Admins`（帳號管理，僅 SUPER）/ `Notify`（寄信共用）/ `Reports`（排程報表）/
-`Triggers`（排程安裝與移除）/ `Stats`（Dashboard 統計）/ `Setup`（一次性腳本與維運工具）
+`Triggers`（排程安裝與移除）/ `Stats`（Dashboard 統計與月報統計）/ `Setup`（一次性腳本與維運工具）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -321,6 +321,8 @@ Sheet 裡只存雜湊，沒有任何地方存得回明文。）
 |---|---|
 | 新增會用到新服務的功能（寄信、Drive、觸發器） | **第一次執行一定會失敗一次。** Apps Script 靠掃描程式碼推算需要哪些權限，剛推上新程式碼時它可能還在用舊的權限清單，於是「授權畫面按過了，功能照樣被擋」。再執行一次就好——第二次的授權畫面才會包含新權限。寫這類功能時，要把授權錯誤跟一般失敗分開報告（見 `gas/Notify.js` 的 `isAuthorizationError`），否則使用者只看到「失敗 N 次」，完全猜不到該做什麼 |
 | 手機版的 CSS 斷點 | **一律寫成 `@media screen and (max-width: ...)`。** A4 扣掉邊界後的內容寬約 703px，裸的 `(max-width: 700px)` 在列印時會被誤觸發，印出來變成手機的排版。動態表的 PDF 輸出就踩過這個 |
+| **新增排程之後** | **一定要重跑 `installTriggers()`。** `clasp push` 只是把程式碼推上去，Google 的鬧鐘不會自己出現——新排程就這樣安靜地不存在。`installTriggers()` 會先清光再重裝，重複執行是安全的；裝完用 `listTriggers()` 確認數量對得上 |
+| Git Bash 的 `/tmp`（Windows）| `/tmp/x.js` 只有在當成**命令列參數**傳給程式時才會被轉成 Windows 路徑。程式在**內部** `open('/tmp/x.js')` 打開時不會轉，會直接 ENOENT——`node --check /tmp/a.js` 可以跑，Python 讀同一個檔案卻失敗。暫存檔一律放專案內的相對路徑 |
 | Apps Script 重新部署 | 必須用「管理部署作業 → 鉛筆 → 版本選『新增版本』」。按「新增部署作業」會產生新網址，前端就斷了 |
 | 時區 | Apps Script 專案時區必須是 `Asia/Jakarta`（已設定完成） |
 | 工號前導零 | 名冊貼進 Sheet 前，工號欄必須先設為「純文字」格式，否則 `0012345` 會變成 `12345` |
@@ -369,7 +371,7 @@ clasp.cmd pull                             # 從線上拉回（很少用）
 node tools/test-cases-api.js   # 管理端案件 API（篩選 / 排序 / 統計 / 逾期 / 回覆 / 指派）
 node tools/test-store.js       # 附有效期的鍵值儲存
 node tools/test-admin-api.js   # 帳號管理 API（權限 / 新增 / 停用 / 重設密碼 / token 作廢）
-node tools/test-report-api.js  # 排程報表（收件人 / 日報內容 / 空信規則 / 寄信失敗）
+node tools/test-report-api.js  # 排程報表（收件人 / 日報 / 月報 / 空信規則 / 寄信失敗）
 node tools/test-stats-api.js   # Dashboard 統計（月 / 年 / 趨勢 / 各餐廳表現）
 ```
 

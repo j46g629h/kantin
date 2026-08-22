@@ -206,7 +206,23 @@ function finishYearBucket(bucket) {
     };
   });
 
-  out.locations = Object.keys(bucket.loc_detail).map(function (code) {
+  out.locations = locationList(bucket);
+
+  return out;
+}
+
+
+/**
+ * 把 loc_detail 換算成「各餐廳表現」的清單。
+ *
+ * 年統計與每月月報都要用（規格 §10.2 的「平均滿意度（整體 + 各餐廳）」），
+ * 所以獨立成一支——兩邊各寫一次的話，哪天結案率的算法改了只會改到其中一邊，
+ * 而 Dashboard 與信裡的數字不一樣是最難查的那種問題。
+ *
+ * @return {Array} [{ code, total, avg_rating, done_rate, avg_days }]，回報數多的排前面
+ */
+function locationList(bucket) {
+  return Object.keys(bucket.loc_detail).map(function (code) {
     const d = bucket.loc_detail[code];
     return {
       code:       code,
@@ -216,8 +232,6 @@ function finishYearBucket(bucket) {
       avg_days:   average(d.days_sum, d.days_n),
     };
   }).sort(function (a, b) { return b.total - a.total; });   // 回報數多的排前面
-
-  return out;
 }
 
 
@@ -266,4 +280,156 @@ function closedDays(submitTime, responseTime, statusCode) {
 
   // 負數代表資料有問題（手動改過時間），不要讓它把平均值拉歪
   return days >= 0 ? Math.round(days * 10) / 10 : null;
+}
+
+
+// ===== 每月月報用的統計（規格 §10.2）=====
+
+/**
+ * 算出某一個月的統計，給每月月報用。
+ *
+ * 為什麼不直接呼叫 getDashboardStats()：那一支是給網頁用的，
+ * 會把**所有月份、所有年份**全部算完（前端要能瞬間切換下拉），
+ * 而月報只需要其中一個月。更重要的是它需要 session（只有 SUPER 能用），
+ * 但排程執行時沒有任何人登入，根本沒有 session 可以給。
+ *
+ * 底層用的是同一組 newBucket / addToBucket / finishBucket，
+ * 所以**信裡的數字與 Dashboard 上的數字一定一致**——
+ * 這件事比省幾行程式重要得多：兩邊各算一次的話，
+ * 哪天口徑改了只會改到一邊，而「網頁說 12 件、信裡說 13 件」
+ * 會讓人開始懷疑整個系統的數字。
+ *
+ * 順便把「前一個月」也算出來（同一趟掃描，不多花成本），
+ * 信裡才有比較基準——單獨一個「本月 23 件」是看不出好壞的。
+ *
+ * @param  {string} monthKey 'yyyyMM'
+ * @return {Object} finishBucket 的結果，另外加上：
+ *                  month / locations / open_cases / open_total / previous
+ */
+function buildMonthlyStats(monthKey) {
+  const prevKey = previousMonthKey(monthKey);
+
+  const bucket = newBucket();
+  const prev   = newBucket();
+  const open   = [];
+
+  const sheet   = getSheet(SHEETS.FEEDBACK);
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow >= 2) {
+    const colMap = getFeedbackColumnMap();
+    const tz     = Session.getScriptTimeZone();
+    const now    = new Date();
+    const rows   = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+    rows.forEach(function (values) {
+      // 軟刪除的不算（設計約定第 4 條）
+      if (isTrue(values[colMap.is_deleted - 1])) return;
+      if (!str(values[colMap.case_id - 1])) return;      // 空白列
+
+      const submitTime = values[colMap.submit_time - 1];
+      if (!submitTime || typeof submitTime.getTime !== 'function') return;
+
+      const key = Utilities.formatDate(submitTime, tz, 'yyyyMM');
+      if (key !== monthKey && key !== prevKey) return;
+
+      const status = str(values[colMap.status_code - 1]).toUpperCase() || 'ST_NEW';
+
+      const item = {
+        status:     status,
+        location:   str(values[colMap.location_code - 1]).toUpperCase(),
+        rating:     Number(values[colMap.rating - 1]) || 0,
+        categories: parseCategoryCodes(values[colMap.category_code - 1]),
+        days:       closedDays(submitTime, values[colMap.response_time - 1], status),
+      };
+
+      // 前一個月只拿來做比較，不需要它的未結案清單
+      if (key === prevKey) { addToBucket(prev, item); return; }
+
+      addToBucket(bucket, item);
+
+      /**
+       * ⚠️ 這裡的「未結案」是**不等於已結案**（含未處理與處理中），
+       *    跟日報的「未處理」（只有未處理）**不是同一件事**。
+       *
+       *    月報回答的是「上個月的案子有沒有收尾」——處理中但還沒結案的
+       *    也是還沒收尾，不列出來的話那些案子會從月報上憑空消失。
+       *    日報回答的是「今天要先動哪一件」，處理中的已經有人在動了。
+       *
+       *    兩個定義不同是刻意的，但一定要寫下來：
+       *    否則哪天有人發現「日報說 3 件、月報說 5 件」會以為系統壞了。
+       */
+      if (status !== 'ST_DONE') {
+        open.push({
+          case_id:        str(values[colMap.case_id - 1]),
+          location_code:  item.location,
+          category_codes: item.categories,
+          status_code:    status,
+          submit_date:    Utilities.formatDate(submitTime, tz, 'yyyy-MM-dd'),
+          days_open:      Math.floor((now - submitTime) / 86400000),
+        });
+      }
+    });
+  }
+
+  // 放最久的排最前面，理由與日報相同：要先處理的永遠是等最久的那件
+  open.sort(function (a, b) { return b.days_open - a.days_open; });
+
+  const out = finishBucket(bucket);
+
+  out.month      = monthKey;
+  out.locations  = locationList(bucket);
+  out.open_cases = open;
+  out.open_total = open.length;
+
+  /**
+   * 前一個月沒有任何資料時回傳 null，不是 0。
+   *
+   * 系統剛上線的第一個月就是這種情況——
+   * 那時候寫「比上個月多 23 件」是假的，上個月根本還沒有這個系統。
+   * 前端（這裡是信件）遇到 null 就不要畫比較。
+   */
+  out.previous = prev.total > 0
+    ? {
+        month:      prevKey,
+        total:      prev.total,
+        avg_rating: average(prev.rating_sum, prev.rating_n),
+        done_rate:  ratio(prev.done, prev.total),
+      }
+    : null;
+
+  return out;
+}
+
+
+// ===== 月份代碼的加減 =====
+
+/**
+ * 現在是哪一個月（'yyyyMM'，依專案時區）。
+ */
+function currentMonthKey() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMM');
+}
+
+
+/**
+ * 前一個月的代碼。
+ *
+ * ⚠️ 刻意用「字串拆開來減」而不是 `new Date(y, m - 1, 1)`：
+ *    月份代碼本來就是依專案時區（Asia/Jakarta）算出來的，
+ *    再丟回 Date 做運算會用到伺服器的時區，
+ *    跨月的那一兩個小時就會算到隔壁月份去——
+ *    而月報偏偏就是每月 1 日早上跑的，正好踩在那個交界上。
+ *
+ * 1 月的前一個月是去年 12 月，這是唯一要特別處理的情況。
+ */
+function previousMonthKey(monthKey) {
+  const year  = Number(str(monthKey).substring(0, 4));
+  const month = Number(str(monthKey).substring(4, 6));
+
+  if (!year || !month) return '';
+
+  return month === 1
+    ? String(year - 1) + '12'
+    : String(year) + ('0' + (month - 1)).slice(-2);
 }
