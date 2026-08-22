@@ -257,7 +257,6 @@ const I18N = {
     // --- 管理端：帳號管理（僅 SUPER）---
     'accounts.entry':        '帳號管理',
     'accounts.title':        '帳號管理',
-    'accounts.backToCases':  '回案件列表',
     'accounts.loading':      '載入管理者名單…',
     'accounts.count':        '共 {n} 位管理者',
     'accounts.you':          '你',
@@ -618,7 +617,6 @@ const I18N = {
     // --- Admin: kelola akun (khusus SUPER) ---
     'accounts.entry':        'Kelola Akun',
     'accounts.title':        'Kelola Akun',
-    'accounts.backToCases':  'Kembali ke daftar laporan',
     'accounts.loading':      'Memuat daftar admin…',
     'accounts.count':        'Total {n} admin',
     'accounts.you':          'kamu',

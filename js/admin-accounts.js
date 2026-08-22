@@ -66,9 +66,7 @@ const el = {
   adminName: document.getElementById('adminName'),
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
-  dashboardLink: document.getElementById('dashboardLink'),
   pageTitle: document.getElementById('pageTitle'),
-  backLink:  document.getElementById('backLink'),
 
   countInfo:  document.getElementById('countInfo'),
   addBtn:     document.getElementById('addBtn'),
@@ -608,13 +606,13 @@ function renderTexts() {
   el.pageTitle.textContent = t('accounts.title');
   el.bootText.textContent  = t('admin.checking');
   el.logoutBtn.textContent = t('admin.logout');
-  el.backLink.textContent  = '← ' + t('accounts.backToCases');
-  if (el.dashboardLink) el.dashboardLink.textContent = t('dash.entry');
+
 
   if (state.profile) {
     el.adminName.textContent = t('admin.hello')
       .replace('{name}', state.profile.name || state.profile.account);
     el.adminRole.textContent = adminRoleLabel(state.profile.role);
+    renderAdminNav('accounts', state.profile);
   }
 
   el.countInfo.textContent = t('accounts.count').replace('{n}', state.admins.length);

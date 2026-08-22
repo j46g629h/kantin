@@ -134,3 +134,53 @@ async function requireAdmin() {
 function adminRoleLabel(role) {
   return t('admin.role.' + (role === 'SUPER' ? 'SUPER' : 'ADMIN'));
 }
+
+
+// ===== 管理端的頁籤導覽 =====
+
+/**
+ * 管理端有哪些頁面。
+ *
+ * 三個管理頁共用這一份清單，所以「哪些頁面存在」「誰看得到」只定義一次。
+ * 日後多一個管理頁就在這裡加一筆，三頁的導覽列會自動跟著多一個頁籤。
+ *
+ * ⚠️ `superOnly` 只是「不顯示」，不是權限控制。
+ *    真正的把關在後端（withAuth 的第三個參數）與各頁的入口守衛——
+ *    前端程式碼在 GitHub 上是公開的，把這個欄位改掉照樣打不到資料。
+ */
+const ADMIN_PAGES = [
+  { key: 'cases',     href: 'admin-cases.html',     labelKey: 'admin.cases.title', superOnly: false },
+  { key: 'dashboard', href: 'admin-dashboard.html', labelKey: 'dash.entry',        superOnly: true  },
+  { key: 'accounts',  href: 'admin-accounts.html',  labelKey: 'accounts.entry',    superOnly: true  },
+];
+
+
+/**
+ * 畫出頁籤導覽列。
+ *
+ * 之前這三個入口是擠在資訊列右邊的幾個小連結，有兩個問題：
+ * 位置不夠放（再多一個功能就爆了），而且看不出「我現在在哪一頁」。
+ *
+ * 切換語言後要重新呼叫一次，頁籤文字才會跟著換。
+ *
+ * @param {string} currentKey 目前這一頁的 key
+ * @param {Object} profile    requireAdmin() 回傳的登入者資料
+ */
+function renderAdminNav(currentKey, profile) {
+  const nav = document.getElementById('adminNav');
+  if (!nav || !profile) return;
+
+  const isSuper = !!profile.is_super;
+
+  nav.innerHTML = ADMIN_PAGES
+    .filter(function (page) { return !page.superOnly || isSuper; })
+    .map(function (page) {
+      const active = page.key === currentKey;
+
+      // 目前這一頁不做成連結：點自己沒有意義，而且會讓人以為沒反應
+      if (active) {
+        return `<span class="admin-nav-tab active" aria-current="page">${escapeHtml(t(page.labelKey))}</span>`;
+      }
+      return `<a href="${page.href}" class="admin-nav-tab">${escapeHtml(t(page.labelKey))}</a>`;
+    }).join('');
+}

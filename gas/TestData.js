@@ -515,3 +515,273 @@ function removeTestAdmins() {
   Logger.log(msg);
   return msg;
 }
+
+
+// ===== 歷史測試資料（驗證動態表用）=====
+
+/**
+ * 產生 2025-10 ～ 2026-07 每月 2 筆的歷史回報，共 20 筆。
+ *
+ * 為什麼需要它：動態表要有跨月、跨年的資料才驗得出來——
+ * 月度趨勢、年度下拉、各餐廳年度表現，全部都需要「不只一個月」的資料。
+ * 而且大部分要是**已結案且有處理時間**，否則結案率與平均處理天數永遠是「–」。
+ *
+ *
+ * ⚠️ 這一支刻意不走 submitFeedback()，跟 seedTestFeedback 不同。兩個原因：
+ *
+ *   1. `generateCaseId()` 只會產生**當月**的編號。
+ *      走那條路的話，2025 年 10 月的案件會拿到 PCI-202608-045，
+ *      日期跟編號對不起來，看起來像資料壞掉。
+ *
+ *   2. 那會把本月的流水號一次往前推 20 號，本月的編號從此跳號。
+ *
+ * 所以這裡自己組編號，並在最後補上「系統計數」對應月份的列。
+ *
+ * 重複執行會再產生 20 筆（不會偵測重複）。要清乾淨請用 clearTestData()。
+ */
+function seedHistoricalCases() {
+  const FROM = { y: 2025, m: 10 };
+  const TO   = { y: 2026, m: 7 };
+  const PER_MONTH = 2;
+
+  const sheet  = getSheet(SHEETS.FEEDBACK);
+  const colMap = getFeedbackColumnMap();
+
+  // 地點 / 餐別 / 分類 / 處理者都從「選項設定」讀實際存在的，
+  // 寫死代碼的話，使用者改過選項之後產生的資料會對不到任何名稱
+  const locations  = activeOptionCodes('LOCATION');
+  const meals      = activeOptionCodes('MEAL');
+  const categories = activeOptionCodes('CATEGORY');
+  const handlers   = activeOptionCodes(HANDLER_OPTION_TYPE);
+
+  if (!locations.length || !categories.length) {
+    const msg = '「選項設定」裡找不到餐廳地點或問題分類，無法產生測試資料。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const monthList = monthsBetween(FROM, TO);
+  const employees = pickRandomActiveEmployees(monthList.length * PER_MONTH);
+  if (!employees.length) {
+    const msg = '員工名冊裡找不到任何在職員工，無法產生測試資料。';
+    Logger.log(msg);
+    return msg;
+  }
+
+  const report = ['開始產生 ' + (monthList.length * PER_MONTH) + ' 筆歷史測試資料…', ''];
+  const seqByMonth = {};
+  let row = sheet.getLastRow() + 1;
+  let index = 0;
+
+  monthList.forEach(function (ym) {
+    for (let i = 0; i < PER_MONTH; i++) {
+      const category = pickOne(categories);
+
+      // 一半的機率複選第二個分類（規格允許最多 2 項），
+      // 這樣「分類佔比總和超過 100%」的情況才驗得到
+      const second = (Math.random() < 0.5) ? pickOne(categories) : '';
+      const catCodes = (second && second !== category) ? category + ',' + second : category;
+
+      // 當月隨機一天，避開月底以免遇到大小月
+      const day        = 1 + Math.floor(Math.random() * 26);
+      const submitTime = new Date(ym.y, ym.m - 1, day, 8 + Math.floor(Math.random() * 10), 30, 0);
+
+      // 大部分設成已結案：不然結案率與平均處理天數算不出來，
+      // 動態表上會是一整排「–」，等於沒驗到
+      const roll   = Math.random();
+      const status = roll < 0.8 ? 'ST_DONE' : (roll < 0.9 ? 'ST_PROC' : 'ST_NEW');
+
+      const handled  = (status === 'ST_DONE' || status === 'ST_PROC');
+      const respDays = 1 + Math.floor(Math.random() * 5);
+      const respTime = handled
+        ? new Date(submitTime.getTime() + respDays * 86400000 + 3600000)
+        : '';
+
+      seqByMonth[ym.key] = (seqByMonth[ym.key] || 0) + 1;
+      const caseId = 'PCI-' + ym.key + '-' + String(seqByMonth[ym.key]).padStart(3, '0');
+
+      const text = pickDescription(category);
+      const emp  = employees[index % employees.length];
+
+      writeRowByColumns(sheet, SHEETS.FEEDBACK, row, FEEDBACK_COLUMNS, {
+        case_id:          caseId,
+        submit_time:      submitTime,
+        emp_id:           emp,
+        emp_name:         lookupEmployeeName(emp),
+        lang:             text.lang,
+        location_code:    pickOne(locations),
+        meal_code:        meals.length ? pickOne(meals) : '',
+        category_code:    catCodes,
+        description:      text.desc,
+        rating:           1 + Math.floor(Math.random() * 5),
+        priority:         '',
+        image_urls:       '',
+        status_code:      status,
+        handler:          handled && handlers.length ? pickOne(handlers) : '',
+        response:         handled ? pickResponse(text.lang) : '',
+        response_time:    respTime,
+        last_updated_at:  respTime,
+        last_updated_by:  handled ? '測試資料' : '',
+        client_submit_id: 'seed-hist-' + Utilities.getUuid(),
+        is_deleted:       '',
+      });
+
+      report.push('✔ ' + caseId + '  ' + status + '  ' + catCodes);
+      row++;
+      index++;
+    }
+  });
+
+  // 補上「系統計數」的對應列，之後那些月份若有新案件才不會從 001 重來
+  syncCounters(seqByMonth, report);
+
+  report.push('');
+  report.push('完成。加上原本的資料，動態表現在應該看得到：');
+  report.push('  · 年度下拉會有 2025 與 2026 兩個選項');
+  report.push('  · 月度趨勢圖有連續好幾個月的點');
+  report.push('  · 結案率、平均處理天數不再是「–」');
+  report.push('  · 各餐廳年度表現表格有多間餐廳可以比較');
+  report.push('');
+  report.push('⚠️ 這些是測試資料，正式上線前請執行 clearTestData() 清除。');
+
+  const text = report.join(String.fromCharCode(10));
+  Logger.log(text);
+  return text;
+}
+
+
+/** 產生 from 到 to（含）之間的每個月，回傳 [{ y, m, key }] */
+function monthsBetween(from, to) {
+  const out = [];
+  let y = from.y, m = from.m;
+
+  while (y < to.y || (y === to.y && m <= to.m)) {
+    out.push({ y: y, m: m, key: String(y) + String(m).padStart(2, '0') });
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+
+/**
+ * 把產生的流水號寫回「系統計數」。
+ *
+ * 不做的話，日後那些月份若有人補資料，編號會從 001 開始重複。
+ * 已存在的月份取兩者較大值，不要把既有的計數覆蓋成比較小的數字。
+ */
+function syncCounters(seqByMonth, report) {
+  const sheet    = getSheet(SHEETS.COUNTERS);
+  const lastRow  = sheet.getLastRow();
+  const existing = {};
+
+  if (lastRow >= 2) {
+    sheet.getRange(2, 1, lastRow - 1, 2).getValues().forEach(function (r, i) {
+      existing[str(r[0])] = { row: i + 2, value: Number(r[1]) || 0 };
+    });
+  }
+
+  let updated = 0, added = 0;
+
+  Object.keys(seqByMonth).forEach(function (ym) {
+    const seq = seqByMonth[ym];
+    if (existing[ym]) {
+      if (seq > existing[ym].value) {
+        sheet.getRange(existing[ym].row, 2).setValue(seq);
+        updated++;
+      }
+    } else {
+      sheet.appendRow([ym, seq]);
+      added++;
+    }
+  });
+
+  report.push('');
+  report.push('系統計數：新增 ' + added + ' 個月份、更新 ' + updated + ' 個月份。');
+}
+
+
+/** 取某個類型「啟用中」的代碼清單 */
+function activeOptionCodes(type) {
+  const sheet   = getSheet(SHEETS.OPTIONS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const out = [];
+  sheet.getRange(2, 1, lastRow - 1, 6).getValues().forEach(function (r) {
+    if (str(r[0]).toUpperCase() !== String(type).toUpperCase()) return;
+    if (!isTrue(r[5])) return;
+    const code = str(r[1]);
+    if (code) out.push(code);
+  });
+  return out;
+}
+
+
+/** 用工號查姓名（測試資料用，查不到就留空） */
+function lookupEmployeeName(empId) {
+  try {
+    const result = verifyEmployee({ empId: empId });
+    return (result && result.ok) ? str(result.data.name) : '';
+  } catch (e) {
+    return '';
+  }
+}
+
+
+function pickOne(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+
+/**
+ * 依分類挑一段描述。
+ *
+ * 描述跟分類配得起來，資料看起來才像真的——
+ * 隨機亂配的話會出現「分類是設備維修、內容在講菜太鹹」，
+ * 之後看動態表時自己都會被搞混。
+ */
+function pickDescription(categoryCode) {
+  const POOL = {
+    CAT_TASTE: [
+      { lang: 'ID', desc: 'Sayurnya terlalu asin hari ini, tolong dikurangi garamnya.' },
+      { lang: 'ID', desc: 'Nasinya agak keras, mungkin masaknya kurang air.' },
+      { lang: 'ZH', desc: '今天的湯太鹹了，喝完一直口渴。' },
+      { lang: 'ID', desc: 'Menu minggu ini mirip terus, semoga bisa lebih variatif.' },
+    ],
+    CAT_HYGIENE: [
+      { lang: 'ID', desc: 'Meja nomor 8 masih ada sisa makanan waktu saya duduk.' },
+      { lang: 'ZH', desc: '餐盤回收區有點味道，希望可以更常清理。' },
+      { lang: 'ID', desc: 'Lantai dekat wastafel licin, tolong dilap lebih sering.' },
+    ],
+    CAT_SERVICE: [
+      { lang: 'ID', desc: 'Antrian siang tadi panjang sekali, hampir 20 menit.' },
+      { lang: 'ZH', desc: '中午排隊排很久，希望可以多開一個窗口。' },
+      { lang: 'ID', desc: 'Petugasnya ramah, cuma kadang tidak ada di tempat.' },
+    ],
+    CAT_FACILITY: [
+      { lang: 'ID', desc: 'Kipas angin di pojok kanan tidak jalan.' },
+      { lang: 'ZH', desc: '靠窗那排有兩盞燈不亮，晚餐時間看不太清楚。' },
+      { lang: 'ID', desc: 'Keran air di wastafel bocor terus.' },
+    ],
+    CAT_OTHER: [
+      { lang: 'ID', desc: 'Semoga bisa ditambah pilihan buah segar. Terima kasih!' },
+      { lang: 'ZH', desc: '希望可以增加素食的選項。' },
+    ],
+  };
+
+  const list = POOL[String(categoryCode).toUpperCase()] || POOL.CAT_OTHER;
+  return pickOne(list);
+}
+
+
+/** 依語言挑一段管理者回覆 */
+function pickResponse(lang) {
+  const ZH = ['已轉知廚房改善，謝謝您的回報。', '已安排維修完成。', '已加強該區域的清潔頻率。'];
+  const ID = [
+    'Sudah disampaikan ke dapur, terima kasih atas laporannya.',
+    'Perbaikan sudah selesai dilakukan.',
+    'Frekuensi pembersihan area tersebut sudah ditingkatkan.',
+  ];
+  return pickOne(String(lang).toUpperCase() === 'ZH' ? ZH : ID);
+}

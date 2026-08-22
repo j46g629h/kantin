@@ -40,7 +40,6 @@ const el = {
   adminName: document.getElementById('adminName'),
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
-  casesLink: document.getElementById('casesLink'),
   pageTitle: document.getElementById('pageTitle'),
 
   dashTitle: document.getElementById('dashTitle'),
@@ -186,12 +185,12 @@ function renderTexts() {
   el.dashTitle.textContent = t('dash.title');
   el.bootText.textContent  = t('admin.checking');
   el.logoutBtn.textContent = t('admin.logout');
-  el.casesLink.textContent = t('admin.cases.title');
 
   if (state.profile) {
     el.adminName.textContent = t('admin.hello')
       .replace('{name}', state.profile.name || state.profile.account);
     el.adminRole.textContent = adminRoleLabel(state.profile.role);
+    renderAdminNav('dashboard', state.profile);
   }
 
   el.labelMonth.textContent = t('dash.month');

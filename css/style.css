@@ -1823,3 +1823,89 @@ input[type="date"] {
   .dash-bar-name { width: 84px; }
   .dash-updated { margin-left: 0; width: 100%; }
 }
+
+
+/* ===== 管理端：頁籤導覽 ===== */
+
+/*
+ * 三個管理頁共用。之前這些入口是資訊列右邊的幾個小連結，
+ * 位置不夠放（再多一個功能就爆了），而且看不出「我現在在哪一頁」。
+ */
+.admin-nav {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-nav::-webkit-scrollbar { display: none; }
+
+.admin-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;              /* 觸控目標 */
+  padding: 0 14px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+
+.admin-nav-tab:hover { color: var(--text); }
+
+/* 目前這一頁：底線 + 加深。它是 <span> 不是 <a>，點自己沒有意義 */
+.admin-nav-tab.active {
+  color: var(--brand-dark);
+  font-weight: 600;
+  border-bottom-color: var(--brand);
+  cursor: default;
+}
+
+/* 頁籤進來之後，資訊列改成左右兩塊：左邊頁籤、右邊登入者 */
+.admin-bar-who {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* 窄螢幕：頁籤自己一行，登入者資訊掉到第二行 */
+@media (max-width: 560px) {
+  .admin-bar {
+    flex-wrap: wrap;
+    padding-top: 0;
+  }
+  .admin-nav { flex: 1 0 100%; }
+  .admin-bar-who {
+    flex: 1 0 100%;
+    justify-content: flex-end;
+    padding-bottom: 8px;
+  }
+}
+
+
+/* ===== 電腦螢幕：版面自動加寬 ===== */
+
+/*
+ * 沒有任何切換開關——純粹依螢幕寬度自動調整。
+ *
+ * ⚠️ 只放寬管理端（.page-wide），員工端維持 520px。
+ *    回報表單拉到 1200px 寬的話，眼睛要橫掃很遠才填得完一欄，
+ *    而且員工幾乎都用手機，那個寬度根本用不到。
+ *    管理端相反：表格、圖表、月度趨勢都是越寬越好讀。
+ */
+@media (min-width: 1000px) {
+  .page-wide { max-width: 940px; }
+}
+
+@media (min-width: 1280px) {
+  .page-wide { max-width: 1160px; }
+}
+
+/* 超寬螢幕就停在這裡：再寬下去一列會太長，眼睛跟不上 */
+@media (min-width: 1600px) {
+  .page-wide { max-width: 1320px; }
+}

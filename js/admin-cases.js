@@ -64,8 +64,6 @@ const el = {
   adminName: document.getElementById('adminName'),
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
-  accountsLink: document.getElementById('accountsLink'),
-  dashboardLink: document.getElementById('dashboardLink'),
   pageTitle: document.getElementById('pageTitle'),
 
   statNew:   document.getElementById('statNew'),
@@ -477,14 +475,9 @@ function renderTexts() {
       .replace('{name}', state.profile.name || state.profile.account);
     el.adminRole.textContent = adminRoleLabel(state.profile.role);
 
-    // 帳號管理只給超級管理者。藏起來只是不讓一般管理者看到用不到的東西，
-    // 後端的 withAuth(..., true) 才是真正擋得住的那一道
-    el.accountsLink.textContent = t('accounts.entry');
-    el.accountsLink.classList.toggle('hidden', !state.profile.is_super);
-
-    // 動態表同樣只給超級管理者（規格 §3.8 的 Dashboard 改做成網頁）
-    el.dashboardLink.textContent = t('dash.entry');
-    el.dashboardLink.classList.toggle('hidden', !state.profile.is_super);
+    // 頁籤導覽由 js/admin-session.js 共用，三個管理頁畫法一致。
+    // 一般管理者只會看到「案件列表」一個頁籤
+    renderAdminNav('cases', state.profile);
   }
 
   el.statNewLabel.textContent  = t('admin.stats.new');
