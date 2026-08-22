@@ -76,14 +76,20 @@ const el = {
 
 
 /**
- * 圖表配色。刻意用降低飽和度的一組——
- * 這一頁是拿來「掃過去看趨勢」的，顏色太搶眼反而看不出重點。
- * 但彼此的色相差夠遠，並排時分得出來。
+ * 圖表配色。
+ *
+ * ⚠️ 挑選標準不只是「好看」，而是**色相與明暗都要拉開**：
+ *
+ *    第一版全部是中等明度的粉色系，相鄰兩色的明暗差只有 1.13～1.40，
+ *    等於只靠色相在區分——並排時看起來全都一樣。
+ *
+ *    這一版相鄰色的明暗差是 1.31～4.49，而且色相跨越藍 / 橘 / 綠 / 紫 / 青。
+ *    好處是**印成黑白也分得出來**，不必靠顏色濃度硬撐。
  */
-const CHART_COLORS  = ['#6b8cbe', '#5f9ea8', '#8f7bb0', '#c9945f', '#6b9e7f'];
+const CHART_COLORS  = ['#17457a', '#e8a33d', '#2a7d5f', '#9d6fc4', '#5bb8d4'];
 
-/** 狀態是有語意的，不能隨便配色：紅=未處理、黃=處理中、綠=已結案 */
-const STATUS_COLORS = { ST_NEW: '#c07a72', ST_PROC: '#c9a15f', ST_DONE: '#6b9e7f' };
+/** 狀態是有語意的，不能依序取色：紅=未處理、橘=處理中、綠=已結案 */
+const STATUS_COLORS = { ST_NEW: '#c0392b', ST_PROC: '#e8a33d', ST_DONE: '#2a7d5f' };
 
 
 // ===== 啟動 =====
@@ -261,15 +267,20 @@ function renderYear() {
     return `<th class="${i ? 'num' : ''}">${escapeHtml(t(key))}</th>`;
   }).join('');
 
+  // 每一格帶上 data-label：手機上表頭會被隱藏，改用 CSS 的 ::before
+  // 把欄位名稱顯示在值的左邊，一間餐廳變成一張卡片。
+  // 原本是靠橫向捲動，但捲動軸在手機上看不到，使用者不會知道右邊還有東西
+  const labels = cols.map(function (key) { return t(key); });
+
   const rows = data.locations || [];
   el.tblBody.innerHTML = rows.length
     ? rows.map(function (r) {
         return `<tr>
           <td>${escapeHtml(codeLabel('LOCATION', r.code))}</td>
-          <td class="num">${r.total}</td>
-          <td class="num">${escapeHtml(num(r.avg_rating))}</td>
-          <td class="num">${escapeHtml(pct(r.done_rate))}</td>
-          <td class="num">${escapeHtml(num(r.avg_days))}</td>
+          <td class="num" data-label="${escapeHtml(labels[1])}">${r.total}</td>
+          <td class="num" data-label="${escapeHtml(labels[2])}">${escapeHtml(num(r.avg_rating))}</td>
+          <td class="num" data-label="${escapeHtml(labels[3])}">${escapeHtml(pct(r.done_rate))}</td>
+          <td class="num" data-label="${escapeHtml(labels[4])}">${escapeHtml(num(r.avg_days))}</td>
         </tr>`;
       }).join('')
     : `<tr><td colspan="5" class="muted">${escapeHtml(t('dash.noData'))}</td></tr>`;
@@ -363,16 +374,16 @@ function trendChart(monthly) {
     // 只有一個點的區段畫不出線，補一個小圓點
     if (seg.length === 1) {
       const xy = seg[0].split(',');
-      return `<circle cx="${xy[0]}" cy="${xy[1]}" r="3" fill="#c9945f"></circle>`;
+      return `<circle cx="${xy[0]}" cy="${xy[1]}" r="3" fill="#e8a33d"></circle>`;
     }
-    return `<polyline points="${seg.join(' ')}" fill="none" stroke="#c9945f"
+    return `<polyline points="${seg.join(' ')}" fill="none" stroke="#e8a33d"
              stroke-width="2.5" stroke-dasharray="5 4"></polyline>`;
   }).join('');
 
   const dots = monthly.map(function (m, i) {
     if (!m.count) return '';
     return `<circle cx="${(LEFT + i * step).toFixed(1)}" cy="${y(m.count, maxCount).toFixed(1)}"
-             r="3" fill="#6b8cbe"></circle>`;
+             r="3" fill="#17457a"></circle>`;
   }).join('');
 
   const labels = monthly.map(function (m, i) {
@@ -382,7 +393,7 @@ function trendChart(monthly) {
   return `<svg viewBox="0 0 ${W} ${H}" class="dash-trend" role="img"
             aria-label="${escapeHtml(t('dash.trend'))}">
     <line x1="${LEFT - 16}" y1="${BOTTOM}" x2="${RIGHT + 16}" y2="${BOTTOM}"></line>
-    <polyline points="${countPts}" fill="none" stroke="#6b8cbe" stroke-width="2.5"></polyline>
+    <polyline points="${countPts}" fill="none" stroke="#17457a" stroke-width="2.5"></polyline>
     ${ratingLines}
     ${dots}
     <g class="dash-trend-label">${labels}</g>

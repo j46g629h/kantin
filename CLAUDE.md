@@ -114,7 +114,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 **七個 HTML 檔**（`index.html` / `report.html` / `query.html` /
 `admin.html` / `admin-cases.html` / `admin-accounts.html` / `admin-dashboard.html`）
-引用 CSS 與 JS 時都帶 `?v=2.5`。
+引用 CSS 與 JS 時都帶 `?v=2.6`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -125,11 +125,11 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 2.5 改成 2.6
-sed -i 's/?v=2\.5/?v=2.6/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html admin-dashboard.html
+# 例如從 2.6 改成 2.7
+sed -i 's/?v=2\.6/?v=2.7/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html admin-dashboard.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=2\.5" *.html`（應該一筆都查不到）
+改完用這行確認沒有漏掉：`grep -rn "v=2\.6" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，

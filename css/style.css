@@ -19,7 +19,7 @@
   --surface-alt:   #f9fafb;
   --text:          #1f2328;
   --text-muted:    #6b7280;
-  --text-subtle:   #9ca3af;
+  --text-subtle:   #6f7681;   /* 對白底 4.58，符合 WCAG AA（原本 #9ca3af 只有 2.54）*/
   --border:        #e5e7eb;
   --border-strong: #d0d5dd;
 
@@ -1722,11 +1722,6 @@ input[type="date"] {
 
 /* --- 橫條圖 --- */
 
-.dash-two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-}
 
 .dash-bar-row {
   display: flex;
@@ -1788,8 +1783,8 @@ input[type="date"] {
   height: 2px;
   vertical-align: middle;
 }
-.legend-count  { background: #6b8cbe; }
-.legend-rating { background: #c9945f; }
+.legend-count  { background: #17457a; }
+.legend-rating { background: #e8a33d; }
 
 /* --- 各餐廳表現表 --- */
 
@@ -1819,7 +1814,6 @@ input[type="date"] {
 @media (max-width: 700px) {
   .dash-tiles,
   .dash-tiles-4 { grid-template-columns: repeat(2, 1fr); }
-  .dash-two-col { grid-template-columns: 1fr; }
   .dash-bar-name { width: 84px; }
   .dash-updated { margin-left: 0; width: 100%; }
 }
@@ -1908,4 +1902,125 @@ input[type="date"] {
 /* 超寬螢幕就停在這裡：再寬下去一列會太長，眼睛跟不上 */
 @media (min-width: 1600px) {
   .page-wide { max-width: 1320px; }
+}
+
+
+/* ===== 電腦螢幕：字級放大、卡片浮起 ===== */
+
+/*
+ * 這個 app 是為了工廠員工的手機設計的，字級也照那個情境定。
+ * 但管理端在電腦上看時，同樣的 12～14px 在 24 吋螢幕上偏小。
+ *
+ * 只調整字級變數，不動任何版面——所有用到這些變數的地方會一起變大。
+ */
+@media (min-width: 1000px) {
+  :root {
+    --fs-xs:    13px;
+    --fs-sm:    15px;
+    --fs-body:  16px;
+    --fs-lg:    19px;
+    --fs-title: 26px;
+  }
+}
+
+/*
+ * 卡片的浮起效果。
+ *
+ * 先前用「下緣右緣框線加粗」是因為當時還在考慮日後搬回 Google Sheet，
+ * 而 Sheet 做不出陰影。動態表確定做成網頁之後那個限制就不存在了，
+ * 改用真的陰影，層次比框線清楚很多。
+ */
+.dash-card,
+.dash-tile,
+.dash-controls {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .06),
+              0 2px 6px rgba(16, 24, 40, .05);
+}
+
+.dash-tile { transition: box-shadow .15s; }
+
+/* --- 三張圖表在寬螢幕並排 --- */
+
+/*
+ * 原本是「兩欄 + 一個整寬」，在 1160px 的版面上第三張圖左右一片空白。
+ * 改成同一個 grid：手機一欄、平板兩欄、電腦三欄，空間才用得滿。
+ */
+.dash-charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+  margin-bottom: 6px;
+}
+
+@media (min-width: 700px)  { .dash-charts { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1100px) { .dash-charts { grid-template-columns: repeat(3, 1fr); } }
+
+/*
+ * 三張圖表的條數不一樣（餐廳 4 條、狀態 3 條、分類 5 條），
+ * 拉成等高的話，條數少的那張下半部就是一片空白。
+ * 讓每張卡片維持自然高度，上緣對齊即可——空白就消失了。
+ */
+.dash-charts { align-items: start; }
+.dash-chart-block .dash-card { margin-bottom: 0; }
+
+/* --- 電腦上把數字放大，卡片才不會一片空 --- */
+
+@media (min-width: 1000px) {
+  .dash-tile     { padding: 16px 18px; }
+  .dash-tile-num { font-size: 30px; }
+  .dash-card     { padding: 18px; }
+  .dash-bar-row  { margin-bottom: 10px; }
+  .dash-bar-track { height: 22px; }
+  .dash-bar-name { width: 120px; }
+  .dash-table td { padding: 11px 8px; }
+}
+
+/* --- 手機：各餐廳表現改成一張一張的卡片 --- */
+
+/*
+ * 表格在 375px 上一定塞不下五欄，原本是靠橫向捲動——
+ * 但捲動軸在手機上看不到，使用者根本不知道右邊還有東西。
+ * 改成每間餐廳一張卡片，欄位名稱用 ::before 從 data-label 帶出來。
+ */
+@media (max-width: 700px) {
+  .dash-card-table { overflow-x: visible; }
+
+  .dash-table { min-width: 0; }
+  .dash-table thead { display: none; }
+
+  .dash-table tbody,
+  .dash-table tr,
+  .dash-table td { display: block; width: 100%; }
+
+  .dash-table tr {
+    padding: 10px 0 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dash-table tr:last-child { border-bottom: none; }
+
+  .dash-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: none;
+    text-align: left;
+  }
+
+  /* 第一格是餐廳名稱，當成這張卡片的標題 */
+  .dash-table td:first-child {
+    margin-bottom: 4px;
+    font-size: var(--fs-body);
+    font-weight: 600;
+  }
+
+  .dash-table td:not(:first-child)::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+  }
+
+  .dash-table .num { text-align: right; }
 }
