@@ -397,6 +397,47 @@ sandbox.__ADMINS = savedAdmins;
 evalIn(`__ADMINS = ${JSON.stringify(ADMINS_SPEC)}`);
 
 
+console.log('\n===== 信件頁尾：系統資訊 =====\n');
+
+// 頁尾內容與 app 頁尾一致（維護單位 / 聯絡方式 / 系統版本），
+// 兩邊是否真的同步由 node tools/test-version-sync.js 盯著
+reset();
+evalIn('sendDailyReport()');
+const foot = sandbox.__SENT__[0].htmlBody;
+
+check('有維護單位（印尼文在前）', foot.indexOf('維護單位：PCI GA · PCI 總工務') >= 0, true);
+check('有聯絡方式',              foot.indexOf('聯絡方式：3690') >= 0, true);
+check('有系統版本與年份',        foot.indexOf('Versi · 系統版本 v2.7 · 2026') >= 0, true);
+check('仍保留自動寄出的說明',
+  foot.indexOf('這封信由系統自動寄出，不需要回覆。') >= 0, true);
+
+// 點版本號 → 員工端首頁（不是管理端）
+check('版本號是連結，指向員工端首頁',
+  foot.indexOf('<a href="https://j46g629h.github.io/kantin_PCI_adidas/" ' +
+               'style="color:#6b7280;text-decoration:underline;">Versi') >= 0, true);
+
+// ⚠️ Gmail / Outlook 會把沒指定顏色的連結一律改成藍色底線，
+//    整片灰色的頁尾就會突然冒出一條藍字
+check('連結有自己指定灰色（不然信箱軟體會塗成藍色）',
+  foot.indexOf('style="color:#6b7280;text-decoration:underline;"') >= 0, true);
+
+// 月報走的是同一個外框，頁尾應該一模一樣
+reset();
+evalIn(`sendMonthlyReportFor('202608')`);
+const mFoot = sandbox.__SENT__[0].htmlBody;
+check('月報的頁尾與日報相同',
+  mFoot.indexOf('Versi · 系統版本 v2.7 · 2026') >= 0, true);
+check('月報頁尾也有維護單位', mFoot.indexOf('維護單位：PCI GA · PCI 總工務') >= 0, true);
+
+// 兩種語言一樣時只顯示一次，否則會變成「PCI GA · PCI GA」
+check('兩種語言相同 → 只顯示一次',
+  evalIn(`bilingualText('PCI GA', 'PCI GA')`), 'PCI GA');
+check('只有中文有填 → 顯示中文',
+  evalIn(`bilingualText('', 'PCI 總工務')`), 'PCI 總工務');
+check('只有印尼文有填 → 顯示印尼文',
+  evalIn(`bilingualText('PCI GA', '')`), 'PCI GA');
+
+
 console.log('\n===== 月份代碼的加減 =====\n');
 
 check('現在是哪一個月',        evalIn('currentMonthKey()'), '202608');

@@ -236,12 +236,7 @@ function buildEmailHtml(title, subtitle, body, linkText, linkUrl) {
          '  </div>')
       : '',
 
-    '  <div style="margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;',
-    '              color:#9ca3af;font-size:12px;">',
-    '    ' + escapeForHtml(REPORT.SENDER_NAME),
-    '    <br>Email ini dikirim otomatis oleh sistem, tidak perlu dibalas.',
-    '    <br>這封信由系統自動寄出，不需要回覆。',
-    '  </div>',
+    buildEmailFooter(),
     '</div>',
   ].join('\n');
 }
@@ -298,4 +293,79 @@ function buildEmailTable(headers, rows) {
 
   out.push('</table>');
   return out.join('\n');
+}
+
+
+/**
+ * 信件最下方的系統資訊，內容與 app 頁尾一致：
+ * 維護單位 → 聯絡方式 → 系統版本，最後才是「自動寄出，不需回覆」。
+ *
+ * 📌 為什麼要跟 app 長得一樣：收信的人跟用 app 的是同一批人。
+ *    有人回報問題時可以先問他看到的版本號，信裡也印得出來就少問一輪。
+ *
+ * ⚠️ 內容取自 gas/Config.js 的 SYSTEM_INFO，那是前端 js/config.js 的複本。
+ *    **版本號印錯比不印還糟**（有人拿著錯的版本號來回報問題），
+ *    所以有一支測試專門盯兩邊一致：node tools/test-version-sync.js
+ *
+ * ⚠️ 版本號那一行是連結，點了會到員工端首頁。
+ *    `<a>` 一定要自己寫 color 與 text-decoration——
+ *    Gmail、Outlook 會把沒指定顏色的連結一律改成藍色底線，
+ *    整片灰色的頁尾就會突然冒出一條藍字。
+ */
+function buildEmailFooter() {
+  const rows = [];
+
+  const maintainer = bilingualText(
+    SYSTEM_INFO.maintainer && SYSTEM_INFO.maintainer.id,
+    SYSTEM_INFO.maintainer && SYSTEM_INFO.maintainer.zh
+  );
+
+  if (maintainer) {
+    rows.push('    <div>Dikelola oleh · 維護單位：' + escapeForHtml(maintainer) + '</div>');
+  }
+
+  if (SYSTEM_INFO.contact) {
+    rows.push('    <div>Kontak · 聯絡方式：' + escapeForHtml(SYSTEM_INFO.contact) + '</div>');
+  }
+
+  if (SYSTEM_INFO.version) {
+    const versionText = 'Versi · 系統版本 ' + SYSTEM_INFO.version
+                      + (SYSTEM_INFO.year ? ' · ' + SYSTEM_INFO.year : '');
+
+    rows.push('    <div><a href="' + escapeForHtml(SITE_URL) + '" ' +
+              'style="color:#6b7280;text-decoration:underline;">' +
+              escapeForHtml(versionText) + '</a></div>');
+  }
+
+  return [
+    '  <div style="margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;',
+    '              color:#9ca3af;font-size:12px;line-height:1.7;">',
+    '    <div style="color:#6b7280;font-weight:bold;">'
+      + escapeForHtml(REPORT.SENDER_NAME) + '</div>',
+    rows.join('\n'),
+    '    <div style="margin-top:8px;">',
+    '      Email ini dikirim otomatis oleh sistem, tidak perlu dibalas.',
+    '      <br>這封信由系統自動寄出，不需要回覆。',
+    '    </div>',
+    '  </div>',
+  ].join('\n');
+}
+
+
+/**
+ * 兩種語言並排顯示，印尼文在前。
+ *
+ * 與 optionText() 同一套規則，只是這裡的來源不是選項設定：
+ *   - 兩邊一樣 → 只顯示一次（否則會變成「PCI GA · PCI GA」）
+ *   - 只有一邊有填 → 就顯示那一邊
+ */
+function bilingualText(idText, zhText) {
+  const a = str(idText);
+  const b = str(zhText);
+
+  if (!a) return b;
+  if (!b) return a;
+  if (a === b) return a;
+
+  return a + ' · ' + b;
 }

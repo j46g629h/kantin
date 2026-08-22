@@ -122,14 +122,30 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 使用者點下去整個清單消失且不顯示任何訊息。
 
 **改法：** 七個 HTML 檔一起把 `?v=` 後面的數字往上加，
-並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
+並同步改**另外兩個地方**的版本號：
+
+| 地方 | 漏改的後果 |
+|---|---|
+| `js/config.js` 的 `SYSTEM_INFO.version` | app 頁尾顯示的版本與實際載入的資源對不上 |
+| `gas/Config.js` 的 `SYSTEM_INFO.version` | **信件頁尾印出錯的版本號**——有人拿著它來回報問題，你會去查錯的那一版 |
+
+⚠️ 後端也要一份，是因為信是 Apps Script 產生的，而它讀不到 GitHub Pages 上的前端檔案。
+「複製一份」必然會走鐘，所以有一支測試專門盯著（見下方）。
 
 ```bash
 # 例如從 2.7 改成 2.8
 sed -i 's/?v=2\.7/?v=2.8/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html admin-dashboard.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=2\.7" *.html`（應該一筆都查不到）
+改完**一定要跑這一支**，九個地方有任何一個沒對上都會紅：
+
+```bash
+node tools/test-version-sync.js
+```
+
+（它同時檢查：七個 HTML 的 `?v=` 是否一致、同一檔案內有沒有兩種版本號、
+`js/config.js` 與 `gas/Config.js` 的 `SYSTEM_INFO` 是否完全相同、
+以及前端頁尾顯示的版本是否就是 HTML 實際載入的那一版。）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -373,6 +389,7 @@ node tools/test-store.js       # 附有效期的鍵值儲存
 node tools/test-admin-api.js   # 帳號管理 API（權限 / 新增 / 停用 / 重設密碼 / token 作廢）
 node tools/test-report-api.js  # 排程報表（收件人 / 日報 / 月報 / 空信規則 / 寄信失敗）
 node tools/test-stats-api.js   # Dashboard 統計（月 / 年 / 趨勢 / 各餐廳表現）
+node tools/test-version-sync.js # 版本號與系統資訊有沒有漏改（見設計約定第 5 條）
 ```
 
 ⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。
