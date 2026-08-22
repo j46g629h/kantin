@@ -253,6 +253,8 @@ const I18N = {
     'dash.colDone':      '結案率',
     'dash.colDays':      '處理天數',
     'dash.noData':       '沒有資料',
+    'dash.print':        '列印 / 存成 PDF',
+    'dash.printMeta':    '月份 {m}　·　年度 {y}　·　資料時間 {t}',
 
     // --- 管理端：帳號管理（僅 SUPER）---
     'accounts.entry':        '帳號管理',
@@ -613,6 +615,8 @@ const I18N = {
     'dash.colDone':      'Selesai',
     'dash.colDays':      'Hari',
     'dash.noData':       'Belum ada data',
+    'dash.print':        'Cetak / Simpan PDF',
+    'dash.printMeta':    'Bulan {m}　·　Tahun {y}　·　Data per {t}',
 
     // --- Admin: kelola akun (khusus SUPER) ---
     'accounts.entry':        'Kelola Akun',

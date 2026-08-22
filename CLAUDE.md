@@ -114,7 +114,7 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 **七個 HTML 檔**（`index.html` / `report.html` / `query.html` /
 `admin.html` / `admin-cases.html` / `admin-accounts.html` / `admin-dashboard.html`）
-引用 CSS 與 JS 時都帶 `?v=2.6`。
+引用 CSS 與 JS 時都帶 `?v=2.7`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
@@ -125,11 +125,11 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 2.6 改成 2.7
-sed -i 's/?v=2\.6/?v=2.7/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html admin-dashboard.html
+# 例如從 2.7 改成 2.8
+sed -i 's/?v=2\.7/?v=2.8/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html admin-dashboard.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=2\.6" *.html`（應該一筆都查不到）
+改完用這行確認沒有漏掉：`grep -rn "v=2\.7" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -320,6 +320,7 @@ Sheet 裡只存雜湊，沒有任何地方存得回明文。）
 | 陷阱 | 說明 |
 |---|---|
 | 新增會用到新服務的功能（寄信、Drive、觸發器） | **第一次執行一定會失敗一次。** Apps Script 靠掃描程式碼推算需要哪些權限，剛推上新程式碼時它可能還在用舊的權限清單，於是「授權畫面按過了，功能照樣被擋」。再執行一次就好——第二次的授權畫面才會包含新權限。寫這類功能時，要把授權錯誤跟一般失敗分開報告（見 `gas/Notify.js` 的 `isAuthorizationError`），否則使用者只看到「失敗 N 次」，完全猜不到該做什麼 |
+| 手機版的 CSS 斷點 | **一律寫成 `@media screen and (max-width: ...)`。** A4 扣掉邊界後的內容寬約 703px，裸的 `(max-width: 700px)` 在列印時會被誤觸發，印出來變成手機的排版。動態表的 PDF 輸出就踩過這個 |
 | Apps Script 重新部署 | 必須用「管理部署作業 → 鉛筆 → 版本選『新增版本』」。按「新增部署作業」會產生新網址，前端就斷了 |
 | 時區 | Apps Script 專案時區必須是 `Asia/Jakarta`（已設定完成） |
 | 工號前導零 | 名冊貼進 Sheet 前，工號欄必須先設為「純文字」格式，否則 `0012345` 會變成 `12345` |

@@ -48,6 +48,10 @@ const el = {
   fMonth:     document.getElementById('fMonth'),
   fYear:      document.getElementById('fYear'),
   updatedAt:  document.getElementById('updatedAt'),
+  printBtn:     document.getElementById('printBtn'),
+  printBtnText: document.getElementById('printBtnText'),
+  printTitle:   document.getElementById('printTitle'),
+  printMeta:    document.getElementById('printMeta'),
   emptyNote:  document.getElementById('emptyNote'),
 
   monthSection: document.getElementById('monthSection'),
@@ -211,8 +215,11 @@ function renderTexts() {
   el.legendCount.textContent     = t('dash.trendCount');
   el.legendRating.textContent    = t('dash.trendRating');
 
+  el.printBtnText.textContent = t('dash.print');
+
   if (state.stats) {
     el.updatedAt.textContent = t('dash.updatedAt').replace('{t}', state.stats.generated_at || '');
+    renderPrintHeader();
   }
 
   // 下拉的月份文字也要跟著換語言
@@ -284,6 +291,23 @@ function renderYear() {
         </tr>`;
       }).join('')
     : `<tr><td colspan="5" class="muted">${escapeHtml(t('dash.noData'))}</td></tr>`;
+}
+
+
+/**
+ * 紙本專用的抬頭。
+ *
+ * 列印時上方的兩個下拉會被隱藏（螢幕上的控制項印在紙上沒有意義），
+ * 所以要把「選了哪個月、哪一年」換成文字寫出來——
+ * 否則印出來的那張紙看不出是哪個期間的資料，分享出去只會被問。
+ */
+function renderPrintHeader() {
+  el.printTitle.textContent = t('dash.title');
+
+  el.printMeta.textContent = t('dash.printMeta')
+    .replace('{m}', state.month ? monthLabel(state.month) : '–')
+    .replace('{y}', state.year || '–')
+    .replace('{t}', state.stats.generated_at || '');
 }
 
 
@@ -442,12 +466,17 @@ el.logoutBtn.addEventListener('click', function () { adminLogout(); });
 el.fMonth.addEventListener('change', function () {
   state.month = el.fMonth.value;
   renderMonth();
+  renderPrintHeader();      // 紙本抬頭要跟著換，不然印出來會是舊的月份
 });
 
 el.fYear.addEventListener('change', function () {
   state.year = el.fYear.value;
   renderYear();
+  renderPrintHeader();
 });
+
+// 用瀏覽器原生的列印功能：電腦選「另存為 PDF」，手機在分享選單裡也有
+el.printBtn.addEventListener('click', function () { window.print(); });
 
 document.querySelectorAll('.lang-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {

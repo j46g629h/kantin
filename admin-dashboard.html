@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Data Laporan · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=2.6">
+  <link rel="stylesheet" href="css/style.css?v=2.7">
 </head>
 <body>
 
@@ -50,7 +50,20 @@
             <span class="filter-label" id="labelYear">Tahun</span>
             <select id="fYear"></select>
           </label>
+          <button type="button" id="printBtn" class="btn-secondary btn-small dash-print">
+            <span id="printBtnText">Simpan PDF</span>
+          </button>
           <span class="dash-updated" id="updatedAt"></span>
+        </div>
+
+        <!--
+          紙本專用的抬頭。螢幕上不顯示（.print-only 預設 display:none），
+          列印時才出現——因為那時候上方的兩個下拉會被隱藏，
+          不寫出來的話，印出來的紙看不出是哪個月、哪一年。
+        -->
+        <div class="print-only print-header">
+          <div class="print-header-title" id="printTitle"></div>
+          <div class="print-header-meta" id="printMeta"></div>
         </div>
 
         <div id="emptyNote" class="result warn hidden"></div>
@@ -107,12 +120,12 @@
 
   </div>
 
-  <script src="js/config.js?v=2.6"></script>
-  <script src="js/i18n.js?v=2.6"></script>
-  <script src="js/ui.js?v=2.6"></script>
-  <script src="js/api.js?v=2.6"></script>
-  <script src="js/admin-session.js?v=2.6"></script>
-  <script src="js/admin-dashboard.js?v=2.6"></script>
+  <script src="js/config.js?v=2.7"></script>
+  <script src="js/i18n.js?v=2.7"></script>
+  <script src="js/ui.js?v=2.7"></script>
+  <script src="js/api.js?v=2.7"></script>
+  <script src="js/admin-session.js?v=2.7"></script>
+  <script src="js/admin-dashboard.js?v=2.7"></script>
 
 </body>
 </html>

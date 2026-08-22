@@ -1506,7 +1506,7 @@ input[type="date"] {
 }
 
 /* 窄螢幕：動作按鈕改成整列平分，才不會被擠成兩行又難點 */
-@media (max-width: 480px) {
+@media screen and (max-width: 480px) {
   .admin-row-actions {
     width: 100%;
     display: grid;
@@ -1811,7 +1811,7 @@ input[type="date"] {
 .dash-table .num { text-align: right; }
 
 /* 窄螢幕：方塊改兩欄、雙欄圖表改單欄，才不會擠成一團看不清楚 */
-@media (max-width: 700px) {
+@media screen and (max-width: 700px) {
   .dash-tiles,
   .dash-tiles-4 { grid-template-columns: repeat(2, 1fr); }
   .dash-bar-name { width: 84px; }
@@ -1867,7 +1867,7 @@ input[type="date"] {
 }
 
 /* 窄螢幕：頁籤自己一行，登入者資訊掉到第二行 */
-@media (max-width: 560px) {
+@media screen and (max-width: 560px) {
   .admin-bar {
     flex-wrap: wrap;
     padding-top: 0;
@@ -1983,7 +1983,7 @@ input[type="date"] {
  * 但捲動軸在手機上看不到，使用者根本不知道右邊還有東西。
  * 改成每間餐廳一張卡片，欄位名稱用 ::before 從 data-label 帶出來。
  */
-@media (max-width: 700px) {
+@media screen and (max-width: 700px) {
   .dash-card-table { overflow-x: visible; }
 
   .dash-table { min-width: 0; }
@@ -2024,3 +2024,136 @@ input[type="date"] {
 
   .dash-table .num { text-align: right; }
 }
+
+
+/* ===== 列印 / 匯出 PDF ===== */
+
+/*
+ * 動態表的〔列印 / 存成 PDF〕走的是瀏覽器原生的列印功能。
+ *
+ * 為什麼不做成「輸出圖片」：瀏覽器沒有原生把網頁轉成圖片的 API，
+ * 唯一的作法是引入 html2canvas 之類的函式庫——那會是這個專案的第一個外部依賴，
+ * 而且它是「用 canvas 重畫一次 CSS」，某些樣式會走鐘。
+ * 列印是原生功能，零依賴、版面完全可控，而且手機與電腦都能「另存為 PDF」。
+ *
+ *
+ * ⚠️ 手機版的斷點一律寫成 `@media screen and (max-width: ...)`。
+ *    A4 扣掉邊界之後的內容寬度約 703px，剛好卡在 700px 斷點上——
+ *    不限定 screen 的話，列印時會不定地跳成手機版的卡片排版。
+ */
+
+.print-only { display: none; }
+
+@media print {
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* 紙張沒有捲動，版面上限拿掉才不會左右留白 */
+  .page,
+  .page-wide { max-width: none; padding: 0; }
+
+  body { background: #ffffff; }
+
+  /*
+   * 預設瀏覽器會把背景色與圖片省略以節省墨水，
+   * 但這一頁的重點就是彩色長條圖——省略之後整張圖會變成空白框。
+   */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* --- 螢幕上才有意義的東西，紙上一律不要 --- */
+  .topbar,
+  .admin-bar,
+  .site-footer,
+  .dash-controls,
+  .lang-switch,
+  #bootView,
+  #errorView { display: none !important; }
+
+  /* --- 紙本專用的抬頭：把被隱藏的下拉換成文字 --- */
+  .print-only { display: block; }
+
+  .print-header {
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #1f2328;
+  }
+
+  .print-header-title {
+    font-size: 18pt;
+    font-weight: 600;
+  }
+
+  .print-header-meta {
+    margin-top: 4px;
+    color: #4b5563;
+    font-size: 10pt;
+  }
+
+  /* --- 紙上的字級另外定，不能沿用螢幕的 --- */
+
+  /*
+   * 螢幕的字級放大只在 min-width:1000px 生效，
+   * 而紙張寬度只有 ~700px，不設的話會拿到手機用的 12px，印出來很吃力。
+   */
+  .dash-title    { display: none; }          /* 抬頭已經有標題了 */
+  .dash-section  { font-size: 14pt; margin: 0 0 8px; }
+  .dash-sub      { font-size: 11pt; margin: 10px 0 6px; }
+  .dash-note     { font-size: 8.5pt; }
+  .dash-tile-num { font-size: 16pt; }
+  .dash-tile-label,
+  .dash-bar-name,
+  .dash-bar-value,
+  .dash-legend,
+  .dash-table    { font-size: 9pt; }
+
+  /* --- 卡片：紙上不要陰影，留框線就好 --- */
+  .dash-card,
+  .dash-tile {
+    box-shadow: none;
+    border: 1px solid #d0d5dd;
+  }
+
+  .dash-card { padding: 10px; }
+  .dash-tile { padding: 8px 10px; }
+
+  /* --- 版面：紙張放得下三欄 --- */
+  .dash-charts { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .dash-tiles  { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .dash-tiles-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* --- 斷頁 --- */
+
+  /* 一張卡片被切成兩頁是最難讀的情況，寧可整張推到下一頁 */
+  .dash-card,
+  .dash-tile,
+  .dash-chart-block,
+  .dash-table tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* 標題不可以留在頁尾、內容跑到下一頁 */
+  .dash-section,
+  .dash-sub { break-after: avoid; page-break-after: avoid; }
+
+  /* 年度區塊從新的一頁開始，兩個區塊各自完整 */
+  .dash-section-top {
+    break-before: page;
+    page-break-before: always;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  /* --- 表格：紙上維持表格，不要變成卡片 --- */
+  .dash-card-table { overflow: visible; }
+  .dash-table { min-width: 0; }
+  .dash-table th { font-size: 9pt; }
+  .dash-table td { padding: 6px 4px; }
+}
+
+/* 列印按鈕：跟兩個下拉排在同一列，但要對齊在下緣（下拉上方有標籤） */
+.dash-print { align-self: flex-end; }
