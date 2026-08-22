@@ -65,6 +65,7 @@ const el = {
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
   accountsLink: document.getElementById('accountsLink'),
+  dashboardLink: document.getElementById('dashboardLink'),
   pageTitle: document.getElementById('pageTitle'),
 
   statNew:   document.getElementById('statNew'),
@@ -480,6 +481,10 @@ function renderTexts() {
     // 後端的 withAuth(..., true) 才是真正擋得住的那一道
     el.accountsLink.textContent = t('accounts.entry');
     el.accountsLink.classList.toggle('hidden', !state.profile.is_super);
+
+    // 動態表同樣只給超級管理者（規格 §3.8 的 Dashboard 改做成網頁）
+    el.dashboardLink.textContent = t('dash.entry');
+    el.dashboardLink.classList.toggle('hidden', !state.profile.is_super);
   }
 
   el.statNewLabel.textContent  = t('admin.stats.new');

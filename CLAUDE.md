@@ -58,13 +58,14 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 | `admin.html` | 管理者 | 登入 + 強制變更初始密碼（同一頁，避免按上一頁繞過） |
 | `admin-cases.html` | 管理者 | 案件列表、案件回覆與結案 |
 | `admin-accounts.html` | 超級管理者 | 帳號管理（新增 / 停用 / 重設密碼）|
+| `admin-dashboard.html` | 超級管理者 | 動態表（月份 / 年度統計，可切換語言）|
 
 **Sheet 分頁**：`回報資料`、`員工名冊`、`管理者名單`、`選項設定`、`回覆範本`、`系統計數`、`錯誤日誌`
 
 **後端檔案**：`Config`（常數）/ `Utils`（共用）/ `Store`（附有效期的鍵值儲存）/ `Main`（路由）/ `Auth`（登入與權限）/
 `Options` / `Employee` / `Feedback` / `Image` / `Query`（員工端查詢）/ `Cases`（管理端案件）/
 `Admins`（帳號管理，僅 SUPER）/ `Notify`（寄信共用）/ `Reports`（排程報表）/
-`Triggers`（排程安裝與移除）/ `Setup`（一次性腳本與維運工具）
+`Triggers`（排程安裝與移除）/ `Stats`（Dashboard 統計）/ `Setup`（一次性腳本與維運工具）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -111,24 +112,24 @@ Apps Script **不支援 `doOptions`**。前端 `fetch` 必須：
 
 ### 5. 改前端檔案後，一定要更新資源版本號
 
-**六個 HTML 檔**（`index.html` / `report.html` / `query.html` /
-`admin.html` / `admin-cases.html` / `admin-accounts.html`）
-引用 CSS 與 JS 時都帶 `?v=2.2`。
+**七個 HTML 檔**（`index.html` / `report.html` / `query.html` /
+`admin.html` / `admin-cases.html` / `admin-accounts.html` / `admin-dashboard.html`）
+引用 CSS 與 JS 時都帶 `?v=2.4`。
 
 **為什麼一定要有：** GitHub Pages 的 `Cache-Control: max-age=600`，
 使用者的瀏覽器會把 JS 快取 10 分鐘。若後端已更新而前端還是舊的，
 畫面會用「錯誤的方式」壞掉——曾經因為 API 欄位改名，
 使用者點下去整個清單消失且不顯示任何訊息。
 
-**改法：** 六個 HTML 檔一起把 `?v=` 後面的數字往上加，
+**改法：** 七個 HTML 檔一起把 `?v=` 後面的數字往上加，
 並同步改 `js/config.js` 的 `SYSTEM_INFO.version`（漏改的話頁尾顯示的版本會對不上）。
 
 ```bash
-# 例如從 2.2 改成 2.3
-sed -i 's/?v=2\.2/?v=2.3/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html
+# 例如從 2.4 改成 2.5
+sed -i 's/?v=2\.4/?v=2.5/g' index.html report.html query.html admin.html admin-cases.html admin-accounts.html admin-dashboard.html
 ```
 
-改完用這行確認沒有漏掉：`grep -rn "v=2\.2" *.html`（應該一筆都查不到）
+改完用這行確認沒有漏掉：`grep -rn "v=2\.4" *.html`（應該一筆都查不到）
 
 搭配另一個原則：**前端讀取 API 回傳值時要防禦性存取**（`item.images || []`），
 且渲染函式要有 try/catch，這樣即使版本不一致也只是少顯示一段，
@@ -368,6 +369,7 @@ node tools/test-cases-api.js   # 管理端案件 API（篩選 / 排序 / 統計 
 node tools/test-store.js       # 附有效期的鍵值儲存
 node tools/test-admin-api.js   # 帳號管理 API（權限 / 新增 / 停用 / 重設密碼 / token 作廢）
 node tools/test-report-api.js  # 排程報表（收件人 / 日報內容 / 空信規則 / 寄信失敗）
+node tools/test-stats-api.js   # Dashboard 統計（月 / 年 / 趨勢 / 各餐廳表現）
 ```
 
 ⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。

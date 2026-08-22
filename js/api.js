@@ -196,6 +196,18 @@ const Api = {
   },
 
 
+  /**
+   * Dashboard 統計（僅 SUPER）。
+   *
+   * 一次把所有月份與年份的統計全部拿回來——
+   * Apps Script 每次回應要 3～8 秒，切一次下拉打一次 API 的話這頁沒人想開。
+   * 資料量很小，累積十年也才 120 個月份。
+   */
+  getDashboardStats(token) {
+    return this.post({ action: 'getDashboardStats', token });
+  },
+
+
   /** 變更自己的密碼 */
   adminChangePassword(token, oldPassword, newPassword) {
     return this.post({

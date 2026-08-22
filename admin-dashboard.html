@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Data Laporan · Kantin PCI</title>
+  <link rel="stylesheet" href="css/style.css?v=2.4">
+</head>
+<body>
+
+  <div class="page page-wide">
+
+    <header class="topbar">
+      <h1 class="topbar-title" id="pageTitle">Data Laporan</h1>
+      <div class="lang-switch lang-switch-compact">
+        <button type="button" class="lang-btn" data-lang="id">ID</button>
+        <button type="button" class="lang-btn" data-lang="zh">中</button>
+      </div>
+    </header>
+
+    <div id="adminBar" class="admin-bar hidden">
+      <span class="admin-bar-who">
+        <span id="adminName"></span>
+        <span id="adminRole" class="tag"></span>
+      </span>
+      <span class="admin-bar-actions">
+        <a href="admin-cases.html" id="casesLink" class="admin-bar-link">Daftar Laporan</a>
+        <button type="button" id="logoutBtn" class="admin-bar-logout">Keluar</button>
+      </span>
+    </div>
+
+    <main>
+      <div id="bootView" class="state-box">
+        <div class="spinner"></div>
+        <p id="bootText">Mengecek status login…</p>
+      </div>
+
+      <div id="errorView" class="result error hidden"></div>
+
+      <div id="mainView" class="hidden">
+
+        <h2 class="dash-title" id="dashTitle"></h2>
+
+        <!-- 兩個下拉各管一個區塊：月份管上半、年度管下半 -->
+        <div class="dash-controls">
+          <label class="dash-control">
+            <span class="filter-label" id="labelMonth">Bulan</span>
+            <select id="fMonth"></select>
+          </label>
+          <label class="dash-control">
+            <span class="filter-label" id="labelYear">Tahun</span>
+            <select id="fYear"></select>
+          </label>
+          <span class="dash-updated" id="updatedAt"></span>
+        </div>
+
+        <div id="emptyNote" class="result warn hidden"></div>
+
+        <!-- ===== 月份區塊 ===== -->
+        <section id="monthSection">
+          <h3 class="dash-section" id="mSection"></h3>
+          <div class="dash-tiles" id="mTiles"></div>
+
+          <div class="dash-two-col">
+            <div>
+              <h4 class="dash-sub" id="labelByLocation"></h4>
+              <div class="dash-card"><div id="mLocation"></div></div>
+            </div>
+            <div>
+              <h4 class="dash-sub" id="labelByStatus"></h4>
+              <div class="dash-card"><div id="mStatus"></div></div>
+            </div>
+          </div>
+
+          <h4 class="dash-sub" id="labelByCategory"></h4>
+          <p class="dash-note" id="noteByCategory"></p>
+          <div class="dash-card"><div id="mCategory"></div></div>
+        </section>
+
+        <!-- ===== 年度區塊 ===== -->
+        <section id="yearSection">
+          <h3 class="dash-section dash-section-top" id="ySection"></h3>
+          <div class="dash-tiles dash-tiles-4" id="yTiles"></div>
+
+          <h4 class="dash-sub" id="labelTrend"></h4>
+          <div class="dash-card">
+            <div id="trendWrap"></div>
+            <div class="dash-legend">
+              <span><i class="legend-line legend-count"></i> <span id="legendCount"></span></span>
+              <span><i class="legend-line legend-rating"></i> <span id="legendRating"></span></span>
+            </div>
+          </div>
+
+          <h4 class="dash-sub" id="labelLocTable"></h4>
+          <div class="dash-card dash-card-table">
+            <table class="dash-table">
+              <thead><tr id="tblHead"></tr></thead>
+              <tbody id="tblBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <footer class="site-footer" id="siteFooter"></footer>
+
+  </div>
+
+  <script src="js/config.js?v=2.4"></script>
+  <script src="js/i18n.js?v=2.4"></script>
+  <script src="js/ui.js?v=2.4"></script>
+  <script src="js/api.js?v=2.4"></script>
+  <script src="js/admin-session.js?v=2.4"></script>
+  <script src="js/admin-dashboard.js?v=2.4"></script>
+
+</body>
+</html>

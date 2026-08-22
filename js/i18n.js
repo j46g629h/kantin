@@ -215,6 +215,45 @@ const I18N = {
     'admin.period.total':   '共 {n} 件',
     'admin.month.label':    '{y} 年 {m} 月',
 
+    // --- 管理端：Dashboard（僅 SUPER）---
+    'dash.entry':        '動態表',
+    'dash.title':        'PCI adidas 員工餐廳回報動態表',
+    'dash.loading':      '計算統計中…',
+    'dash.updatedAt':    '資料時間 {t}',
+    'dash.empty':        '目前還沒有任何回報資料，統計表要有資料才顯示得出來。',
+    'dash.month':        '月份',
+    'dash.year':         '年度',
+    'dash.monthLabel':   '{y} 年 {m} 月',
+
+    // 月份區塊
+    'dash.mSection':     '{y} 年 {m} 月',
+    'dash.mTotal':       '{y} 年 {m} 月回報數',
+    'dash.mNew':         '未處理',
+    'dash.mDone':        '結案率',
+    'dash.mDays':        '平均處理天數',
+    'dash.mRating':      '平均滿意度',
+    'dash.byLocation':   '各餐廳回報數量',
+    'dash.byStatus':     '處理狀態比例',
+    'dash.byCategory':   '問題分類佔比',
+    'dash.byCategoryNote':'每個被選到的分類都算 1 次，總和會超過 100%。',
+
+    // 年度區塊
+    'dash.ySection':     '{y} 年度總覽（1–12 月）',
+    'dash.yTotal':       '年度總回報',
+    'dash.yDone':        '年度結案率',
+    'dash.yDays':        '平均處理天數',
+    'dash.yRating':      '平均滿意度',
+    'dash.trend':        '月度趨勢（1–12 月）',
+    'dash.trendCount':   '回報數',
+    'dash.trendRating':  '平均滿意度',
+    'dash.locTable':     '各餐廳年度表現',
+    'dash.colLoc':       '餐廳',
+    'dash.colCount':     '回報數',
+    'dash.colRating':    '滿意度',
+    'dash.colDone':      '結案率',
+    'dash.colDays':      '處理天數',
+    'dash.noData':       '沒有資料',
+
     // --- 管理端：帳號管理（僅 SUPER）---
     'accounts.entry':        '帳號管理',
     'accounts.title':        '帳號管理',
@@ -536,6 +575,45 @@ const I18N = {
     'admin.period.count':   '{n} laporan',
     'admin.period.total':   'total {n} laporan',
     'admin.month.label':    '{m}/{y}',
+
+    // --- Admin: papan data (khusus SUPER) ---
+    'dash.entry':        'Data',
+    'dash.title':        'Data Laporan Kantin PCI adidas',
+    'dash.loading':      'Menghitung data…',
+    'dash.updatedAt':    'Data per {t}',
+    'dash.empty':        'Belum ada laporan sama sekali, jadi belum ada yang bisa ditampilkan.',
+    'dash.month':        'Bulan',
+    'dash.year':         'Tahun',
+    'dash.monthLabel':   '{m}/{y}',
+
+    // Bagian bulanan
+    'dash.mSection':     'Bulan {m}/{y}',
+    'dash.mTotal':       'Laporan bulan {m}/{y}',
+    'dash.mNew':         'Belum diproses',
+    'dash.mDone':        'Tingkat selesai',
+    'dash.mDays':        'Rata-rata hari proses',
+    'dash.mRating':      'Rata-rata kepuasan',
+    'dash.byLocation':   'Jumlah per kantin',
+    'dash.byStatus':     'Proporsi status',
+    'dash.byCategory':   'Kategori masalah',
+    'dash.byCategoryNote':'Setiap kategori yang dipilih dihitung 1 — total bisa lebih dari 100%.',
+
+    // Bagian tahunan
+    'dash.ySection':     'Ringkasan tahun {y} (Jan–Des)',
+    'dash.yTotal':       'Total tahun ini',
+    'dash.yDone':        'Tingkat selesai',
+    'dash.yDays':        'Rata-rata hari proses',
+    'dash.yRating':      'Rata-rata kepuasan',
+    'dash.trend':        'Tren bulanan (Jan–Des)',
+    'dash.trendCount':   'Jumlah laporan',
+    'dash.trendRating':  'Rata-rata kepuasan',
+    'dash.locTable':     'Perbandingan kantin (setahun)',
+    'dash.colLoc':       'Kantin',
+    'dash.colCount':     'Laporan',
+    'dash.colRating':    'Kepuasan',
+    'dash.colDone':      'Selesai',
+    'dash.colDays':      'Hari',
+    'dash.noData':       'Belum ada data',
 
     // --- Admin: kelola akun (khusus SUPER) ---
     'accounts.entry':        'Kelola Akun',

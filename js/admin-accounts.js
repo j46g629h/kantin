@@ -66,6 +66,7 @@ const el = {
   adminName: document.getElementById('adminName'),
   adminRole: document.getElementById('adminRole'),
   logoutBtn: document.getElementById('logoutBtn'),
+  dashboardLink: document.getElementById('dashboardLink'),
   pageTitle: document.getElementById('pageTitle'),
   backLink:  document.getElementById('backLink'),
 
@@ -608,6 +609,7 @@ function renderTexts() {
   el.bootText.textContent  = t('admin.checking');
   el.logoutBtn.textContent = t('admin.logout');
   el.backLink.textContent  = '← ' + t('accounts.backToCases');
+  if (el.dashboardLink) el.dashboardLink.textContent = t('dash.entry');
 
   if (state.profile) {
     el.adminName.textContent = t('admin.hello')
