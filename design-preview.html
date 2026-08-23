@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-bg="neutral">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>設計預覽 — 關卡 5-1</title>
+<style>
+/* ============================================================
+   關卡 5-1：設計方向預覽頁
+
+   ⚠️ 這是一個獨立的檔案，**不會影響 app 的任何一頁**。
+      css/style.css、index.html 等現有檔案完全沒有被動到。
+      看完不喜歡，直接刪掉這個檔案就好。
+   ============================================================ */
+
+/* ---------- 方向 A1：暖米白 ---------- */
+[data-bg="warm"] {
+  --bg:            #ECECEA;
+  --surface:       #F6F6F3;
+  --surface-alt:   #E4E4E0;
+  --text:          #1A1A1C;
+  --text-muted:    #54544F;
+  --text-subtle:   #6B6B63;   /* 對 --bg 4.54:1，剛好通過 WCAG AA */
+  --border:        #DCDCD6;
+  --border-strong: #C9C9C2;
+  --num:           #7E7E77;   /* 大型步驟編號：對底色 3.46:1，通過大字的 3:1 */
+}
+
+/* ---------- 方向 A2：中性米白（降低黃味，配藍色 logo 較協調）---------- */
+[data-bg="neutral"] {
+  --bg:            #EFEFED;
+  --surface:       #F9F9F8;
+  --surface-alt:   #E7E7E6;
+  --text:          #1A1A1D;
+  --text-muted:    #53535A;
+  --text-subtle:   #6A6A70;
+  --border:        #DEDEDD;
+  --border-strong: #CBCBCA;
+  --num:           #7E7E77;   /* 大型步驟編號：對底色 3.55:1，通過大字的 3:1 */
+}
+
+/* ---------- 主要動作的顏色（可切換）---------- */
+[data-action="black"] { --action: #1A1A1C; --action-press: #35353A; }
+[data-action="blue"]  { --action: #214A8C; --action-press: #163464; }
+
+/* ---------- 主要按鈕的漸層強度（三段對照）----------
+   ⚠️ 參考網站 madebypan.com 全站沒有任何漸層，深色區塊是純平的。
+      而「漸層 + 光澤」正是 pci 藍球看起來過時的原因。
+      極淡（約 4% 明度差）讀起來像柔和的光源；明顯的就會回到 2012 年的按鈕語彙。 */
+[data-grad="none"]   { --action-bg: var(--action); }
+
+/* ============================================================
+   陰影階層
+
+   ⚠️ 關鍵不是「有沒有陰影」，是**陰影的強度要跟重要性成正比**。
+      你原本的 app 每一張卡片都有 `0 1px 3px rgba(0,0,0,.06)`——
+      平均分配的結果就是沒有任何一張卡片被強調，那正是「單調」的來源。
+
+      切到「全部都有」就會看到那個問題重新出現。
+   ============================================================ */
+[data-shadow="flat"] { --sh-card: none; --sh-act: none;         --sh-hero: var(--lift); }
+[data-shadow="two"]  { --sh-card: none; --sh-act: var(--lift-1); --sh-hero: var(--lift); }
+[data-shadow="all"]  { --sh-card: var(--lift-1); --sh-act: var(--lift-1); --sh-hero: var(--lift); }
+[data-grad="subtle"] { --action-bg: linear-gradient(160deg, #26262B 0%, #131315 100%); }
+[data-grad="strong"] { --action-bg: linear-gradient(160deg, #3C3C45 0%, #0D0D0F 100%); }
+
+/* ---------- 功能色：方向 A 的核心，顏色只出現在「有意義」的地方 ---------- */
+:root {
+  --ok:            #046C4E;
+  --ok-bg:         #E7F5EE;
+  --danger:        #A81E1E;
+  --danger-bg:     #FBEDEC;
+  --warn:          #8A5300;
+  --warn-bg:       #FBF2E3;
+  --star:          #C97B08;
+
+  /* 字級：clamp(最小, 隨寬度變化, 最大) —— 手機到電腦連續調整，不是跳變 */
+  --fs-xs:      clamp(12px, 0.70rem + 0.15vw, 13px);
+  --fs-sm:      clamp(13px, 0.78rem + 0.20vw, 15px);
+  --fs-body:    clamp(15px, 0.88rem + 0.25vw, 17px);
+  --fs-input:   clamp(16px, 0.95rem + 0.20vw, 17px);   /* ⚠️ 下限鎖 16px，低於會被 iOS 放大畫面 */
+  --fs-lg:      clamp(17px, 1.00rem + 0.40vw, 20px);
+  --fs-title:   clamp(23px, 1.30rem + 1.30vw, 34px);
+  --fs-display: clamp(30px, 1.60rem + 2.60vw, 52px);
+
+  /* 間距也跟著螢幕變 —— 電腦上版面會自然變鬆，不是「手機版被放大」 */
+  --gap:      clamp(12px, 0.70rem + 0.40vw, 18px);
+  --pad:      clamp(16px, 0.90rem + 0.60vw, 24px);
+  --sec-gap:  clamp(28px, 1.50rem + 2.00vw, 56px);
+
+  --radius-sm:   10px;
+  --radius:      14px;
+  --radius-lg:   20px;
+  --radius-pill: 999px;
+
+  /* 關鍵：絕大多數東西完全沒有陰影，只有少數幾個給很重的 */
+  --lift:   0 10px 24px -10px rgba(40,40,45,.20), 0 24px 48px -24px rgba(40,40,45,.24);
+  /* 中階：夠看出浮起來，又不會讓每張卡片互相搶。
+     陰影色用帶灰的深色，不用純黑——純黑在米白底上會顯髒 */
+  --lift-1: 0 1px 2px rgba(38,38,44,.05), 0 6px 14px -8px rgba(38,38,44,.16);
+
+  --tap-min: 48px;
+}
+
+/* ⚠️ 明確宣告只支援淺色。不寫的話，部分 Android 瀏覽器會強制把整頁反轉，
+   精心調的米白會變成深褐色，狀態色也會跟著跑掉。 */
+:root { color-scheme: light; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Noto Sans TC", "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: #E2E2DE;
+  color: #1A1A1C;
+  line-height: 1.8;
+  -webkit-text-size-adjust: 100%;
+  padding: 24px 16px 64px;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+/* ===== 頁面本身的說明區（不是 app 的一部分）===== */
+.doc-head { max-width: 720px; margin: 0 auto 28px; }
+.doc-head h1 { font-size: clamp(24px, 1.4rem + 1.5vw, 34px); line-height: 1.35; }
+.doc-head p  { color: #54544F; font-size: 15px; margin-top: 10px; }
+.doc-note {
+  background: #FBF2E3; border-left: 4px solid #8A5300;
+  padding: 12px 16px; border-radius: 8px; margin-top: 16px;
+  font-size: 14px; color: #6B4A00;
+}
+.doc-h2 {
+  font-size: clamp(19px, 1.1rem + 0.6vw, 24px);
+  margin: var(--sec-gap) 0 6px; padding-top: 8px;
+}
+.doc-sub { color: #54544F; font-size: 14px; margin-bottom: 18px; max-width: 720px; }
+
+/* ===== 控制列 ===== */
+.controls {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(226,226,222,.94); backdrop-filter: blur(8px);
+  border: 1px solid #CFCFC9; border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 24px;
+  display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+}
+.ctrl-group { display: flex; align-items: center; gap: 8px; }
+.ctrl-label { font-size: 12px; color: #54544F; font-weight: 600; white-space: nowrap; }
+.seg { display: flex; background: #D6D6D1; border-radius: var(--radius-pill); padding: 3px; }
+.seg button {
+  border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: 13px; padding: 7px 14px;
+  border-radius: var(--radius-pill); color: #54544F; white-space: nowrap;
+}
+.seg button[aria-pressed="true"] { background: #FFF; color: #1A1A1C; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="doc-head">
+  <h1>設計預覽 — 方向 A：中性底 + 顏色只給意義</h1>
+  <p>
+    參考 madebypan.com 的設計語言，套用到 PCI 餐廳回饋系統。
+    上方切換鈕可以即時比較兩種底色溫度、以及主要按鈕用近黑或 PCI 藍。
+  </p>
+  <div class="doc-note">
+    <strong>這個檔案不會影響 app。</strong>
+    <code>css/style.css</code>、<code>index.html</code> 等現有檔案完全沒有被動到，
+    看完不滿意直接刪掉 <code>design-preview.html</code> 就好。
+    <br><br>
+    <strong>請用手機也開一次</strong>——字級與間距會隨螢幕寬度自動調整，
+    只在電腦上看的話看不出這個效果。
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <span class="ctrl-label">底色</span>
+    <div class="seg" id="segBg">
+      <button data-v="warm" aria-pressed="false">A1 暖米白</button>
+      <button data-v="neutral" aria-pressed="true">A2 中性米白</button>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">陰影</span>
+    <div class="seg" id="segShadow">
+      <button data-v="two" aria-pressed="true">兩階（推薦）</button>
+      <button data-v="all" aria-pressed="false">全部都有</button>
+      <button data-v="flat" aria-pressed="false">只有主要動作</button>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">對照</span>
+    <div class="seg" id="segCompare">
+      <button data-v="new" aria-pressed="true">新版</button>
+      <button data-v="old" aria-pressed="false">現在的樣子</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ===== 手機外框 ===== */
+.screens {
+  display: grid; gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+}
+.screen-label {
+  font-size: 13px; font-weight: 600; color: #54544F;
+  margin-bottom: 8px; padding-left: 4px;
+}
+.phone {
+  background: var(--bg);
+  border: 1px solid #CFCFC9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: background .25s;
+}
+.phone-inner { padding: var(--pad); }
+
+/* ============================================================
+   以下是「新版」的元件樣式
+   ============================================================ */
+
+/* --- 頁首 logo 列 --- */
+.app-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 14px; margin-bottom: 4px;
+}
+.app-bar .mark { width: 34px; height: 34px; flex: none; }
+.app-bar .name { font-size: var(--fs-sm); font-weight: 700; letter-spacing: .02em; }
+.app-bar .lang { margin-left: auto; display: flex; gap: 4px; }
+.app-bar .lang button {
+  border: 1px solid var(--border-strong); background: transparent;
+  border-radius: var(--radius-pill); padding: 5px 11px;
+  font: inherit; font-size: var(--fs-xs); color: var(--text-muted); cursor: pointer;
+}
+.app-bar .lang button[aria-pressed="true"] {
+  background: var(--text); border-color: var(--text); color: var(--surface); font-weight: 600;
+}
+
+/* ============================================================
+   表面 / 表面上的文字（surface / on-surface）
+
+   📌 這是你說的「文字與按鈕要跟著背景自動調整」的標準做法。
+
+      做法不是用 JS 去算背景色，而是**讓每個表面自己帶著
+      「放在我上面的文字該是什麼顏色」**。
+
+      元件一律寫 `color: var(--fg)`，不寫死顏色。
+      這樣同一個元件放到白卡片上、深色區塊上、紅色警示區上，
+      文字顏色會自動跟著換，而且每一組都是事先驗算過對比度的。
+
+   ⚠️ 為什麼不用 JS 即時運算：
+      背景可能是漸層、半透明、或被圖片蓋住，JS 取到的值不一定是眼睛看到的。
+      而且每次重繪都要算一次。用 token 是靜態的、可驗證的、零成本。
+   ============================================================ */
+.on-base {
+  --surf: var(--bg);
+  --fg: var(--text); --fg-muted: var(--text-muted); --fg-subtle: var(--text-subtle);
+  --line: var(--border);
+}
+.on-raised {
+  --surf: var(--surface);
+  --fg: var(--text); --fg-muted: var(--text-muted); --fg-subtle: var(--text-subtle);
+  --line: var(--border);
+}
+.on-dark {
+  --surf: #1A1A1C;
+  --fg: #F2F2EF; --fg-muted: #B9B9B4; --fg-subtle: #93938E;
+  --line: rgba(255,255,255,.16);
+}
+.on-danger {
+  --surf: var(--danger-bg);
+  --fg: #7A1616; --fg-muted: #8E3232; --fg-subtle: #9A4A4A;
+  --line: rgba(122,22,22,.18);
+}
+.on-ok {
+  --surf: var(--ok-bg);
+  --fg: #04543D; --fg-muted: #2A6B57; --fg-subtle: #3A7360;
+  --line: rgba(4,84,61,.18);
+}
+.on-warn {
+  --surf: var(--warn-bg);
+  --fg: #6E4200; --fg-muted: #855A1E; --fg-subtle: #8A6534;
+  --line: rgba(110,66,0,.18);
+}
+
+/* 示範用的容器：背景與文字都只讀 token，不寫死任何顏色 */
+.demo-surface {
+  background: var(--surf);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.demo-surface h5 { font-size: var(--fs-body); font-weight: 700; }
+.demo-surface p  { font-size: var(--fs-sm); color: var(--fg-muted); margin-top: 4px; }
+.demo-surface small { display: block; font-size: var(--fs-xs); color: var(--fg-subtle); margin-top: 4px; }
+.demo-surface hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+.demo-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 18px; border-radius: var(--radius-pill);
+  border: 1px solid currentColor; background: transparent; color: var(--fg);
+  font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+}
+
+/* ============================================================
+   文字標誌（L3）四種做法
+
+   ⚠️ 方向 A 不能靠顏色與漸層做效果，所以「效果」只能從
+      字重對比、字距、色塊、細線這四件事來。
+      這反而是好事——這幾樣在任何螢幕、任何尺寸都不會失真。
+   ============================================================ */
+.wm { display: inline-flex; align-items: center; flex: none; font-style: normal; }
+
+/* W1 純字重對比：最輕，什麼都不加 */
+.wm-weight b {
+  font-weight: 700; font-size: var(--fs-sm);
+  letter-spacing: .16em;
+}
+.wm-weight i {
+  font-style: normal; font-weight: 400; font-size: var(--fs-sm);
+  letter-spacing: .16em; color: var(--text-muted); margin-left: .3em;
+}
+
+/* ---------- W1 的四種強化程度 ----------
+   不能用顏色和漸層，所以「效果」只剩四個槓桿：
+   字距、字重落差、大小落差、一條細線。
+   好處是這幾樣在任何螢幕、任何尺寸、印在紙上都不會失真。 */
+
+/* W1-a 加大字距：最安靜的強化，字距從 .16em 拉到 .34em */
+.wm-a b { font-weight: 800; font-size: var(--fs-sm); letter-spacing: .34em; }
+.wm-a i {
+  font-style: normal; font-weight: 300; font-size: var(--fs-sm);
+  letter-spacing: .34em; color: var(--text-muted);
+}
+
+/* W1-b 字重落差拉到最大 + GA 縮小並對齊上緣 */
+.wm-b b { font-weight: 800; font-size: var(--fs-lg); letter-spacing: .1em; }
+.wm-b i {
+  font-style: normal; font-weight: 400; font-size: var(--fs-xs);
+  letter-spacing: .3em; color: var(--text-muted);
+  align-self: flex-start; margin: 2px 0 0 .45em;
+}
+
+/* W1-c 底下一條細線，線寬剛好等於字寬 */
+.wm-c { flex-direction: column; align-items: stretch; }
+.wm-c span { display: flex; align-items: baseline; }
+.wm-c b { font-weight: 800; font-size: var(--fs-sm); letter-spacing: .28em; }
+.wm-c i {
+  font-style: normal; font-weight: 300; font-size: var(--fs-sm);
+  letter-spacing: .28em; color: var(--text-muted);
+}
+.wm-c em {
+  display: block; height: 2px; background: var(--text);
+  margin-top: 5px; border-radius: 1px;
+}
+
+/* W1-d 上下堆疊：PCI 大、GA 小並拉開字距壓在下面 */
+.wm-d { flex-direction: column; align-items: flex-start; line-height: 1.05; }
+.wm-d b { font-weight: 800; font-size: var(--fs-lg); letter-spacing: .06em; }
+.wm-d i {
+  font-style: normal; font-weight: 400; font-size: 9.5px;
+  letter-spacing: .48em; color: var(--text-muted); margin-top: 3px;
+}
+
+/* W2 深色方塊鎖定：PCI 反白在近黑方塊裡，GA 在外面 */
+.wm-box { gap: 7px; }
+.wm-box b {
+  background: var(--text); color: var(--surface);
+  font-weight: 700; font-size: var(--fs-xs); letter-spacing: .1em;
+  padding: 5px 8px; border-radius: 7px; line-height: 1;
+}
+.wm-box i {
+  font-style: normal; font-weight: 700; font-size: var(--fs-sm);
+  letter-spacing: .16em;
+}
+
+/* W3 細線分隔 */
+.wm-rule b {
+  font-weight: 700; font-size: var(--fs-sm); letter-spacing: .16em;
+}
+.wm-rule i {
+  font-style: normal; font-weight: 400; font-size: var(--fs-sm);
+  letter-spacing: .16em; margin-left: .5em; padding-left: .5em;
+  border-left: 1px solid var(--border-strong); color: var(--text-muted);
+}
+
+/* W4 堆疊：兩行，上小下大 */
+.wm-stack { flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.wm-stack b {
+  font-weight: 700; font-size: 10px; letter-spacing: .22em;
+  color: var(--text-muted);
+}
+.wm-stack i {
+  font-style: normal; font-weight: 700; font-size: var(--fs-body);
+  letter-spacing: .04em;
+}
+
+/* 頁首裡標誌旁邊的 app 名稱 */
+.app-name {
+  font-size: var(--fs-sm); color: var(--text-muted);
+  padding-left: 10px; margin-left: 2px;
+  border-left: 1px solid var(--border);
+}
+
+/* --- 首頁 hero --- */
+.hero { padding: var(--sec-gap) 0 calc(var(--sec-gap) * .7); }
+.hero .eyebrow {
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-subtle);
+}
+.hero h2 {
+  font-size: var(--fs-title); line-height: 1.25; margin-top: 10px; font-weight: 700;
+  letter-spacing: .01em;
+}
+.hero p { color: var(--text-muted); font-size: var(--fs-body); margin-top: 10px; }
+
+/* --- 主要動作：唯一有重陰影的東西 --- */
+.cta {
+  /* 深色表面自己帶著 on-surface token，內部文字一律讀它，不靠繼承。
+     這樣不管這顆按鈕被放進哪一段版面，裡面的字都不會被外面的規則染色 */
+  --fg: #F2F2EF; --fg-muted: #C2C2BD;
+
+  display: flex; align-items: center; gap: 14px;
+  background: var(--action-bg, var(--action)); color: var(--fg);
+  border-radius: var(--radius-lg); padding: 18px var(--pad);
+  text-decoration: none; min-height: var(--tap-min);
+  box-shadow: var(--sh-hero, var(--lift));
+  transition: background .2s;
+}
+.cta:active { background: var(--action-press); }
+/* 一律指定顏色，不用 opacity。
+   opacity 會把文字往背景色混，對比度是「算不準也控制不了」的——
+   而且巢狀的 opacity 會相乘，越深的層級越淡 */
+.cta .n { font-size: var(--fs-lg); font-weight: 700; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.cta .t { flex: 1; }
+.cta .t b { display: block; font-size: var(--fs-lg); font-weight: 700; color: var(--fg); }
+.cta .t span { display: block; font-size: var(--fs-sm); color: var(--fg-muted); margin-top: 2px; }
+.cta .arrow { font-size: 22px; color: var(--fg-muted); }
+
+/* --- 次要動作：完全平坦，沒有陰影 --- */
+.cta-2 {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface); color: var(--text);
+  border-radius: var(--radius-lg); padding: 18px var(--pad);
+  text-decoration: none; min-height: var(--tap-min); margin-top: 12px;
+  box-shadow: var(--sh-act, none);
+}
+.cta-2 .n { font-size: var(--fs-lg); font-weight: 700; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+.cta-2 .t { flex: 1; }
+.cta-2 .t b { display: block; font-size: var(--fs-lg); font-weight: 700; }
+.cta-2 .t span { display: block; font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+.cta-2 .arrow { font-size: 22px; color: var(--text-subtle); }
+
+/* --- 頁尾 --- */
+.foot {
+  margin-top: var(--sec-gap); padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-xs); color: var(--text-subtle); line-height: 1.9;
+}
+.foot a { color: var(--text-subtle); }
+</style>
+
+<style>
+/* --- 表單 --- */
+.step { margin-top: var(--sec-gap); }
+.step-n {
+  font-size: var(--fs-display); font-weight: 700; line-height: 1;
+  color: var(--num, var(--border-strong)); font-variant-numeric: tabular-nums;
+}
+.step-t { font-size: var(--fs-lg); font-weight: 700; margin-top: 2px; }
+.step-d { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+
+.field { margin-top: 12px; }
+.input {
+  width: 100%; min-height: var(--tap-min);
+  font: inherit; font-size: var(--fs-input);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.input::placeholder { color: var(--text-subtle); }
+.input:focus { outline: 2px solid #214A8C; outline-offset: 2px; border-color: transparent; }
+
+.hint-ok {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: var(--fs-sm); color: var(--ok); font-weight: 600;
+}
+
+/* 分類選擇：選中的用實心色塊，沒選的完全平坦 */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip {
+  border: 1px solid var(--border-strong); background: transparent;
+  border-radius: var(--radius-pill); padding: 11px 16px;
+  font: inherit; font-size: var(--fs-sm); color: var(--text); cursor: pointer;
+  min-height: var(--tap-min);   /* 工廠現場可能戴手套，不可小於 48px */
+}
+.chip[aria-pressed="true"] {
+  background: var(--text); border-color: var(--text); color: var(--surface); font-weight: 600;
+}
+
+.stars { display: flex; gap: 6px; margin-top: 12px; font-size: 28px; line-height: 1; }
+.stars .on { color: var(--star); }
+.stars .off { color: var(--border-strong); }
+
+.submit {
+  width: 100%; min-height: 54px; margin-top: var(--sec-gap);
+  background: var(--action-bg, var(--action)); color: #F2F2EF;
+  border: 0; border-radius: var(--radius-pill);
+  font: inherit; font-size: var(--fs-lg); font-weight: 700; cursor: pointer;
+  box-shadow: var(--sh-hero, var(--lift));
+}
+
+/* --- 案件卡片 --- */
+.case {
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: var(--pad); margin-top: 12px;
+  box-shadow: var(--sh-card, none);
+}
+.case-top { display: flex; align-items: baseline; gap: 10px; }
+.case-id { font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+.case-date { font-size: var(--fs-xs); color: var(--text-subtle); margin-left: auto; }
+.case-title { font-size: var(--fs-body); margin-top: 8px; }
+.case-meta { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 8px; }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: var(--radius-pill); padding: 4px 11px;
+  font-size: var(--fs-xs); font-weight: 700;
+}
+.tag-new  { background: var(--danger-bg); color: var(--danger); }
+.tag-proc { background: var(--warn-bg);   color: var(--warn); }
+.tag-done { background: var(--ok-bg);     color: var(--ok); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* 逾期：唯一另一個有重陰影的東西 */
+.case-overdue {
+  background: var(--danger-bg);
+  box-shadow: 0 10px 24px -12px rgba(168,30,30,.35), 0 20px 40px -22px rgba(168,30,30,.3);
+}
+.case-overdue .case-title { color: #7A1616; }
+.overdue-flag {
+  display: inline-block; margin-top: 10px;
+  font-size: var(--fs-xs); font-weight: 700; color: var(--danger);
+}
+
+/* --- 色票 --- */
+.sw-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.sw { border-radius: var(--radius); overflow: hidden; border: 1px solid #CFCFC9; background: #F6F6F3; }
+.sw-c { height: 56px; }
+.sw-b { padding: 8px 10px; font-size: 12px; line-height: 1.55; }
+.sw-b b { display: block; font-size: 12.5px; }
+.sw-b code { color: #54544F; font-size: 11.5px; }
+.sw-b .ratio { display: block; font-size: 11px; margin-top: 2px; }
+.pass { color: #046C4E; font-weight: 700; }
+.fail { color: #A81E1E; font-weight: 700; }
+
+/* --- logo 選項 --- */
+.logo-opts { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.logo-card {
+  background: #F6F6F3; border: 1px solid #CFCFC9;
+  border-radius: var(--radius); padding: 18px; text-align: center;
+}
+.logo-stage {
+  height: 78px; display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin-bottom: 12px;
+}
+.logo-card h4 { font-size: 14px; margin-bottom: 4px; }
+.logo-card p { font-size: 12.5px; color: #54544F; line-height: 1.65; }
+
+/* 從集團合體圖裡把 pci 那顆圓球裁出來（正式檔到手前的暫代做法） */
+.mark-real {
+  width: 42px; height: 42px;
+  background-image: url("assets/logo.svg");
+  background-size: 318px 370px;
+  background-position: -157px -102px;
+  background-repeat: no-repeat;
+}
+.mark-mono {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--text, #1A1A1C); color: #F5F5F2;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; font-style: italic; letter-spacing: -.03em;
+}
+.mark-word { font-size: 17px; font-weight: 700; letter-spacing: .02em; }
+.mark-word small { font-weight: 400; color: #54544F; }
+
+/* --- 舊版對照 --- */
+.old-look { background: #f4f5f7; border-radius: 0; }
+.old-look .phone-inner { padding: 16px; }
+.old-card {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  padding: 20px; display: flex; align-items: center; gap: 16px;
+  margin-bottom: 12px; color: #1f2328; text-decoration: none;
+}
+.old-card.primary { border-color: #2563eb; border-width: 2px; }
+.old-card .ic { font-size: 32px; }
+.old-card b { display: block; font-size: 18px; font-weight: 600; }
+.old-card span { display: block; font-size: 14px; color: #6b7280; }
+.old-hero { text-align: center; padding: 24px 0 32px; }
+.old-hero .ic { font-size: 56px; }
+.old-hero h2 { font-size: 24px; margin-top: 12px; color: #1f2328; }
+.old-hero p { color: #6b7280; font-size: 15px; margin-top: 6px; }
+.hidden { display: none !important; }
+</style>
+
+<h2 class="doc-h2">三個畫面</h2>
+<p class="doc-sub">
+  首頁、回報表單、管理端案件列表。注意「重量分配」——整個畫面只有
+  <strong>主要動作</strong>與<strong>逾期案件</strong>有陰影，其餘完全平坦。
+  這是解決「什麼都一樣重要，所以什麼都不重要」的關鍵手法。
+</p>
+
+<div class="screens" id="newScreens">
+
+  <!-- ===== 首頁 ===== -->
+  <div>
+    <div class="screen-label">員工端 · 首頁</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+          <div class="lang">
+            <button aria-pressed="true">ID</button>
+            <button aria-pressed="false">中</button>
+          </div>
+        </div>
+
+        <div class="hero">
+          <div class="eyebrow">Suara Karyawan</div>
+          <h2>Bantu kami bikin<br>kantin lebih baik</h2>
+          <p>有問題或建議，兩分鐘告訴我們</p>
+        </div>
+
+        <a class="cta" href="#">
+          <span class="n">01</span>
+          <span class="t"><b>Lapor Masalah</b><span>我要回報問題</span></span>
+          <span class="arrow">→</span>
+        </a>
+
+        <a class="cta-2" href="#">
+          <span class="n">02</span>
+          <span class="t"><b>Cek Laporan</b><span>查詢處理進度</span></span>
+          <span class="arrow">→</span>
+        </a>
+
+        <div class="foot">
+          Dikelola oleh · 維護單位：PCI GA<br>
+          Kontak · 聯絡方式：3690<br>
+          <a href="#">Versi · 系統版本 v2.8 · 2026</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 回報表單 ===== -->
+  <div>
+    <div class="screen-label">員工端 · 回報表單</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+        </div>
+
+        <div class="step" style="margin-top:20px">
+          <div class="step-n">01</div>
+          <div class="step-t">Nomor Karyawan</div>
+          <div class="step-d">工號</div>
+          <div class="field">
+            <input class="input" value="0012345" readonly>
+            <div class="hint-ok">✓ Budi Santoso</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-n">02</div>
+          <div class="step-t">Kategori Masalah</div>
+          <div class="step-d">問題分類 · 最多選 2 項</div>
+          <div class="chips">
+            <button class="chip" aria-pressed="true">Rasa Makanan</button>
+            <button class="chip" aria-pressed="false">Kebersihan</button>
+            <button class="chip" aria-pressed="false">Pelayanan</button>
+            <button class="chip" aria-pressed="false">Fasilitas</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-n">03</div>
+          <div class="step-t">Kepuasan</div>
+          <div class="step-d">滿意度評分</div>
+          <div class="stars">
+            <span class="on">★</span><span class="on">★</span>
+            <span class="off">★</span><span class="off">★</span><span class="off">★</span>
+          </div>
+        </div>
+
+        <button class="submit">Kirim Laporan · 送出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 管理端案件列表 ===== -->
+  <div>
+    <div class="screen-label">管理端 · 案件列表</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+        </div>
+
+        <div class="case case-overdue">
+          <div class="case-top">
+            <span class="tag tag-new"><i class="dot"></i>未處理</span>
+            <span class="case-date">08-01</span>
+          </div>
+          <div class="case-title">午餐的湯太鹹了，這週已經第三次</div>
+          <div class="case-meta">PCI-202608-001 · Kantin 2 · 菜單口味</div>
+          <div class="overdue-flag">已 19 天未處理</div>
+        </div>
+
+        <div class="case">
+          <div class="case-top">
+            <span class="tag tag-proc"><i class="dot"></i>處理中</span>
+            <span class="case-date">08-10</span>
+          </div>
+          <div class="case-title">餐廳的燈壞了兩盞，晚餐時間很暗</div>
+          <div class="case-meta">PCI-202608-003 · Kantin 2 · 餐廳設備</div>
+        </div>
+
+        <div class="case">
+          <div class="case-top">
+            <span class="tag tag-done"><i class="dot"></i>已結案</span>
+            <span class="case-date">07-15</span>
+          </div>
+          <div class="case-title">希望多一點水果選擇</div>
+          <div class="case-meta">PCI-202607-004 · Kantin R3 · 其他建議</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 舊版對照 ===== -->
+<div class="screens hidden" id="oldScreens">
+  <div>
+    <div class="screen-label">現在的樣子 · 首頁</div>
+    <div class="phone old-look">
+      <div class="phone-inner">
+        <div class="old-hero">
+          <div class="ic">🍽️</div>
+          <h2>Suara Karyawan · Kantin PCI</h2>
+          <p>Bantu kami bikin kantin lebih baik</p>
+        </div>
+        <a class="old-card primary" href="#">
+          <span class="ic">📝</span>
+          <span><b>Lapor Masalah</b><span>Ada masalah atau saran?</span></span>
+        </a>
+        <a class="old-card" href="#">
+          <span class="ic">🔍</span>
+          <span><b>Cek Laporan</b><span>Lihat laporan kamu</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="doc-h2">四個「狀態」畫面 — 這是最容易被漏掉的一段</h2>
+<p class="doc-sub">
+  設計稿通常只畫「一切正常」的樣子，但使用者實際遇到最多的是這四個狀態。
+  <strong>其中「載入中」對這個 app 特別重要</strong>——
+  Apps Script 每次回應要 3～8 秒，那幾秒使用者看到什麼，
+  決定他覺得這個系統是「在跑」還是「壞了」。
+</p>
+
+<div class="screens">
+  <div>
+    <div class="screen-label">① 載入中（3～8 秒）</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+        </div>
+        <div class="step" style="margin-top:20px">
+          <div class="step-n">02</div>
+          <div class="step-t">Kategori Masalah</div>
+          <div class="step-d">問題分類</div>
+        </div>
+        <div class="chips">
+          <span class="skel" style="width:112px"></span>
+          <span class="skel" style="width:96px"></span>
+          <span class="skel" style="width:88px"></span>
+          <span class="skel" style="width:104px"></span>
+        </div>
+        <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:16px">
+          Memuat pilihan… · 正在載入選項…
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="screen-label">② 查無此工號（試辦期最常見）</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+        </div>
+        <div class="step" style="margin-top:20px">
+          <div class="step-n">01</div>
+          <div class="step-t">Nomor Karyawan</div>
+          <div class="step-d">工號</div>
+          <div class="field">
+            <input class="input input-bad" value="0099999" readonly>
+          </div>
+        </div>
+        <div class="notice notice-bad">
+          <b>Nomor tidak ditemukan · 查無此工號</b>
+          <span>
+            Cek lagi nomornya, atau hubungi PCI GA ext. 3690<br>
+            請再確認一次號碼，或撥分機 3690
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="screen-label">③ 查詢沒有結果</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+        </div>
+        <div class="field" style="margin-top:20px">
+          <input class="input" value="0012345" readonly>
+        </div>
+        <div class="empty">
+          <div class="empty-rule"></div>
+          <b>Belum ada laporan · 還沒有回報紀錄</b>
+          <span>這個工號目前沒有任何案件。<br>有問題的話，隨時可以回報。</span>
+          <a class="cta" href="#" style="margin-top:18px">
+            <span class="t"><b>Lapor Masalah</b><span>我要回報問題</span></span>
+            <span class="arrow">→</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="screen-label">④ 送出成功（整段流程的高點）</div>
+    <div class="phone" data-bg="neutral" data-action="black" data-grad="none" data-shadow="two">
+      <div class="phone-inner">
+        <div class="app-bar">
+          <span class="wm wm-b"><b>PCI</b><i>GA</i></span>
+        </div>
+        <div class="done">
+          <div class="done-tick">✓</div>
+          <h3>Terima kasih!</h3>
+          <p>謝謝你的回報，我們會盡快處理。</p>
+          <div class="done-id">
+            <span>Nomor laporan · 案件編號</span>
+            <b>PCI-202608-018</b>
+            <span class="done-hint">用這個編號可以隨時查詢進度</span>
+          </div>
+          <button class="submit" style="margin-top:20px">Lapor Lagi · 再回報一則</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* 骨架：用形狀先佔位，比轉圈圈更能讓人相信「東西正在來」 */
+.skel {
+  display: inline-block; height: 48px; border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--surface) 50%, var(--surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+/* ⚠️ 有些人開了「減少動態」，要尊重它，否則會頭暈 */
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+.input-bad { border-color: var(--danger); border-width: 2px; }
+
+.notice { border-radius: var(--radius); padding: 14px 16px; margin-top: 12px; }
+.notice b { display: block; font-size: var(--fs-body); }
+.notice span { display: block; font-size: var(--fs-sm); margin-top: 6px; line-height: 1.7; }
+.notice-bad { background: var(--danger-bg); color: var(--danger); }
+
+.empty { text-align: center; padding: var(--sec-gap) 4px 8px; }
+.empty-rule { width: 40px; height: 3px; background: var(--border-strong); border-radius: 2px; margin: 0 auto 18px; }
+
+/* ⚠️ 這裡一定要用「>」限定直接子層。
+   寫成 `.empty span` 的話，這個顏色會滲進 .cta 那顆黑按鈕裡面的文字，
+   變成深灰字打在近黑底上——而按鈕自己設的淺色是「繼承」來的，
+   繼承的優先度輸給直接指定，所以會被蓋掉。
+   **這個 bug 實際發生過**，而且肉眼很容易漏看（在小尺寸預覽裡只是「有點暗」）。 */
+.empty > b { display: block; font-size: var(--fs-lg); }
+.empty > span { display: block; font-size: var(--fs-sm); color: var(--text-muted); margin-top: 8px; line-height: 1.8; }
+.empty .cta { text-align: left; }
+
+.done { text-align: center; padding: var(--sec-gap) 4px 8px; }
+.done-tick {
+  width: 62px; height: 62px; margin: 0 auto 18px; border-radius: 50%;
+  background: var(--ok); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; line-height: 1;
+}
+.done h3 { font-size: var(--fs-title); }
+.done p { font-size: var(--fs-body); color: var(--text-muted); margin-top: 6px; }
+.done-id {
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: 16px; margin-top: 20px;
+  box-shadow: var(--sh-card, none);
+}
+.done-id > span { display: block; font-size: var(--fs-xs); color: var(--text-muted); }
+.done-id b {
+  display: block; font-size: var(--fs-lg); font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: .04em; margin: 4px 0;
+}
+.done-hint { font-size: var(--fs-xs); color: var(--text-subtle); }
+</style>
+
+<h2 class="doc-h2">PCI GA 文字標誌：四種強化程度</h2>
+<p class="doc-sub">
+  你選了 W1（字重對比）並希望再加一點視覺效果，標誌就寫 <strong>PCI GA</strong>、不接 app 名稱。
+  <br><br>
+  方向 A 不能用顏色和漸層，所以「效果」只剩四個槓桿：<strong>字距、字重落差、大小落差、一條細線</strong>。
+  好處是這幾樣<strong>在任何螢幕、任何尺寸、印在紙上都不會失真</strong>——
+  海報放到 A2 大小也一樣銳利。
+</p>
+
+<div class="logo-opts">
+  <div class="logo-card">
+    <div class="logo-stage"><span class="wm wm-weight"><b>PCI</b><i>GA</i></span></div>
+    <h4>W1 原案</h4>
+    <p>字距 .16em、粗細 700/400。你選的這個，當作比較基準。</p>
+  </div>
+  <div class="logo-card">
+    <div class="logo-stage"><span class="wm wm-a"><b>PCI</b><i>GA</i></span></div>
+    <h4>W1-a · 拉開字距</h4>
+    <p>字距加倍到 .34em、粗細落差拉到 800/300。最安靜的強化，只動排版本身。</p>
+  </div>
+  <div class="logo-card">
+    <div class="logo-stage"><span class="wm wm-b"><b>PCI</b><i>GA</i></span></div>
+    <h4>W1-b · 大小落差 ★我推薦</h4>
+    <p>
+      PCI 放大加粗，GA 縮小、拉開字距、對齊上緣。
+      <strong>視覺份量最足，而且小尺寸下依然清楚</strong>——頁首只有 34px 高，這點很關鍵。
+    </p>
+  </div>
+  <div class="logo-card">
+    <div class="logo-stage"><span class="wm wm-c"><span><b>PCI</b><i>GA</i></span><em></em></span></div>
+    <h4>W1-c · 底線</h4>
+    <p>下面一條與字等寬的線。俐落，但那條線在低解析螢幕上可能糊掉。</p>
+  </div>
+  <div class="logo-card">
+    <div class="logo-stage"><span class="wm wm-d"><b>PCI</b><i>GA</i></span></div>
+    <h4>W1-d · 上下堆疊</h4>
+    <p>PCI 大、GA 拉開字距壓在下面。份量足，缺點是頁首會變高一點。</p>
+  </div>
+</div>
+
+<div class="doc-note" style="margin-top:16px">
+  <strong>你拿掉 app 名稱之後的一個連帶影響（我覺得沒問題，但要讓你知道）：</strong>
+  <br><br>
+  頁首現在只有 <code>PCI GA</code>，員工掃 QR Code 進來的第一眼不會知道「這是什麼」。
+  <strong>但首頁的大標題緊接著就寫了 Suara Karyawan · Kantin PCI</strong>，
+  身分是由標題承擔的，不是頁首——這樣其實更乾淨。
+  <br><br>
+  唯一要注意的是<strong>回報表單頁與查詢頁</strong>：那兩頁沒有大標題，
+  頁首就真的只剩 PCI GA。5-2 實作時我會在那兩頁的頁首補一行小字說明目前在哪一頁。
+</div>
+
+<h2 class="doc-h2">原本的 logo 三個做法（保留對照）</h2>
+<p class="doc-sub">
+  你放進專案的檔案是<strong>集團合體圖</strong>（金色的樹 + 深藍盾牌 + YY Sports 紅字 + pci 藍球），
+  而且是 247KB 的點陣圖包在 SVG 外殼裡，<strong>不能用 CSS 改色</strong>。
+  下面三個做法都放在同樣的頁首情境裡，你直接看哪個對。
+</p>
+
+<div class="logo-opts">
+  <div class="logo-card">
+    <div class="logo-stage">
+      <div class="mark-real"></div>
+      <div style="font-size:14px;font-weight:700">KANTIN PCI</div>
+    </div>
+    <h4>L1 · 原始 pci 藍球</h4>
+    <p>
+      從合體圖裁出來的。漸層玻璃球風格，且帶金色外環——
+      在中性底上會變成畫面唯一的彩色物件，<strong>方向 A 的邏輯會被它打破</strong>。
+      而且原圖只有 81×82 像素，放大會糊。
+    </p>
+  </div>
+
+  <div class="logo-card">
+    <div class="logo-stage">
+      <div class="mark-mono" style="--text:#1A1A1C">pci</div>
+      <div style="font-size:14px;font-weight:700">KANTIN PCI</div>
+    </div>
+    <h4>L2 · 單色版標記 ★推薦</h4>
+    <p>
+      多數企業識別規範都有「單色版本」，正是為了這種場合。
+      跟方向 A 完全一致，深色淺色背景都能用。
+      <strong>需要向品牌窗口確認有沒有官方單色檔。</strong>
+    </p>
+  </div>
+
+  <div class="logo-card">
+    <div class="logo-stage">
+      <div class="mark-word">KANTIN&nbsp;PCI<br><small style="font-size:12px">Suara Karyawan</small></div>
+    </div>
+    <h4>L3 · 純文字標誌</h4>
+    <p>
+      不用任何圖檔，用 app 自己的字體排。載入零成本、無限放大不糊、
+      可以隨背景變色，而且<strong>完全避開品牌資產的使用問題</strong>。
+      內部工具用這個是很常見的做法。
+    </p>
+  </div>
+</div>
+
+<h2 class="doc-h2">文字與按鈕自動跟著背景走</h2>
+<p class="doc-sub">
+  你希望「文字與按鈕依背景自動調整，維持高對比」——這是標準做法，而且做得到。
+  <br><br>
+  作法不是用 JS 去偵測背景色，而是<strong>讓每個表面自己帶著「放在我上面的文字該是什麼顏色」</strong>。
+  下面六個區塊<strong>用的是同一段 HTML</strong>，只有外層的表面類別不同，
+  裡面的文字與按鈕完全沒有指定顏色（只寫 <code>var(--fg)</code>），顏色是自動跟著表面換的。
+</p>
+
+<div class="surf-grid">
+  <div class="demo-surface on-base"><h5>底色表面</h5><p>次要說明文字</p><small>輔助文字</small><hr><button class="demo-btn">按鈕</button></div>
+  <div class="demo-surface on-raised"><h5>卡片表面</h5><p>次要說明文字</p><small>輔助文字</small><hr><button class="demo-btn">按鈕</button></div>
+  <div class="demo-surface on-dark"><h5>深色表面</h5><p>次要說明文字</p><small>輔助文字</small><hr><button class="demo-btn">按鈕</button></div>
+  <div class="demo-surface on-danger"><h5>逾期 / 錯誤</h5><p>次要說明文字</p><small>輔助文字</small><hr><button class="demo-btn">按鈕</button></div>
+  <div class="demo-surface on-warn"><h5>處理中</h5><p>次要說明文字</p><small>輔助文字</small><hr><button class="demo-btn">按鈕</button></div>
+  <div class="demo-surface on-ok"><h5>已結案</h5><p>次要說明文字</p><small>輔助文字</small><hr><button class="demo-btn">按鈕</button></div>
+</div>
+
+<h3 class="doc-h3">全頁掃描：每一段真實文字都算一次</h3>
+<p class="doc-sub">
+  上面那張表只檢查「色票組合」，<strong>不檢查真正的畫面</strong>——
+  所以它漏掉了一個真的 bug：無結果頁的黑色按鈕裡，文字被外層規則染成深灰。
+  <br><br>
+  下面這段程式**把上面所有模擬畫面裡的每一段文字都掃一遍**，
+  往上找出它真正疊在什麼背景色上（含半透明與 opacity 疊加），再算對比度。
+  <strong>樣式滲透、繼承被蓋掉、opacity 疊太多——這類問題肉眼很難看出來，但這裡跑不掉。</strong>
+</p>
+<div id="audit"></div>
+
+<script>
+(() => {
+  const f = v => { v /= 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+  const lum = ([r,g,b]) => 0.2126*f(r) + 0.7152*f(g) + 0.0722*f(b);
+  const parse = str => {
+    const n = (str.match(/[\d.]+/g) || []).map(Number);
+    return { rgb: n.slice(0,3), a: n.length > 3 ? n[3] : 1 };
+  };
+  const over = (fg, bg, a) => fg.map((c,i) => c*a + bg[i]*(1-a));
+  const ratio = (a, b) => {
+    const [hi, lo] = lum(a) > lum(b) ? [lum(a), lum(b)] : [lum(b), lum(a)];
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const hex = a => '#' + a.map(v => Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+
+  // 往上找出真正看得到的背景色（跳過透明、處理半透明疊加）
+  const bgOf = el => {
+    let stack = [], n = el;
+    while (n && n !== document.documentElement) {
+      const p = parse(getComputedStyle(n).backgroundColor);
+      if (p.a > 0) { stack.push(p); if (p.a === 1) break; }
+      n = n.parentElement;
+    }
+    let base = [255,255,255];
+    for (let i = stack.length - 1; i >= 0; i--) base = over(stack[i].rgb, base, stack[i].a);
+    return base;
+  };
+  // 元素本身與祖先的 opacity 會相乘
+  const effOpacity = el => {
+    let o = 1, n = el;
+    while (n && n !== document.documentElement) { o *= parseFloat(getComputedStyle(n).opacity); n = n.parentElement; }
+    return o;
+  };
+
+  const rows = [];
+  document.querySelectorAll('.phone *').forEach(el => {
+    // 「現在的樣子」那一版是歷史參照，不列入新設計的合格率
+    if (el.closest('.old-look')) return;
+    const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
+    if (!own) return;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || cs.display === 'none') return;
+
+    const bg = bgOf(el);
+    const fgp = parse(cs.color);
+    const fg = over(fgp.rgb, bg, fgp.a * effOpacity(el));
+
+    const size = parseFloat(cs.fontSize);
+    const bold = parseInt(cs.fontWeight, 10) >= 700;
+    // WCAG：大字（≥24px，或粗體 ≥18.66px）門檻是 3:1，其餘 4.5:1
+    const need = (size >= 24 || (bold && size >= 18.66)) ? 3 : 4.5;
+    const r = ratio(fg, bg);
+
+    rows.push({
+      text: el.textContent.trim().replace(/\s+/g,' ').slice(0, 26),
+      where: (el.closest('.screen-label') ? '' : (el.closest('div[data-bg]')?.previousElementSibling?.textContent || '')).trim(),
+      fg: hex(fg), bg: hex(bg), size: Math.round(size), r, need, pass: r >= need
+    });
+  });
+
+  const bad = rows.filter(r => !r.pass);
+  document.getElementById('audit').innerHTML =
+    '<p style="font-size:14px;font-weight:700;margin-bottom:10px;color:' +
+      (bad.length ? '#A81E1E' : '#046C4E') + '">' +
+      (bad.length ? '⚠️ 掃描 ' + rows.length + ' 段文字，' + bad.length + ' 段不合格' :
+                    '✓ 掃描 ' + rows.length + ' 段文字，全部通過 WCAG AA') + '</p>' +
+    (bad.length ?
+      '<table class="mx"><tr><th>畫面</th><th>文字</th><th>前景 / 背景</th><th>字級</th><th>對比度</th><th>需要</th></tr>' +
+      bad.map(r =>
+        '<tr><td>' + r.where + '</td><td>' + r.text + '</td>' +
+        '<td><span class="sw2" style="background:' + r.fg + '"></span>' +
+            '<span class="sw2" style="background:' + r.bg + '"></span>' +
+            '<code>' + r.fg + ' / ' + r.bg + '</code></td>' +
+        '<td class="n">' + r.size + 'px</td>' +
+        '<td class="n no">' + r.r.toFixed(2) + ':1</td><td>' + r.need + ':1</td></tr>').join('') +
+      '</table>' : '');
+})();
+</script>
+
+<h3 class="doc-h3">實際算出來的對比度（這個表格是即時運算的，不是我手寫的）</h3>
+<p class="doc-sub">
+  下面的數字是頁面載入時<strong>直接讀取每個區塊的真實顏色算出來的</strong>。
+  改了任何一個 token，這張表就會跟著變——這樣「有沒有不小心弄出看不清楚的組合」不必靠人記得檢查。
+  <br>
+  <strong>WCAG AA：內文需 4.5:1，大字與圖形需 3:1。</strong>
+</p>
+<div id="matrix"></div>
+
+<style>
+.surf-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.doc-h3 { font-size: clamp(16px, 0.95rem + 0.4vw, 19px); margin: 26px 0 6px; }
+.mx { width: 100%; border-collapse: collapse; font-size: 13px; background: #F9F9F8;
+      border-radius: 12px; overflow: hidden; }
+.mx th, .mx td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #E7E7E5; }
+.mx th { background: #EFEFED; font-size: 12px; font-weight: 700; }
+.mx td.n { font-variant-numeric: tabular-nums; font-weight: 700; }
+.mx .ok  { color: #046C4E; }
+.mx .no  { color: #A81E1E; }
+.mx .sw2 { display: inline-block; width: 13px; height: 13px; border-radius: 3px;
+           border: 1px solid rgba(0,0,0,.12); vertical-align: -2px; margin-right: 6px; }
+</style>
+
+<script>
+(() => {
+  // WCAG 相對亮度與對比度，照規範實作
+  const lum = (r,g,b) => {
+    const f = v => { v /= 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+    return 0.2126*f(r) + 0.7152*f(g) + 0.0722*f(b);
+  };
+  const rgb = str => (str.match(/\d+(\.\d+)?/g) || [0,0,0]).slice(0,3).map(Number);
+  const ratio = (fg, bg) => {
+    const a = lum(...fg), b = lum(...bg);
+    const [hi, lo] = a > b ? [a,b] : [b,a];
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const hex = ([r,g,b]) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+
+  const rows = [];
+  document.querySelectorAll('.demo-surface').forEach(el => {
+    const cs = getComputedStyle(el);
+    const bg = rgb(cs.backgroundColor);
+    const name = el.querySelector('h5').textContent;
+    const parts = [
+      ['主文字',  rgb(getComputedStyle(el.querySelector('h5')).color),     4.5],
+      ['次要文字', rgb(getComputedStyle(el.querySelector('p')).color),      4.5],
+      ['輔助文字', rgb(getComputedStyle(el.querySelector('small')).color),  4.5],
+      ['按鈕框線', rgb(getComputedStyle(el.querySelector('.demo-btn')).borderTopColor), 3],
+    ];
+    parts.forEach(([label, fg, need], i) => {
+      const r = ratio(fg, bg);
+      rows.push({ surface: i === 0 ? name : '', bgHex: i === 0 ? hex(bg) : '',
+                  label, fgHex: hex(fg), r, need, pass: r >= need });
+    });
+  });
+
+  const fails = rows.filter(r => !r.pass).length;
+  document.getElementById('matrix').innerHTML =
+    '<table class="mx"><tr><th>表面</th><th>元素</th><th>顏色</th><th>對比度</th><th>需要</th><th>結果</th></tr>' +
+    rows.map(r =>
+      '<tr><td>' + (r.bgHex ? '<span class="sw2" style="background:' + r.bgHex + '"></span>' + r.surface : '') + '</td>' +
+      '<td>' + r.label + '</td>' +
+      '<td><span class="sw2" style="background:' + r.fgHex + '"></span><code>' + r.fgHex + '</code></td>' +
+      '<td class="n">' + r.r.toFixed(2) + ':1</td>' +
+      '<td>' + r.need + ':1</td>' +
+      '<td class="n ' + (r.pass ? 'ok' : 'no') + '">' + (r.pass ? '✓ 通過' : '✗ 不合格') + '</td></tr>'
+    ).join('') +
+    '</table><p style="font-size:13px;margin-top:10px;color:' + (fails ? '#A81E1E' : '#046C4E') + ';font-weight:700">' +
+    (fails ? '⚠️ 有 ' + fails + ' 組不合格，需要調整 token' : '✓ ' + rows.length + ' 組組合全部通過 WCAG AA') +
+    '</p>';
+})();
+</script>
+
+<h2 class="doc-h2">色票與對比度</h2>
+<p class="doc-sub">
+  每個顏色都標上對白底的對比度。<strong>WCAG AA 要求內文 4.5:1</strong>，
+  大字與圖形 3:1。工廠現場光線不好，這條線不能退。
+</p>
+
+<div class="sw-grid">
+  <div class="sw"><div class="sw-c" style="background:#ECECEA"></div>
+    <div class="sw-b"><b>底色 A1</b><code>#ECECEA</code><span class="ratio">暖米白</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#EFEFED"></div>
+    <div class="sw-b"><b>底色 A2</b><code>#EFEFED</code><span class="ratio">中性米白</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#F6F6F3"></div>
+    <div class="sw-b"><b>卡片</b><code>#F6F6F3</code><span class="ratio">比底色亮</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#1A1A1C"></div>
+    <div class="sw-b"><b>主文字 / 主要動作</b><code>#1A1A1C</code><span class="ratio pass">15.9:1 ✓ AA</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#54544F"></div>
+    <div class="sw-b"><b>次要文字</b><code>#54544F</code><span class="ratio pass">6.4:1 ✓ AA</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#6B6B63"></div>
+    <div class="sw-b"><b>輔助文字</b><code>#6B6B63</code><span class="ratio pass">4.5:1 ✓ AA（極限）</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#8A8A86"></div>
+    <div class="sw-b"><b>Pan 的淺灰</b><code>#8A8A86</code><span class="ratio fail">2.9:1 ✗ 不用在內文</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#A81E1E"></div>
+    <div class="sw-b"><b>未處理 / 逾期</b><code>#A81E1E</code><span class="ratio pass">6.5:1 ✓ AA</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#8A5300"></div>
+    <div class="sw-b"><b>處理中</b><code>#8A5300</code><span class="ratio pass">6.4:1 ✓ AA</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#046C4E"></div>
+    <div class="sw-b"><b>已結案</b><code>#046C4E</code><span class="ratio pass">5.4:1 ✓ AA</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#C97B08"></div>
+    <div class="sw-b"><b>星等</b><code>#C97B08</code><span class="ratio pass">3.6:1 ✓ 圖形</span></div></div>
+  <div class="sw"><div class="sw-c" style="background:#214A8C"></div>
+    <div class="sw-b"><b>PCI 藍（量出來的）</b><code>#214A8C</code><span class="ratio">只用在焦點外框</span></div></div>
+</div>
+
+<h2 class="doc-h2">字級：拉窗戶看變化</h2>
+<p class="doc-sub">
+  用 <code>clamp()</code>，字級隨螢幕寬度<strong>連續</strong>調整，不是「手機一種、電腦一種」的跳變。
+  把瀏覽器視窗慢慢拉寬拉窄，下面的數字會即時變動。
+</p>
+
+<div style="background:#F6F6F3;border:1px solid #CFCFC9;border-radius:14px;padding:18px">
+  <div style="font-size:var(--fs-display);font-weight:700;line-height:1.1">Aa 標題</div>
+  <div style="font-size:var(--fs-body);margin-top:10px">Aa 內文 · Ini teks isi · 這是內文</div>
+  <div style="font-size:var(--fs-xs);color:#54544F;margin-top:6px">Aa 註解 · keterangan</div>
+  <div style="font-size:13px;color:#54544F;margin-top:14px;font-variant-numeric:tabular-nums">
+    目前視窗寬度 <b id="vw">—</b> ｜ 標題 <b id="s1">—</b> ｜ 內文 <b id="s2">—</b> ｜ 輸入框 <b id="s3">—</b>
+    <br><span style="font-size:12px">⚠️ 輸入框永遠 ≥ 16px，低於的話 iOS 一點就會自動放大整個畫面</span>
+  </div>
+</div>
+
+<script>
+// 三個切換鈕
+function wire(id, attr) {
+  const seg = document.getElementById(id);
+  seg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    [...seg.querySelectorAll('button')].forEach(b =>
+      b.setAttribute('aria-pressed', String(b === btn)));
+
+    const v = btn.dataset.v;
+    if (attr === 'compare') {
+      document.getElementById('newScreens').classList.toggle('hidden', v === 'old');
+      document.getElementById('oldScreens').classList.toggle('hidden', v !== 'old');
+    } else {
+      document.querySelectorAll('.phone[data-' + attr + ']')
+        .forEach(p => p.setAttribute('data-' + attr, v));
+      if (attr === 'bg') document.documentElement.setAttribute('data-bg', v);
+    }
+  });
+}
+wire('segBg', 'bg');
+wire('segShadow', 'shadow');
+wire('segCompare', 'compare');
+
+// 即時顯示目前的字級
+const px = (el, prop) => Math.round(parseFloat(getComputedStyle(el)[prop]) * 10) / 10 + 'px';
+function report() {
+  const probe = document.createElement('div');
+  document.body.appendChild(probe);
+  const read = (v) => { probe.style.fontSize = 'var(' + v + ')'; return px(probe, 'fontSize'); };
+  document.getElementById('vw').textContent = window.innerWidth + 'px';
+  document.getElementById('s1').textContent = read('--fs-display');
+  document.getElementById('s2').textContent = read('--fs-body');
+  document.getElementById('s3').textContent = read('--fs-input');
+  probe.remove();
+}
+report();
+addEventListener('resize', report);
+</script>
+
+</div>
+</body>
+</html>
