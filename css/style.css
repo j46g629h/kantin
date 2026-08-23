@@ -4,57 +4,138 @@
 
 
 /* ===== 設計基礎（所有顏色與尺寸都從這裡取，不要在下面寫死）=====
-   要調整整體風格時，改這一區就好，不必逐條找。 */
+
+   ⚠️ 要調整整體風格改這一區就好，不必逐條找。
+
+   設計方向（關卡 5-1 定案，參考 madebypan.com）：
+   **中性米白底 + 近黑主動作 + 顏色只給有意義的東西。**
+
+   核心原則是「**畫面上只要有顏色，就一定代表意義**」——
+   狀態（未處理紅 / 處理中黃 / 已結案綠）與星等是僅有的彩色，
+   其餘一律中性。這樣那幾個顏色才真的跳得出來。
+
+   ⚠️ 原本的品牌藍 #2563eb 已經拿掉。`--brand` 系列保留成別名
+      （CSS 裡有 51 處在用），現在指向近黑主色，不必逐一改寫。
+*/
 
 :root {
-  /* 品牌色 */
-  --brand:        #2563eb;
-  --brand-dark:   #1d4ed8;
-  --brand-light:  #eff6ff;
-  --brand-border: #93c5fd;
+  /* 只支援淺色。
+     不宣告的話，部分 Android 瀏覽器會強制反轉整頁，
+     精心調的米白會變成深褐色，狀態色也會跟著跑掉 */
+  color-scheme: light;
 
-  /* 基本顏色 */
-  --bg:            #f4f5f7;
-  --surface:       #ffffff;
-  --surface-alt:   #f9fafb;
-  --text:          #1f2328;
-  --text-muted:    #6b7280;
-  --text-subtle:   #6f7681;   /* 對白底 4.58，符合 WCAG AA（原本 #9ca3af 只有 2.54）*/
-  --border:        #e5e7eb;
-  --border-strong: #d0d5dd;
+  /* --- 基本表面與文字 --- */
+  --bg:            #EFEFED;   /* 中性米白。不是白、也不是冷灰 */
+  --surface:       #F9F9F8;   /* 卡片，比底色亮一階 */
+  --surface-alt:   #E7E7E6;
+  --text:          #1A1A1D;   /* 對底色 15.1:1 */
+  --text-muted:    #53535A;   /* 對底色 6.6:1 */
+  --text-subtle:   #6A6A70;   /* 對底色 4.7:1，剛好通過 WCAG AA */
+  --border:        #DEDEDD;
+  --border-strong: #CBCBCA;
 
-  /* 狀態色 */
-  --ok:          #047857;
-  --ok-bg:       #ecfdf5;
-  --ok-border:   #a7f3d0;
-  --danger:      #b91c1c;
-  --danger-bg:   #fef2f2;
-  --danger-border:#fecaca;
-  --danger-tag:  #fee2e2;
-  --warn:        #b45309;
-  --star:        #f59e0b;
+  /* 大型裝飾數字（步驟編號）。
+     ⚠️ 不可以再淡了——原本用 --border-strong 只有 1.41:1，
+        在工廠的爛光線下等於看不見。這個值是 3.55:1，通過大字的 3:1 */
+  --num:           #7E7E77;
 
-  /* 圓角 */
+  /* --- 主要動作 ---
+     近黑，不是彩色。整個畫面只有它與逾期案件有重陰影，
+     所以它想被忽略都難 */
+  --action:        #1A1A1C;
+  --action-press:  #35353A;
+
+  /* --- 舊的品牌色別名（相容用，全部指向近黑）---
+     ⚠️ 這幾個名字在 CSS 裡有 51 處在用（員工端 26、管理端 25）。
+        保留別名，管理端就會自動拿到新配色而不必在 5-2 動它 */
+  --brand:        var(--action);
+  --brand-dark:   var(--action-press);
+  --brand-light:  var(--surface-alt);
+  --brand-border: var(--border-strong);
+
+  /* --- 狀態色：畫面上僅有的彩色，每個都算過對比度 --- */
+  --ok:          #046C4E;
+  --ok-bg:       #E7F5EE;
+  --ok-border:   #BFE3D3;
+  --danger:      #A81E1E;
+  --danger-bg:   #FBEDEC;
+  --danger-border:#F3CFCD;
+  --danger-tag:  #F7DEDC;
+  --warn:        #8A5300;
+  --warn-bg:     #FBF2E3;
+  --star:        #C97B08;
+
+  /* --- 圓角 --- */
   --radius-sm:   10px;
-  --radius:      12px;
-  --radius-lg:   14px;
+  --radius:      14px;
+  --radius-lg:   20px;
   --radius-pill: 999px;
 
-  /* 字級。--fs-input 不可小於 16px，否則 iOS 會自動放大畫面 */
-  --fs-xs:    12px;
-  --fs-sm:    14px;
-  --fs-body:  15px;
-  --fs-input: 16px;
-  --fs-lg:    18px;
-  --fs-title: 22px;
+  /* --- 字級 ---
+     clamp(最小, 隨螢幕寬度連續變化, 最大)：手機到電腦是平滑過渡，
+     不是「手機一種、電腦一種」的跳變。
 
-  /* 觸控目標最小高度（工廠現場可能戴手套，不要小於 48px） */
+     ⚠️ --fs-input 的下限鎖死 16px。低於 16px 的話，
+        iOS 一點輸入框就會自動放大整個畫面，使用者要手動縮回來。
+
+     ⚠️ 列印時 vw 指的是「紙張寬度」，算出來的字級無法預期，
+        所以 @media print 裡會把這一整組改回固定值（見檔案最後）。 */
+  --fs-xs:      clamp(12px, 0.70rem + 0.15vw, 13px);
+  --fs-sm:      clamp(13px, 0.78rem + 0.20vw, 15px);
+  --fs-body:    clamp(15px, 0.88rem + 0.25vw, 17px);
+  --fs-input:   clamp(16px, 0.95rem + 0.20vw, 17px);
+  --fs-lg:      clamp(17px, 1.00rem + 0.40vw, 20px);
+  --fs-title:   clamp(23px, 1.30rem + 1.30vw, 34px);
+  --fs-display: clamp(30px, 1.60rem + 2.60vw, 52px);
+
+  /* --- 觸控目標最小高度（工廠現場可能戴手套，不要小於 48px）--- */
   --tap-min: 48px;
 
-  /* 間距 */
-  --gap:      12px;
-  --pad-card: 16px;
+  /* --- 間距：也跟著螢幕變，電腦上版面會自然變鬆，
+         而不是「手機版被整個放大」 --- */
+  --gap:      clamp(12px, 0.70rem + 0.40vw, 18px);
+  --pad-card: clamp(16px, 0.90rem + 0.60vw, 24px);
+  --sec-gap:  clamp(28px, 1.50rem + 2.00vw, 56px);
+
+  /* --- 陰影：兩階 ---
+
+     ⚠️ 關鍵不是「有沒有陰影」，是**陰影強度要跟重要性成正比**。
+        改版前每一張卡片都有 `0 1px 3px rgba(0,0,0,.06)`，
+        平均分配的結果就是沒有任何一張被強調——那正是「單調」的來源。
+
+     陰影色用帶灰的深色，不用純黑：純黑打在米白底上會顯髒。 */
+  --lift-1: 0 1px 2px rgba(38,38,44,.05), 0 6px 14px -8px rgba(38,38,44,.16);
+  --lift-2: 0 10px 24px -10px rgba(40,40,45,.20), 0 24px 48px -24px rgba(40,40,45,.24);
 }
+
+
+/* ===== 表面 / 表面上的文字（surface / on-surface）=====
+
+   📌 文字與按鈕會自動跟著背景走，靠的是這一組。
+
+      作法不是用 JS 偵測背景色，而是**讓每個表面自己帶著
+      「放在我上面的文字該是什麼顏色」**。
+      元件一律寫 `color: var(--fg)`，不寫死顏色。
+
+   ⚠️ 為什麼不用 JS 即時運算：背景可能是漸層、半透明、或被圖片蓋住，
+      JS 取到的值不一定是眼睛看到的，而且每次重繪都要算一次。
+      用 token 是靜態的、可驗證的、零成本。
+
+   ⚠️ 實際踩過的坑：`.empty span { color: ... }` 這種寫法會**滲進深色按鈕裡面**，
+      把淺色文字蓋成深灰（1.5:1，等於看不見）。
+      因為按鈕自己的顏色是「繼承」來的，而繼承的優先度輸給直接指定。
+      **兩個對策：選擇器用 `>` 限定直接子層，而且深色元件自己帶 --fg。**
+
+   驗證方式：node tools/check-contrast.js
+*/
+
+.on-base   { --surf: var(--bg);        --fg: var(--text); --fg-muted: var(--text-muted); --fg-subtle: var(--text-subtle); --line: var(--border); }
+.on-raised { --surf: var(--surface);   --fg: var(--text); --fg-muted: var(--text-muted); --fg-subtle: var(--text-subtle); --line: var(--border); }
+.on-dark   { --surf: var(--action);    --fg: #F2F2EF; --fg-muted: #C2C2BD; --fg-subtle: #93938E; --line: rgba(255,255,255,.16); }
+.on-danger { --surf: var(--danger-bg); --fg: #7A1616; --fg-muted: #8E3232; --fg-subtle: #9A4A4A; --line: rgba(122,22,22,.18); }
+.on-warn   { --surf: var(--warn-bg);   --fg: #6E4200; --fg-muted: #855A1E; --fg-subtle: #8A6534; --line: rgba(110,66,0,.18); }
+.on-ok     { --surf: var(--ok-bg);     --fg: #04543D; --fg-muted: #2A6B57; --fg-subtle: #3A7360; --line: rgba(4,84,61,.18); }
+
 
 * {
   box-sizing: border-box;
@@ -151,7 +232,7 @@ body {
   border-radius: 14px;
   text-decoration: none;
   color: inherit;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+  box-shadow: var(--lift-1);
 }
 
 .menu-card:active { background: var(--surface-alt); }
@@ -523,8 +604,8 @@ textarea:focus {
   padding: 2px 4px;
   font-size: 11px;
   text-align: center;
-  color: #fff;
-  background: rgba(0, 0, 0, .55);
+  color: #F2F2EF;
+  background: rgba(26, 26, 28, .62);
 }
 
 .photo-remove {
@@ -535,8 +616,8 @@ textarea:focus {
   height: 28px;
   font-size: 18px;
   line-height: 1;
-  color: #fff;
-  background: rgba(0, 0, 0, .6);
+  color: #F2F2EF;
+  background: rgba(26, 26, 28, .68);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -635,9 +716,12 @@ textarea:focus {
   white-space: nowrap;
 }
 
-.status-badge.new  { color: #991b1b; background: #fee2e2; }
-.status-badge.proc { color: #92400e; background: #fef3c7; }
-.status-badge.done { color: #065f46; background: #d1fae5; }
+/* ⚠️ 顏色一律走 token，不要寫死。
+   員工端查詢頁、管理端案件列表、排程寄出的信這三個地方顯示的是同一批狀態，
+   三邊用不同色碼的話，同一件案子會出現三種顏色 */
+.status-badge.new  { color: var(--danger); background: var(--danger-bg); }
+.status-badge.proc { color: var(--warn);   background: var(--warn-bg); }
+.status-badge.done { color: var(--ok);     background: var(--ok-bg); }
 
 .case-detail {
   padding: 0 14px 14px;
@@ -751,7 +835,7 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, .9);
+  background: rgba(20, 20, 22, .93);
   cursor: zoom-out;
 }
 
@@ -1908,20 +1992,14 @@ input[type="date"] {
 /* ===== 電腦螢幕：字級放大、卡片浮起 ===== */
 
 /*
- * 這個 app 是為了工廠員工的手機設計的，字級也照那個情境定。
- * 但管理端在電腦上看時，同樣的 12～14px 在 24 吋螢幕上偏小。
+ * ⚠️ 這裡原本有一段「電腦上把字級換成固定值」的規則，關卡 5-2 已移除。
  *
- * 只調整字級變數，不動任何版面——所有用到這些變數的地方會一起變大。
+ *    字級改用 clamp() 之後，手機到電腦本來就是連續縮放的，
+ *    這一段固定值反而會在 1000px 以上**蓋掉 clamp**，
+ *    電腦上就變回跳一階、而且不再隨視窗變化。
+ *
+ *    要調整電腦上的字級，改 :root 裡那組 clamp 的第三個參數（上限）就好。
  */
-@media (min-width: 1000px) {
-  :root {
-    --fs-xs:    13px;
-    --fs-sm:    15px;
-    --fs-body:  16px;
-    --fs-lg:    19px;
-    --fs-title: 26px;
-  }
-}
 
 /*
  * 卡片的浮起效果。
@@ -2049,6 +2127,26 @@ input[type="date"] {
   @page {
     size: A4;
     margin: 12mm;
+  }
+
+  /*
+   * ⚠️ 字級一定要在這裡改回固定值。
+   *
+   *    :root 的字級是 clamp(..., ...vw, ...)，而**列印時的 vw 指的是紙張寬度**，
+   *    算出來的字級無法預期（跟螢幕寬度完全無關）。
+   *    用 pt 是因為紙張的單位本來就是 pt，不受縮放影響。
+   */
+  :root {
+    --fs-xs:      8pt;
+    --fs-sm:      9pt;
+    --fs-body:    10pt;
+    --fs-input:   10pt;
+    --fs-lg:      12pt;
+    --fs-title:   16pt;
+    --fs-display: 22pt;
+    --gap:        8pt;
+    --pad-card:   10pt;
+    --sec-gap:    14pt;
   }
 
   /* 紙張沒有捲動，版面上限拿掉才不會左右留白 */
