@@ -31,8 +31,14 @@
   --text:          #1A1A1D;   /* 對底色 15.1:1 */
   --text-muted:    #53535A;   /* 對底色 6.6:1 */
   --text-subtle:   #6A6A70;   /* 對底色 4.7:1，剛好通過 WCAG AA */
-  --border:        #DEDEDD;
-  --border-strong: #CBCBCA;
+  --border:        #DEDEDD;   /* 純裝飾的分隔線，沒有對比度要求 */
+  --border-strong: #CBCBCA;   /* 較明顯的分隔線，仍屬裝飾 */
+
+  /* ⚠️ 輸入框、可點按鈕的**邊界**另外一個顏色，不能用上面那兩個。
+     WCAG 1.4.11 要求「互動元件的邊界」對背景至少 3:1——
+     #CBCBCA 只有 1.41:1，在工廠光線下等於看不到輸入框在哪裡。
+     這一條是裝飾線與互動邊界的差別，很容易被當成同一件事。 */
+  --border-input:  #80807A;   /* 對底色 3.45:1 */
 
   /* 大型裝飾數字（步驟編號）。
      ⚠️ 不可以再淡了——原本用 --border-strong 只有 1.41:1，
@@ -63,7 +69,7 @@
   --danger-tag:  #F7DEDC;
   --warn:        #8A5300;
   --warn-bg:     #FBF2E3;
-  --star:        #C97B08;
+  --star:        #C07405;   /* 對底色 3.18:1，通過圖形的 3:1（原 #C97B08 只有 2.89）*/
 
   /* --- 圓角 --- */
   --radius-sm:   10px;
@@ -181,7 +187,7 @@ body {
   font-family: inherit;
   color: var(--text-muted);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 999px;
   cursor: pointer;
 }
@@ -369,7 +375,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  padding-bottom: 14px;
+  margin-bottom: var(--gap);
 }
 
 .topbar-back {
@@ -379,45 +386,69 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border: 0;
+  border-radius: var(--radius);
   text-decoration: none;
 }
 
+.topbar-back:active { background: var(--surface-alt); }
+
+/* ⚠️ 內頁沒有大標題，所以頁首要負責回答「我在哪一頁」。
+   首頁不需要（大標題緊接著就寫了），但這兩頁需要 */
 .topbar-title {
   flex: 1;
-  font-size: 19px;
+  font-size: var(--fs-lg);
+  min-width: 0;
 }
 
 
 /* ===== 表單 ===== */
 
+/*
+ * ⚠️ 每一段用「大號碼 + 標題」開頭，取代原本的框線卡片。
+ *
+ *    原本每個欄位都是白底 + 1px 框，八個欄位就是八個一模一樣的框，
+ *    使用者看不出「還剩幾步」。編號能回答那個問題，
+ *    而且大數字在工廠的爛光線下比細框線好認得多。
+ */
 .field {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: var(--sec-gap);
+}
+
+.field-num {
+  display: block;
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  /* ⚠️ 不可以再淡了。原本用 --border-strong 只有 1.41:1，
+     在工廠光線下等於看不見。--num 是算過的 3.55:1 */
+  color: var(--num);
 }
 
 .field-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 15px;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  margin: 2px 0 10px;
 }
 
 .tag {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
   color: var(--text-muted);
   background: var(--surface-alt);
 }
@@ -432,36 +463,44 @@ input[type="password"],
 select,
 textarea {
   width: 100%;
-  font-size: 16px;          /* 小於 16px 時 iOS 會自動放大畫面，務必保持 */
+  min-height: var(--tap-min);
+  /* ⚠️ 絕不可小於 16px：小於的話 iOS 一點輸入框就會自動放大整個畫面 */
+  font-size: var(--fs-input);
   font-family: inherit;
-  color: inherit;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  color: var(--text);
+  padding: 12px 14px;
+  /* ⚠️ 互動元件的邊界要 3:1，不能用裝飾用的 --border-strong（1.41:1）*/
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
-select { height: 46px; }
+select { height: var(--tap-min); }
 textarea { resize: vertical; }
 
+input::placeholder,
+textarea::placeholder { color: var(--text-subtle); }
+
+/* 焦點外框用 PCI 藍——這是整個 app 唯一出現品牌藍的地方。
+   它不參與版面配色，只在鍵盤操作時出現，所以不會破壞「顏色只給意義」的原則 */
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid var(--brand);
-  outline-offset: 1px;
+  outline: 2px solid #214A8C;
+  outline-offset: 2px;
   border-color: transparent;
 }
 
 .field-note {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin-top: 8px;
   min-height: 20px;
 }
 
-.field-note.ok { color: var(--ok); font-weight: 600; }
-.field-note.ng { color: var(--danger); }
-.field-note.rated { color: var(--warn); font-weight: 600; }
+.field-note.ok { color: var(--ok); font-weight: 700; }
+.field-note.ng { color: var(--danger); font-weight: 700; }
+.field-note.rated { color: var(--warn); font-weight: 700; }
 
 
 /* ===== 問題分類 ===== */
@@ -481,27 +520,33 @@ textarea:focus {
   gap: 6px;
   padding: 10px 4px;
   font-family: inherit;
-  color: var(--text);
+  color: var(--fg, var(--text));
   background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
+  border: 0;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
+/* ⚠️ 不用 opacity。opacity 會把文字往背景混，對比度變成算不準也控制不了；
+   而且巢狀的 opacity 會相乘。改成直接指定「停用」的顏色 */
 .category-btn.disabled {
-  opacity: .38;
+  color: var(--text-subtle);
+  background: var(--surface-alt);
   cursor: not-allowed;
 }
 
+/* 選中＝實心近黑。自己帶 on-dark 的 token，
+   裡面的文字與 SVG 圖示（stroke=currentColor）都會自動變淺色 */
 .category-btn.selected {
-  color: var(--brand-dark);
-  background: var(--brand-light);
-  border-color: var(--brand);
-  font-weight: 600;
+  --fg: #F2F2EF;
+  color: var(--fg);
+  background: var(--action);
+  font-weight: 700;
+  box-shadow: var(--lift-1);
 }
 
 .category-icon svg { width: 24px; height: 24px; display: block; }
-.category-label { font-size: 13px; text-align: center; line-height: 1.3; }
+.category-label { font-size: var(--fs-xs); text-align: center; line-height: 1.35; }
 
 
 /* ===== 星等 ===== */
@@ -516,7 +561,9 @@ textarea:focus {
   padding: 8px 0;
   font-size: 34px;
   line-height: 1;
-  color: var(--border-strong);
+  /* ⚠️ 未選的星星原本用 --border-strong，只有 1.4:1——
+     工廠光線下看不見，使用者會不知道總共有五顆 */
+  color: var(--num);
   background: none;
   border: none;
   cursor: pointer;
@@ -531,73 +578,121 @@ textarea:focus {
 .btn-secondary {
   display: block;
   width: 100%;
-  margin-top: 16px;
+  margin-top: var(--gap);
+  min-height: 54px;
   padding: 16px;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   font-family: inherit;
   text-align: center;
   text-decoration: none;
   border: none;
-  border-radius: 12px;
+  /* 膠囊形。這一版的識別之一，而且 54px 高度不受影響 */
+  border-radius: var(--radius-pill);
   cursor: pointer;
 }
 
+/* 主要動作：近黑實心 + 重陰影。
+   整個畫面只有它與逾期案件有這種陰影，所以它想被忽略都難 */
 .btn-primary {
-  color: var(--surface);
-  background: var(--brand);
+  color: #F2F2EF;
+  background: var(--action);
+  box-shadow: var(--lift-2);
 }
 
-.btn-primary:active  { background: var(--brand-dark); }
-.btn-primary:disabled { background: var(--text-subtle); cursor: not-allowed; }
+.btn-primary:active  { background: var(--action-press); }
+/* 停用：降成平面 + 灰底。用顏色與陰影表達，不用 opacity */
+.btn-primary:disabled {
+  color: var(--text-subtle);
+  background: var(--surface-alt);
+  box-shadow: none;
+  cursor: not-allowed;
+}
 
 .btn-secondary {
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
+  box-shadow: var(--lift-1);
 }
 
 
 /* ===== 訊息 ===== */
 
 .result {
-  padding: 14px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
   margin-top: 12px;
 }
 
+/* ⚠️ 「查無此工號」是試辦期最常出現的畫面（名冊還沒補齊）。
+   所以錯誤訊息不能只說「錯了」，要告訴他下一步能做什麼 */
 .result.error {
-  color: var(--danger);
+  color: #7A1616;
   background: var(--danger-bg);
-  border: 1px solid var(--danger-border);
+  border: 0;
+  font-weight: 600;
 }
 
 
-/* ===== 狀態畫面（載入中 / 成功）===== */
+/* ===== 狀態畫面（載入中 / 成功）=====
+
+   ⚠️ 這個 app 的載入時間是 **3～8 秒**（Apps Script 的固定成本）。
+      那幾秒使用者看到什麼，決定他覺得系統「在跑」還是「壞了」。
+*/
 
 .state-box {
   text-align: center;
-  padding: 40px 20px;
+  padding: var(--sec-gap) 20px;
   color: var(--text-muted);
 }
+
+/*
+ * 骨架：先把「等一下會出現什麼形狀」畫出來。
+ *
+ * ⚠️ 為什麼不用轉圈圈：轉圈圈只表達「還在忙」，
+ *    形狀則表達「東西正在來，而且長這樣」——後者讓人願意多等幾秒。
+ */
+.skeleton {
+  display: block;
+  height: 48px;
+  border-radius: var(--radius);
+  background: linear-gradient(90deg,
+              var(--surface-alt) 25%, var(--surface) 50%, var(--surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton + .skeleton { margin-top: 10px; }
+.skeleton-sm { height: 20px; width: 42%; border-radius: var(--radius-sm); }
+
+@keyframes shimmer { to { background-position: -200% 0; } }
 
 .spinner {
   width: 32px;
   height: 32px;
   margin: 0 auto 16px;
   border: 3px solid var(--border);
-  border-top-color: var(--brand);
+  border-top-color: var(--action);
   border-radius: 50%;
   animation: spin .8s linear infinite;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ⚠️ 有些人開了系統的「減少動態」（會頭暈、或前庭功能敏感）。
+   要尊重那個設定，否則這兩個動畫會讓他們不舒服 */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .spinner  { animation-duration: 2.4s; }
+}
+
 .success-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: inherit;
 }
 
@@ -612,28 +707,33 @@ textarea:focus {
 .success-icon svg { width: 30px; height: 30px; stroke-width: 2.4; }
 
 .success-box h2 {
-  font-size: 22px;
-  margin: 12px 0 4px;
+  font-size: var(--fs-title);
+  margin: 14px 0 4px;
 }
 
+/* 案件編號是整段流程的情緒高點，也是使用者唯一需要記住的東西。
+   ⚠️ 原本用虛線框——虛線在這一版看起來像「未完成」。改成實心卡片 */
 .case-box {
-  margin: 24px 0 8px;
+  margin: var(--sec-gap) 0 8px;
   padding: 18px;
-  background: var(--brand-light);
-  border: 2px dashed var(--brand-border);
-  border-radius: 12px;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-1);
 }
 
 .case-label {
-  font-size: 13px;
-  color: var(--brand-dark);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
 }
 
 .case-id {
-  font-size: 26px;
+  font-size: var(--fs-title);
   font-weight: 700;
-  letter-spacing: .5px;
-  color: var(--brand-dark);
+  letter-spacing: .04em;
+  /* 等寬數字：編號要一眼看清楚、抄得下來 */
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
   margin-top: 4px;
   word-break: break-all;
 }

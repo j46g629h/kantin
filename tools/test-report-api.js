@@ -407,7 +407,11 @@ const foot = sandbox.__SENT__[0].htmlBody;
 
 check('有維護單位（印尼文在前）', foot.indexOf('維護單位：PCI GA · PCI 總工務') >= 0, true);
 check('有聯絡方式',              foot.indexOf('聯絡方式：3690') >= 0, true);
-check('有系統版本與年份',        foot.indexOf('Versi · 系統版本 v2.7 · 2026') >= 0, true);
+// ⚠️ 版本號**不可以寫死在測試裡**——寫死的話每次改版都會有一支測試莫名其妙紅掉，
+//    而那跟「頁尾有沒有正確顯示版本」完全無關。改成從 gas/Config.js 讀出來比對
+const VERSION_LINE = evalIn(
+  `'Versi · 系統版本 ' + SYSTEM_INFO.version + ' · ' + SYSTEM_INFO.year`);
+check('有系統版本與年份',        foot.indexOf(VERSION_LINE) >= 0, true);
 check('仍保留自動寄出的說明',
   foot.indexOf('這封信由系統自動寄出，不需要回覆。') >= 0, true);
 
@@ -426,7 +430,7 @@ reset();
 evalIn(`sendMonthlyReportFor('202608')`);
 const mFoot = sandbox.__SENT__[0].htmlBody;
 check('月報的頁尾與日報相同',
-  mFoot.indexOf('Versi · 系統版本 v2.7 · 2026') >= 0, true);
+  mFoot.indexOf(VERSION_LINE) >= 0, true);
 check('月報頁尾也有維護單位', mFoot.indexOf('維護單位：PCI GA · PCI 總工務') >= 0, true);
 
 // 兩種語言一樣時只顯示一次，否則會變成「PCI GA · PCI GA」
