@@ -104,6 +104,33 @@ const ON_DARK = [
 ];
 
 
+/**
+ * 動態表的圖表顏色寫在 js/admin-dashboard.js，不是 CSS——
+ * 所以 CSS 的 token 改了，圖表不會自動跟著改。
+ *
+ * ⚠️ 這件事實際發生過：狀態色原本在兩邊是不同的值，
+ *    同一件「未處理」的案子，在案件列表是一種紅、在圖表是另一種紅。
+ *    使用者說不出哪裡怪，但會覺得這兩個畫面不像同一個系統。
+ */
+function checkDashboardColors() {
+  const js = fs.readFileSync(path.join(ROOT, 'js', 'admin-dashboard.js'), 'utf8');
+  // ⚠️ 正規表示式刻意不用反斜線類別，用明確的空白字元類別就夠，也少一層跳脫
+  const grab = (name) =>
+    (js.match(new RegExp(name + "[ ]*:[ ]*'(#[0-9a-fA-F]{6})'")) || [])[1];
+  const grabConst = (name) =>
+    (js.match(new RegExp('const ' + name + "[ ]*=[ ]*'(#[0-9a-fA-F]{6})'")) || [])[1];
+  const up = (v) => (v ? v.toUpperCase() : null);
+
+  return [
+    [up(grab('ST_NEW')),               T['--danger'], '圖表的「未處理」色'],
+    [up(grab('ST_PROC')),              T['--warn'],   '圖表的「處理中」色'],
+    [up(grab('ST_DONE')),              T['--ok'],     '圖表的「已結案」色'],
+    [up(grabConst('TREND_COUNT_COLOR')),  T['--action'], '趨勢圖的回報數線'],
+    [up(grabConst('TREND_RATING_COLOR')), T['--star'],   '趨勢圖的滿意度線'],
+  ];
+}
+
+
 let pass = 0, fail = 0;
 const rows = [];
 
@@ -139,6 +166,14 @@ rows.forEach((row) => {
   const mark = row.ok ? 'OK  ' : 'FAIL';
   const num  = row.r.toFixed(2).padStart(5);
   console.log(`  ${mark} ${num}:1  (需 ${row.need})  ${row.fg} / ${row.bg}   ${row.label}`);
+});
+
+console.log('\n----- 圖表顏色與 CSS token 是否一致 -----\n');
+
+checkDashboardColors().forEach(([jsVal, cssVal, label]) => {
+  const ok = !!jsVal && !!cssVal && jsVal === cssVal;
+  ok ? pass++ : fail++;
+  console.log(`  ${ok ? 'OK  ' : 'FAIL'} ${label}：js=${jsVal || '(找不到)'}  css=${cssVal || '(找不到)'}`);
 });
 
 console.log(`\n===== 通過 ${pass} 項，失敗 ${fail} 項 =====\n`);

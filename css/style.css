@@ -883,13 +883,15 @@ textarea:focus {
 
 .case-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
   margin-bottom: 10px;
   overflow: hidden;
 }
 
-.case-card.open { border-color: var(--brand); }
+/* 展開中的案件：用陰影浮起來，不用框線換色
+   （一整頁灰卡片裡，1px 的框線差異掃過去根本看不到）*/
+.case-card.open { box-shadow: var(--lift-1); }
 
 .case-head {
   display: flex;
@@ -1077,12 +1079,23 @@ textarea:focus {
 .page-narrow { max-width: 420px; }
 
 /* 登入 / 改密碼畫面上方的大圖示 */
+/* 登入 / 改密碼畫面上方的圖示。
+   ⚠️ 原本是 emoji（🔐 / 🔑）——每支手機長得不一樣，而且不能上色。
+      改成線性 SVG，顏色跟著文字走 */
 .admin-badge {
-  font-size: 44px;
-  line-height: 1;
-  text-align: center;
-  margin: 20px 0 8px;
+  width: 56px;
+  height: 56px;
+  margin: var(--sec-gap) auto 10px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--lift-1);
 }
+
+.admin-badge svg { width: 26px; height: 26px; }
 
 .admin-title {
   font-size: var(--fs-title);
@@ -1106,9 +1119,9 @@ textarea:focus {
   gap: var(--gap);
   padding: 10px 14px;
   margin-bottom: var(--gap);
-  background: var(--brand-light);
-  border: 1px solid var(--brand-border);
-  border-radius: var(--radius);
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-lg);
   font-size: var(--fs-sm);
 }
 
@@ -1127,12 +1140,16 @@ textarea:focus {
 
 .admin-bar-logout {
   flex-shrink: 0;
-  padding: 8px 14px;
+  /* ⚠️ 原本只有 37px。管理者一天要按好幾次，而且可能在現場用手機 */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
   font-size: var(--fs-sm);
   font-family: inherit;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -1180,18 +1197,27 @@ textarea:focus {
   font-family: inherit;
   color: inherit;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-1);
   cursor: pointer;
 }
 
 .stat-card:active { background: var(--surface-alt); }
 
-/* 目前正依這個狀態篩選 */
+/* 目前正依這個狀態篩選。
+   ⚠️ 原本只是把框線換色——在一排三張一模一樣的卡片裡，
+      1px 的框線差異幾乎看不出來。改成實心反白，一眼就知道正在篩哪一個 */
 .stat-card.active {
-  border-color: var(--brand);
-  box-shadow: inset 0 0 0 1px var(--brand);
+  --fg: #F2F2EF;
+  color: var(--fg);
+  background: var(--action);
+  box-shadow: var(--lift-1);
 }
+
+.stat-card.active .stat-label { color: #C2C2BD; }
+/* 反白之後那三個狀態色會看不清楚，統一改成淺色 */
+.stat-card.active .stat-num   { color: var(--fg); }
 
 .stat-num {
   font-size: 26px;
@@ -1220,10 +1246,12 @@ textarea:focus {
   font-size: var(--fs-sm);
   font-weight: 600;
   text-align: left;
-  color: var(--danger);
+  color: #7A1616;
   background: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
+  /* 整個管理端只有這一列有重陰影——它是唯一「現在就要動」的東西 */
+  box-shadow: var(--lift-2);
   cursor: pointer;
 }
 
@@ -1234,8 +1262,8 @@ textarea:focus {
 .filter-box {
   margin-bottom: var(--gap);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1361,8 +1389,8 @@ input[type="date"] {
 
 .result.warn {
   color: var(--warn);
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: var(--warn-bg);
+  border: 0;
   margin-bottom: var(--gap);
 }
 
@@ -1423,8 +1451,8 @@ input[type="date"] {
   margin-top: 14px;
   padding: 14px;
   background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 .reply-title {
@@ -1549,8 +1577,8 @@ input[type="date"] {
   margin-bottom: var(--gap);
   padding: 8px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 .month-picker-title {
@@ -1648,8 +1676,8 @@ input[type="date"] {
   padding: var(--pad-card);
   margin-bottom: 10px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 /* 已停用的整列調淡，一眼就能分辨誰還在用 */
@@ -1712,7 +1740,7 @@ input[type="date"] {
 
 .tag-warn {
   color: var(--warn);
-  background: #fffbeb;
+  background: var(--warn-bg);
 }
 
 /*
@@ -1752,7 +1780,7 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, .6);
+  background: rgba(20, 20, 22, .68);
 }
 
 .pw-box {
@@ -1939,10 +1967,8 @@ input[type="date"] {
 .dash-card,
 .dash-tile {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom: 2px solid var(--border-strong);
-  border-right: 2px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 .dash-card { padding: var(--pad-card); margin-bottom: 6px; }
@@ -2095,8 +2121,11 @@ input[type="date"] {
   height: 2px;
   vertical-align: middle;
 }
-.legend-count  { background: #17457a; }
-.legend-rating { background: #e8a33d; }
+/* ⚠️ 圖例的顏色要跟圖表本身一致。
+   回報數用中性深色——**回報數多不代表壞，也不代表好**，上色等於幫讀者下結論；
+   滿意度沿用星等色，因為它跟星星講的是同一件事 */
+.legend-count  { background: var(--action); }  /* 與 js/admin-dashboard.js 的 TREND_COUNT_COLOR 一致 */
+.legend-rating { background: var(--star); }   /* 與 js/admin-dashboard.js 的 TREND_RATING_COLOR 一致 */
 
 /* --- 各餐廳表現表 --- */
 
@@ -2163,10 +2192,13 @@ input[type="date"] {
 .admin-nav-tab:hover { color: var(--text); }
 
 /* 目前這一頁：底線 + 加深。它是 <span> 不是 <a>，點自己沒有意義 */
+/* ⚠️ 底線用 3px 不是 2px：2px 在手機上幾乎看不出來，
+   而這條線是「我在哪一頁」的唯一線索 */
 .admin-nav-tab.active {
-  color: var(--brand-dark);
-  font-weight: 600;
-  border-bottom-color: var(--brand);
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-width: 3px;
+  border-bottom-color: var(--action);
   cursor: default;
 }
 
@@ -2236,12 +2268,14 @@ input[type="date"] {
  * 而 Sheet 做不出陰影。動態表確定做成網頁之後那個限制就不存在了，
  * 改用真的陰影，層次比框線清楚很多。
  */
+/* ⚠️ 用統一的 --lift-1，不要自己另外算一組陰影。
+   陰影一旦有兩套來源，日後調整只會改到其中一套，
+   同一頁上就會出現深淺不一的卡片 */
 .dash-card,
 .dash-tile,
 .dash-controls {
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, .06),
-              0 2px 6px rgba(16, 24, 40, .05);
+  border: 0;
+  box-shadow: var(--lift-1);
 }
 
 .dash-tile { transition: box-shadow .15s; }
@@ -2381,7 +2415,10 @@ input[type="date"] {
   .page,
   .page-wide { max-width: none; padding: 0; }
 
-  body { background: #ffffff; }
+  /* 紙張本來就是白的，而且白底最省墨。
+     ⚠️ 文字色不改回黑——螢幕上的 #1A1A1D 印出來也很正常，
+        兩邊一致比較好對照 */
+  body { background: #ffffff; color: var(--text); }
 
   /*
    * 預設瀏覽器會把背景色與圖片省略以節省墨水，
@@ -2407,7 +2444,7 @@ input[type="date"] {
   .print-header {
     padding-bottom: 10px;
     margin-bottom: 16px;
-    border-bottom: 2px solid #1f2328;
+    border-bottom: 2px solid var(--text);
   }
 
   .print-header-title {
@@ -2417,7 +2454,7 @@ input[type="date"] {
 
   .print-header-meta {
     margin-top: 4px;
-    color: #4b5563;
+    color: var(--text-muted);
     font-size: 10pt;
   }
 
@@ -2442,7 +2479,7 @@ input[type="date"] {
   .dash-card,
   .dash-tile {
     box-shadow: none;
-    border: 1px solid #d0d5dd;
+    border: 1px solid var(--border-strong);
   }
 
   .dash-card { padding: 10px; }
