@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 手機瀏覽器頂端網址列的顏色。沒有這行的話，畫面上面永遠有一條白條 -->
+  <meta name="theme-color" content="#EFEFED">
+  <!-- CSS 還沒下載完之前先鋪底色，避免工廠 wifi 慢時先白閃一下 -->
+  <style>html{background:#EFEFED}</style>
   <title>Kantin PCI</title>
   <link rel="stylesheet" href="css/style.css?v=2.7">
 </head>
@@ -16,29 +20,38 @@
       <button type="button" class="lang-btn" data-lang="zh">中文</button>
     </div>
 
+    <!-- 標誌：純文字排的，沒有圖檔（見 css/style.css 的 .wordmark 說明）-->
+    <div class="app-bar">
+      <span class="wordmark"><b>PCI</b><i>GA</i></span>
+    </div>
+
     <header class="hero">
-      <div class="hero-icon">🍽️</div>
+      <div class="hero-eyebrow">Suara Karyawan</div>
       <h1 id="appName">Suara Karyawan · Kantin PCI</h1>
       <p class="hero-tagline" id="tagline">Bantu kami bikin kantin lebih baik</p>
     </header>
 
     <main class="menu">
+      <!--
+        ⚠️ 兩張卡片的份量刻意不同：主要動作是近黑實心 + 重陰影，次要是淺色平面。
+           改版前兩張都是白底 1px 框，只差在框粗 1px，掃過去分不出來。
+      -->
       <a href="report.html" class="menu-card menu-card-primary">
-        <span class="menu-icon">📝</span>
+        <span class="menu-num">01</span>
         <span class="menu-text">
           <span class="menu-title" id="reportTitle">Lapor Masalah</span>
           <span class="menu-desc" id="reportDesc">Ada masalah atau saran? Kasih tahu kami</span>
         </span>
-        <span class="menu-arrow">›</span>
+        <span class="menu-arrow">→</span>
       </a>
 
       <a href="query.html" class="menu-card">
-        <span class="menu-icon">🔍</span>
+        <span class="menu-num">02</span>
         <span class="menu-text">
           <span class="menu-title" id="queryTitle">Cek Laporan</span>
           <span class="menu-desc" id="queryDesc">Lihat laporan kamu sudah diproses belum</span>
         </span>
-        <span class="menu-arrow">›</span>
+        <span class="menu-arrow">→</span>
       </a>
     </main>
 
