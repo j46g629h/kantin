@@ -1573,16 +1573,38 @@ input[type="date"] {
   line-height: 1;
 }
 
+/*
+ * ⚠️ 這份清單會**隨著時間越來越長**——每個有案件的月份都是一列。
+ *    現在只有幾個月還好，一年後就是十幾列，展開之後整頁被推得很長，
+ *    使用者得先捲過一大片才看得到案件。
+ *
+ *    所以限制高度：一次露出「全部時間 + 約 3 個月」，其餘用捲的。
+ *
+ * ⚠️ 高度刻意不是整數列，而是**留半列露在下面**——
+ *    那是「下面還有東西」最便宜也最有效的提示。
+ *    切齊整列的話，使用者會以為清單就這麼多。
+ */
 .month-picker {
   margin-bottom: var(--gap);
   padding: 8px;
   background: var(--surface);
   border: 0;
   border-radius: var(--radius-lg);
+
+  max-height: calc(var(--tap-min) * 4.5 + 36px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;   /* iOS 的慣性捲動 */
+  overscroll-behavior: contain;        /* 捲到底不要連帶把整頁也捲動 */
 }
 
+/* 捲動時標題留在最上面，才知道自己在看什麼 */
 .month-picker-title {
-  padding: 4px 8px 8px;
+  position: sticky;
+  top: -8px;                            /* 抵銷 .month-picker 的 padding */
+  z-index: 1;
+  padding: 8px 8px 8px;
+  margin: -8px -8px 0;
+  background: var(--surface);
   font-size: var(--fs-xs);
   color: var(--text-muted);
 }
@@ -1607,10 +1629,13 @@ input[type="date"] {
 
 .month-item:active { background: var(--surface-alt); }
 
+/* 選中＝實心近黑，與分類按鈕、統計卡片同一套語彙。
+   原本是「深色字 + 淺灰底」，在一長串同樣的列裡不夠明顯 */
 .month-item.active {
-  color: var(--brand);
-  font-weight: 600;
-  background: var(--brand-light);
+  --fg: #F2F2EF;
+  color: var(--fg);
+  font-weight: 700;
+  background: var(--action);
 }
 
 .month-count {
@@ -1619,7 +1644,7 @@ input[type="date"] {
   color: var(--text-muted);
 }
 
-.month-item.active .month-count { color: var(--brand); }
+.month-item.active .month-count { color: #C2C2BD; }
 
 
 /* ===== 指派處理者 ===== */

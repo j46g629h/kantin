@@ -355,6 +355,18 @@ function renderMonthPicker() {
       monthLabel(entry.month) + (entry.month === thisMonth ? t('admin.period.current') : ''),
       entry.count));
   });
+
+  /**
+   * ⚠️ 清單有高度上限（一次露出約 3 個月，其餘用捲的，見 css 的 .month-picker）。
+   *    所以**目前選中的月份可能在看不見的地方**——
+   *    使用者展開之後會看到一片沒有反白的列，以為自己什麼都沒選。
+   *
+   *    捲到選中那一列。用 'nearest' 而不是 'center'：
+   *    選中的是第一個月時，'center' 會把清單往下捲，
+   *    反而把「全部時間」推出畫面外。
+   */
+  const active = el.monthPicker.querySelector('.month-item.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
 }
 
 
