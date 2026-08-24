@@ -2646,8 +2646,14 @@ input[type="date"] {
     letter-spacing: .14em;
     white-space: nowrap;
     color: var(--text);
-    /* 淡到不影響閱讀，但影印或轉 PDF 之後仍看得出來 */
-    opacity: .07;
+    /*
+     * 淡到不影響閱讀，但轉 PDF 或影印之後仍看得出來。
+     *
+     * ⚠️ 這個值不能再往下調太多。螢幕上的 PDF 預覽會比實際印在紙上明顯，
+     *    低於 4% 之後很多雷射印表機會直接把它當成白色不印。
+     *    真的印出來看不到的話，把這裡調回 .06～.07。
+     */
+    opacity: .05;
     pointer-events: none;
   }
 
