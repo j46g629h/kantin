@@ -197,6 +197,15 @@ vm.runInContext(
 });
 
 // parseCategoryCodes 住在 Feedback.js，只搬那一支過來
+/**
+ * 信裡的連結一律從 gas/Config.js 的 SITE_URL 推出來，**不要寫死網址**。
+ *
+ * 這三項原本是寫死的，2026-08-25 把 GitHub 專案改名（網址變短）時
+ * 三項一起莫名紅掉——而那跟「信裡有沒有連結」完全無關。
+ * 這是同一個教訓的第三次（前兩次是版本號與顏色）。
+ */
+const siteUrl = () => vm.runInContext('SITE_URL', sandbox);
+
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'gas', 'Feedback.js'), 'utf8')
   .match(/function parseCategoryCodes[\s\S]*?\n}/)[0], sandbox);
 
@@ -281,7 +290,7 @@ const overdueRow = html.split('<tr')[1] || '';
 check('逾期列有底色（與一般列不同）',
   /background:#[0-9a-fA-F]{6}/.test(overdueRow), true);
 check('有連到案件列表的按鈕',
-  html.indexOf('https://j46g629h.github.io/kantin_PCI_adidas/admin-cases.html') >= 0, true);
+  html.indexOf(siteUrl() + 'admin-cases.html') >= 0, true);
 check('中印雙語表頭',          html.indexOf('Kantin · 地點') >= 0, true);
 
 // 描述是員工自己打的，可能含有角括號
@@ -422,7 +431,7 @@ check('仍保留自動寄出的說明',
 
 // 點版本號 → 員工端首頁（不是管理端）
 check('版本號是連結，指向員工端首頁（不是管理端）',
-  foot.indexOf('<a href="https://j46g629h.github.io/kantin_PCI_adidas/"') >= 0, true);
+  foot.indexOf('<a href="' + siteUrl() + '"') >= 0, true);
 
 // ⚠️ Gmail / Outlook 會把沒指定顏色的連結一律改成藍色底線，
 //    整片灰色的頁尾就會突然冒出一條藍字
@@ -534,7 +543,7 @@ check('未結案清單列出案件編號', mHtml.indexOf('PCI-202608-001') >= 0,
 check('沒有人動過的有底色',
   /background:#[0-9a-fA-F]{6};?"?>?\s*<td/.test(mHtml) || /<tr style="background:#/.test(mHtml), true);
 check('連到動態表',
-  mHtml.indexOf('https://j46g629h.github.io/kantin_PCI_adidas/admin-dashboard.html') >= 0, true);
+  mHtml.indexOf(siteUrl() + 'admin-dashboard.html') >= 0, true);
 
 // 這一行不能省：複選會讓佔比加起來超過 100%，沒寫明的話會被當成算錯
 check('有註明佔比總和會超過 100%',

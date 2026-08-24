@@ -22,7 +22,7 @@ const DRIVE_IMAGE_FOLDER_ID = '1Re_ua0-cEed27kKc91-pAOwNv8zZnKuk';
  * 排程寄出的信裡要放「直接去看案件」的連結，所以後端也需要知道它。
  * 結尾的斜線不要拿掉，後面是直接接檔名的。
  */
-const SITE_URL = 'https://j46g629h.github.io/kantin_PCI_adidas/';
+const SITE_URL = 'https://j46g629h.github.io/kantin/';
 
 
 // ===== 通知與報表（規格 §10）=====
