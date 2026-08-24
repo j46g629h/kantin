@@ -4,57 +4,155 @@
 
 
 /* ===== 設計基礎（所有顏色與尺寸都從這裡取，不要在下面寫死）=====
-   要調整整體風格時，改這一區就好，不必逐條找。 */
+
+   ⚠️ 要調整整體風格改這一區就好，不必逐條找。
+
+   設計方向（關卡 5-1 定案，參考 madebypan.com）：
+   **中性米白底 + 近黑主動作 + 顏色只給有意義的東西。**
+
+   核心原則是「**畫面上只要有顏色，就一定代表意義**」——
+   狀態（未處理紅 / 處理中黃 / 已結案綠）與星等是僅有的彩色，
+   其餘一律中性。這樣那幾個顏色才真的跳得出來。
+
+   ⚠️ 原本的品牌藍 #2563eb 已經拿掉。`--brand` 系列保留成別名
+      （CSS 裡有 51 處在用），現在指向近黑主色，不必逐一改寫。
+*/
 
 :root {
-  /* 品牌色 */
-  --brand:        #2563eb;
-  --brand-dark:   #1d4ed8;
-  --brand-light:  #eff6ff;
-  --brand-border: #93c5fd;
+  /* 只支援淺色。
+     不宣告的話，部分 Android 瀏覽器會強制反轉整頁，
+     精心調的米白會變成深褐色，狀態色也會跟著跑掉 */
+  color-scheme: light;
 
-  /* 基本顏色 */
-  --bg:            #f4f5f7;
-  --surface:       #ffffff;
-  --surface-alt:   #f9fafb;
-  --text:          #1f2328;
-  --text-muted:    #6b7280;
-  --text-subtle:   #6f7681;   /* 對白底 4.58，符合 WCAG AA（原本 #9ca3af 只有 2.54）*/
-  --border:        #e5e7eb;
-  --border-strong: #d0d5dd;
+  /* --- 基本表面與文字 --- */
+  --bg:            #EFEFED;   /* 中性米白。不是白、也不是冷灰 */
+  --surface:       #F9F9F8;   /* 卡片，比底色亮一階 */
+  --surface-alt:   #E7E7E6;
+  --text:          #1A1A1D;   /* 對底色 15.1:1 */
+  --text-muted:    #53535A;   /* 對底色 6.6:1 */
+  --text-subtle:   #6A6A70;   /* 對底色 4.7:1，剛好通過 WCAG AA */
+  --border:        #DEDEDD;   /* 純裝飾的分隔線，沒有對比度要求 */
+  --border-strong: #CBCBCA;   /* 較明顯的分隔線，仍屬裝飾 */
 
-  /* 狀態色 */
-  --ok:          #047857;
-  --ok-bg:       #ecfdf5;
-  --ok-border:   #a7f3d0;
-  --danger:      #b91c1c;
-  --danger-bg:   #fef2f2;
-  --danger-border:#fecaca;
-  --danger-tag:  #fee2e2;
-  --warn:        #b45309;
-  --star:        #f59e0b;
+  /* ⚠️ 輸入框、可點按鈕的**邊界**另外一個顏色，不能用上面那兩個。
+     WCAG 1.4.11 要求「互動元件的邊界」對背景至少 3:1——
+     #CBCBCA 只有 1.41:1，在工廠光線下等於看不到輸入框在哪裡。
+     這一條是裝飾線與互動邊界的差別，很容易被當成同一件事。 */
+  --border-input:  #80807A;   /* 對底色 3.45:1 */
 
-  /* 圓角 */
+  /* 大型裝飾數字（步驟編號）。
+     ⚠️ 不可以再淡了——原本用 --border-strong 只有 1.41:1，
+        在工廠的爛光線下等於看不見。這個值是 3.55:1，通過大字的 3:1 */
+  --num:           #7E7E77;
+
+  /* --- 主要動作 ---
+     近黑，不是彩色。整個畫面只有它與逾期案件有重陰影，
+     所以它想被忽略都難 */
+  --action:        #1A1A1C;
+  --action-press:  #35353A;
+
+  /* --- 舊的品牌色別名（相容用，全部指向近黑）---
+     ⚠️ 這幾個名字在 CSS 裡有 51 處在用（員工端 26、管理端 25）。
+        保留別名，管理端就會自動拿到新配色而不必在 5-2 動它 */
+  --brand:        var(--action);
+  --brand-dark:   var(--action-press);
+  --brand-light:  var(--surface-alt);
+  --brand-border: var(--border-strong);
+
+  /* --- 狀態色：畫面上僅有的彩色，每個都算過對比度 --- */
+  --ok:          #046C4E;
+  --ok-bg:       #E7F5EE;
+  --ok-border:   #BFE3D3;
+  --danger:      #A81E1E;
+  --danger-bg:   #FBEDEC;
+  --danger-border:#F3CFCD;
+  --danger-tag:  #F7DEDC;
+  --warn:        #8A5300;
+  --warn-bg:     #FBF2E3;
+  /* ⚠️ 星星的對比度是由**描邊**負責的，不是填色。
+     越鮮豔的金色越亮、對比越低——單靠填色最多只能到 3.18:1（很勉強）。
+     改成「鮮豔填色 + 深色描邊」之後，填色可以放開，
+     而深色的邊在工廠的爛光線下本來就更好認。 */
+  --star:      #F2A007;   /* 填色：鮮豔的琥珀金 */
+  --star-edge: #7A4E00;   /* 描邊：對底色 6.2:1，遠高於圖形要求的 3:1 */
+
+  /* ⚠️ 圖表的滿意度線是**另一個顏色**，不能跟著星星變鮮豔。
+     星星靠描邊撐對比度，但一條線沒有描邊——它的對比度只能靠自己。
+     這兩個很容易被當成同一件事（它們講的都是「滿意度」），
+     所以分成兩個 token，並由 check-contrast.js 各自把關。 */
+  --chart-rating: #C07405;   /* 對卡片 3.15:1 */
+
+  /* --- 圓角 --- */
   --radius-sm:   10px;
-  --radius:      12px;
-  --radius-lg:   14px;
+  --radius:      14px;
+  --radius-lg:   20px;
   --radius-pill: 999px;
 
-  /* 字級。--fs-input 不可小於 16px，否則 iOS 會自動放大畫面 */
-  --fs-xs:    12px;
-  --fs-sm:    14px;
-  --fs-body:  15px;
-  --fs-input: 16px;
-  --fs-lg:    18px;
-  --fs-title: 22px;
+  /* --- 字級 ---
+     clamp(最小, 隨螢幕寬度連續變化, 最大)：手機到電腦是平滑過渡，
+     不是「手機一種、電腦一種」的跳變。
 
-  /* 觸控目標最小高度（工廠現場可能戴手套，不要小於 48px） */
+     ⚠️ --fs-input 的下限鎖死 16px。低於 16px 的話，
+        iOS 一點輸入框就會自動放大整個畫面，使用者要手動縮回來。
+
+     ⚠️ 列印時 vw 指的是「紙張寬度」，算出來的字級無法預期，
+        所以 @media print 裡會把這一整組改回固定值（見檔案最後）。 */
+  --fs-xs:      clamp(12px, 0.70rem + 0.15vw, 13px);
+  --fs-sm:      clamp(13px, 0.78rem + 0.20vw, 15px);
+  --fs-body:    clamp(15px, 0.88rem + 0.25vw, 17px);
+  --fs-input:   clamp(16px, 0.95rem + 0.20vw, 17px);
+  --fs-lg:      clamp(17px, 1.00rem + 0.40vw, 20px);
+  --fs-title:   clamp(23px, 1.30rem + 1.30vw, 34px);
+  --fs-display: clamp(30px, 1.60rem + 2.60vw, 52px);
+
+  /* --- 觸控目標最小高度（工廠現場可能戴手套，不要小於 48px）--- */
   --tap-min: 48px;
 
-  /* 間距 */
-  --gap:      12px;
-  --pad-card: 16px;
+  /* --- 間距：也跟著螢幕變，電腦上版面會自然變鬆，
+         而不是「手機版被整個放大」 --- */
+  --gap:      clamp(12px, 0.70rem + 0.40vw, 18px);
+  --pad-card: clamp(16px, 0.90rem + 0.60vw, 24px);
+  --sec-gap:  clamp(28px, 1.50rem + 2.00vw, 56px);
+
+  /* --- 陰影：兩階 ---
+
+     ⚠️ 關鍵不是「有沒有陰影」，是**陰影強度要跟重要性成正比**。
+        改版前每一張卡片都有 `0 1px 3px rgba(0,0,0,.06)`，
+        平均分配的結果就是沒有任何一張被強調——那正是「單調」的來源。
+
+     陰影色用帶灰的深色，不用純黑：純黑打在米白底上會顯髒。 */
+  --lift-1: 0 1px 2px rgba(38,38,44,.05), 0 6px 14px -8px rgba(38,38,44,.16);
+  --lift-2: 0 10px 24px -10px rgba(40,40,45,.20), 0 24px 48px -24px rgba(40,40,45,.24);
 }
+
+
+/* ===== 表面 / 表面上的文字（surface / on-surface）=====
+
+   📌 文字與按鈕會自動跟著背景走，靠的是這一組。
+
+      作法不是用 JS 偵測背景色，而是**讓每個表面自己帶著
+      「放在我上面的文字該是什麼顏色」**。
+      元件一律寫 `color: var(--fg)`，不寫死顏色。
+
+   ⚠️ 為什麼不用 JS 即時運算：背景可能是漸層、半透明、或被圖片蓋住，
+      JS 取到的值不一定是眼睛看到的，而且每次重繪都要算一次。
+      用 token 是靜態的、可驗證的、零成本。
+
+   ⚠️ 實際踩過的坑：`.empty span { color: ... }` 這種寫法會**滲進深色按鈕裡面**，
+      把淺色文字蓋成深灰（1.5:1，等於看不見）。
+      因為按鈕自己的顏色是「繼承」來的，而繼承的優先度輸給直接指定。
+      **兩個對策：選擇器用 `>` 限定直接子層，而且深色元件自己帶 --fg。**
+
+   驗證方式：node tools/check-contrast.js
+*/
+
+.on-base   { --surf: var(--bg);        --fg: var(--text); --fg-muted: var(--text-muted); --fg-subtle: var(--text-subtle); --line: var(--border); }
+.on-raised { --surf: var(--surface);   --fg: var(--text); --fg-muted: var(--text-muted); --fg-subtle: var(--text-subtle); --line: var(--border); }
+.on-dark   { --surf: var(--action);    --fg: #F2F2EF; --fg-muted: #C2C2BD; --fg-subtle: #93938E; --line: rgba(255,255,255,.16); }
+.on-danger { --surf: var(--danger-bg); --fg: #7A1616; --fg-muted: #8E3232; --fg-subtle: #9A4A4A; --line: rgba(122,22,22,.18); }
+.on-warn   { --surf: var(--warn-bg);   --fg: #6E4200; --fg-muted: #855A1E; --fg-subtle: #8A6534; --line: rgba(110,66,0,.18); }
+.on-ok     { --surf: var(--ok-bg);     --fg: #04543D; --fg-muted: #2A6B57; --fg-subtle: #3A7360; --line: rgba(4,84,61,.18); }
+
 
 * {
   box-sizing: border-box;
@@ -93,13 +191,14 @@ body {
 
 .lang-btn {
   flex: 0 0 auto;
-  min-height: 40px;
+  /* ⚠️ 44px 是最低標。原本 40px——工廠現場可能戴手套，按不準 */
+  min-height: 44px;
   padding: 8px 16px;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-family: inherit;
   color: var(--text-muted);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 999px;
   cursor: pointer;
 }
@@ -112,27 +211,110 @@ body {
 }
 
 .lang-switch-compact { margin: 0; }
-.lang-switch-compact .lang-btn { padding: 6px 10px; font-size: 13px; }
+.lang-switch-compact .lang-btn { padding: 6px 12px; font-size: var(--fs-xs); min-height: 44px; }
+
+
+/* ===== 頁首標誌列 ===== */
+
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+
+/* 語言切換推到右邊 */
+.app-bar .lang-switch { margin-left: auto; margin-bottom: 0; }
+
+
+/* ===== PCI GA 文字標誌（關卡 5-2）=====
+
+   ⚠️ 這是**純文字**排出來的，沒有圖檔。
+
+      理由：載入零成本（工廠 wifi 不好時圖檔會晚一步出現）、
+      無限放大不糊（海報放到 A2 一樣銳利）、可以跟著背景變色。
+      而且完全避開品牌資產的使用問題——
+      集團給的那個檔案是「金色的樹 + 三個事業單位的標誌」的合體圖，
+      不是 PCI 單獨的標記，也不是真的向量圖（247KB 點陣圖包在 SVG 外殼裡）。
+
+      正式的單色向量檔拿到之後要換，那時只要改這一個元件。
+
+   效果來自四個槓桿：字重落差、大小落差、字距、對齊。
+   不能用顏色和漸層——那是這一版設計的原則。
+*/
+
+.wordmark {
+  display: inline-flex;
+  align-items: flex-start;
+  flex: none;
+  color: var(--fg, var(--text));
+  text-decoration: none;
+}
+
+.wordmark b {
+  font-weight: 800;
+  font-size: var(--fs-lg);
+  letter-spacing: .1em;
+  line-height: 1.1;
+}
+
+/* GA 縮小、拉開字距、對齊上緣——這是 W1-b 的做法 */
+.wordmark i {
+  font-style: normal;
+  font-weight: 400;
+  font-size: var(--fs-xs);
+  letter-spacing: .3em;
+  line-height: 1;
+  color: var(--fg-muted, var(--text-muted));
+  margin: 2px 0 0 .45em;
+}
+
+/* 內頁頁首：標誌旁邊補一行小字說明現在在哪一頁。
+   ⚠️ 首頁不需要（大標題緊接著就寫了），但回報頁與查詢頁沒有大標題，
+      沒有這行的話頁首就真的只剩 PCI GA，使用者不知道自己在哪 */
+.page-tag {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  padding-left: 10px;
+  margin-left: 10px;
+  border-left: 1px solid var(--border);
+  line-height: 1.35;
+}
 
 
 /* ===== 首頁 ===== */
 
+/* 主視覺：小標 + 大標題 + 一行說明。
+   ⚠️ 不置中——左對齊在手機上比較好讀，而且與下方的卡片對齊成一條線 */
 .hero {
-  text-align: center;
-  padding: 24px 0 32px;
+  text-align: left;
+  padding: var(--sec-gap) 0 calc(var(--sec-gap) * .6);
 }
 
-.hero-icon { font-size: 56px; line-height: 1; }
+/* ⚠️ 首頁不再用大 emoji 當主視覺（關卡 5-2）。
+   改成「小標 + 大標題」的排版層次——那才是這一版的識別，
+   而且一張彩色圖會立刻搶走那顆黑色主按鈕的焦點 */
+.hero-icon { display: none; }
+
+.hero-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
 
 .hero h1 {
-  font-size: 24px;
-  margin-top: 12px;
+  font-size: var(--fs-title);
+  line-height: 1.25;
+  letter-spacing: .01em;
+  margin-top: 10px;
 }
 
 .hero-tagline {
   color: var(--text-muted);
-  font-size: 15px;
-  margin-top: 6px;
+  font-size: var(--fs-body);
+  margin-top: 10px;
 }
 
 .menu {
@@ -141,31 +323,61 @@ body {
   gap: 12px;
 }
 
+/*
+ * ⚠️ 兩張卡片刻意做成**不一樣的份量**，這是整個改版的重點。
+ *
+ *    改版前兩張都是白底 + 1px 框，「主要」那張只差在框粗了 1px——
+ *    掃過去根本分不出來，而那正是「單調」的來源：
+ *    **沒有東西比別的東西重要。**
+ *
+ *    現在：主要動作是近黑實心 + 重陰影，次要是淺色平面。
+ *    想忽略那顆黑的都難。
+ */
 .menu-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 14px;
+  padding: 18px var(--pad-card);
+  min-height: var(--tap-min);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border: 0;
+  border-radius: var(--radius-lg);
   text-decoration: none;
-  color: inherit;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+  color: var(--fg, var(--text));
+  box-shadow: var(--lift-1);
 }
 
 .menu-card:active { background: var(--surface-alt); }
 
+/* 主要動作：深色表面，自己帶著 on-surface token。
+   ⚠️ 內部文字一律讀 --fg / --fg-muted，不靠繼承——
+      靠繼承的話，外層任何一條 `.xxx span { color }` 都會把它蓋掉
+      （這個坑在 5-1 的預覽頁實際踩過，深灰字打在近黑底上 1.5:1）*/
 .menu-card-primary {
-  border-color: var(--brand);
-  border-width: 2px;
+  --fg: #F2F2EF;
+  --fg-muted: #C2C2BD;
+
+  background: var(--action);
+  box-shadow: var(--lift-2);
 }
 
-.menu-icon { font-size: 32px; line-height: 1; }
-.menu-text { flex: 1; display: flex; flex-direction: column; }
-.menu-title { font-size: 18px; font-weight: 600; }
-.menu-desc  { font-size: 14px; color: var(--text-muted); }
-.menu-arrow { font-size: 28px; color: var(--text-subtle); line-height: 1; }
+.menu-card-primary:active { background: var(--action-press); }
+
+/* 序號取代圖示：01 / 02。
+   數字比圖示更能表達「先做這個，再做那個」的順序 */
+.menu-num {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted, var(--text-subtle));
+  flex: none;
+}
+
+.menu-icon svg { width: 26px; height: 26px; display: block; }
+.menu-text  { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.menu-title { font-size: var(--fs-lg); font-weight: 700; color: var(--fg, var(--text)); }
+.menu-desc  { font-size: var(--fs-sm); color: var(--fg-muted, var(--text-muted)); margin-top: 2px; }
+.menu-arrow { font-size: 22px; color: var(--fg-muted, var(--text-subtle)); line-height: 1; flex: none; }
 
 
 /* ===== 頁首（內頁）===== */
@@ -174,7 +386,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  padding-bottom: 14px;
+  margin-bottom: var(--gap);
 }
 
 .topbar-back {
@@ -184,45 +397,69 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border: 0;
+  border-radius: var(--radius);
   text-decoration: none;
 }
 
+.topbar-back:active { background: var(--surface-alt); }
+
+/* ⚠️ 內頁沒有大標題，所以頁首要負責回答「我在哪一頁」。
+   首頁不需要（大標題緊接著就寫了），但這兩頁需要 */
 .topbar-title {
   flex: 1;
-  font-size: 19px;
+  font-size: var(--fs-lg);
+  min-width: 0;
 }
 
 
 /* ===== 表單 ===== */
 
+/*
+ * ⚠️ 每一段用「大號碼 + 標題」開頭，取代原本的框線卡片。
+ *
+ *    原本每個欄位都是白底 + 1px 框，八個欄位就是八個一模一樣的框，
+ *    使用者看不出「還剩幾步」。編號能回答那個問題，
+ *    而且大數字在工廠的爛光線下比細框線好認得多。
+ */
 .field {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: var(--sec-gap);
+}
+
+.field-num {
+  display: block;
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  /* ⚠️ 不可以再淡了。原本用 --border-strong 只有 1.41:1，
+     在工廠光線下等於看不見。--num 是算過的 3.55:1 */
+  color: var(--num);
 }
 
 .field-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 15px;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  margin: 2px 0 10px;
 }
 
 .tag {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
   color: var(--text-muted);
   background: var(--surface-alt);
 }
@@ -237,36 +474,44 @@ input[type="password"],
 select,
 textarea {
   width: 100%;
-  font-size: 16px;          /* 小於 16px 時 iOS 會自動放大畫面，務必保持 */
+  min-height: var(--tap-min);
+  /* ⚠️ 絕不可小於 16px：小於的話 iOS 一點輸入框就會自動放大整個畫面 */
+  font-size: var(--fs-input);
   font-family: inherit;
-  color: inherit;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  color: var(--text);
+  padding: 12px 14px;
+  /* ⚠️ 互動元件的邊界要 3:1，不能用裝飾用的 --border-strong（1.41:1）*/
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
-select { height: 46px; }
+select { height: var(--tap-min); }
 textarea { resize: vertical; }
 
+input::placeholder,
+textarea::placeholder { color: var(--text-subtle); }
+
+/* 焦點外框用 PCI 藍——這是整個 app 唯一出現品牌藍的地方。
+   它不參與版面配色，只在鍵盤操作時出現，所以不會破壞「顏色只給意義」的原則 */
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid var(--brand);
-  outline-offset: 1px;
+  outline: 2px solid #214A8C;
+  outline-offset: 2px;
   border-color: transparent;
 }
 
 .field-note {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin-top: 8px;
   min-height: 20px;
 }
 
-.field-note.ok { color: var(--ok); font-weight: 600; }
-.field-note.ng { color: var(--danger); }
-.field-note.rated { color: var(--warn); font-weight: 600; }
+.field-note.ok { color: var(--ok); font-weight: 700; }
+.field-note.ng { color: var(--danger); font-weight: 700; }
+.field-note.rated { color: var(--warn); font-weight: 700; }
 
 
 /* ===== 問題分類 ===== */
@@ -286,27 +531,33 @@ textarea:focus {
   gap: 6px;
   padding: 10px 4px;
   font-family: inherit;
-  color: var(--text);
+  color: var(--fg, var(--text));
   background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
+  border: 0;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
+/* ⚠️ 不用 opacity。opacity 會把文字往背景混，對比度變成算不準也控制不了；
+   而且巢狀的 opacity 會相乘。改成直接指定「停用」的顏色 */
 .category-btn.disabled {
-  opacity: .38;
+  color: var(--text-subtle);
+  background: var(--surface-alt);
   cursor: not-allowed;
 }
 
+/* 選中＝實心近黑。自己帶 on-dark 的 token，
+   裡面的文字與 SVG 圖示（stroke=currentColor）都會自動變淺色 */
 .category-btn.selected {
-  color: var(--brand-dark);
-  background: var(--brand-light);
-  border-color: var(--brand);
-  font-weight: 600;
+  --fg: #F2F2EF;
+  color: var(--fg);
+  background: var(--action);
+  font-weight: 700;
+  box-shadow: var(--lift-1);
 }
 
-.category-icon  { font-size: 26px; line-height: 1; }
-.category-label { font-size: 13px; text-align: center; line-height: 1.3; }
+.category-icon svg { width: 24px; height: 24px; display: block; }
+.category-label { font-size: var(--fs-xs); text-align: center; line-height: 1.35; }
 
 
 /* ===== 星等 ===== */
@@ -318,16 +569,45 @@ textarea:focus {
 
 .star {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
   padding: 8px 0;
-  font-size: 34px;
-  line-height: 1;
-  color: var(--border-strong);
   background: none;
   border: none;
   cursor: pointer;
 }
 
-.star.on { color: var(--star); }
+.star svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+  /* 未選：只有外框。
+     ⚠️ 顏色用 --num（3.55:1）不用 --border-strong（1.4:1）——
+        後者在工廠光線下看不見，使用者會不知道總共有五顆 */
+  fill: none;
+  stroke: var(--num);
+  stroke-width: 1.7;
+  transition: transform .12s ease-out;
+}
+
+/* 已選：鮮豔實心 + 深色描邊 + 一點點浮起。
+   描邊是對比度的來源，所以填色可以放心用鮮豔的 */
+.star.on svg {
+  fill: var(--star);
+  stroke: var(--star-edge);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 2px 3px rgba(122, 78, 0, .32));
+}
+
+/* 按下去的回饋。⚠️ 有些人開了「減少動態」，要尊重 */
+.star:active svg { transform: scale(.88); }
+
+@media (prefers-reduced-motion: reduce) {
+  .star svg { transition: none; }
+  .star:active svg { transform: none; }
+}
 
 
 /* ===== 按鈕 ===== */
@@ -336,101 +616,162 @@ textarea:focus {
 .btn-secondary {
   display: block;
   width: 100%;
-  margin-top: 16px;
+  margin-top: var(--gap);
+  min-height: 54px;
   padding: 16px;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   font-family: inherit;
   text-align: center;
   text-decoration: none;
   border: none;
-  border-radius: 12px;
+  /* 膠囊形。這一版的識別之一，而且 54px 高度不受影響 */
+  border-radius: var(--radius-pill);
   cursor: pointer;
 }
 
+/* 主要動作：近黑實心 + 重陰影。
+   整個畫面只有它與逾期案件有這種陰影，所以它想被忽略都難 */
 .btn-primary {
-  color: var(--surface);
-  background: var(--brand);
+  color: #F2F2EF;
+  background: var(--action);
+  box-shadow: var(--lift-2);
 }
 
-.btn-primary:active  { background: var(--brand-dark); }
-.btn-primary:disabled { background: var(--text-subtle); cursor: not-allowed; }
+.btn-primary:active  { background: var(--action-press); }
+/* 停用：降成平面 + 灰底。用顏色與陰影表達，不用 opacity */
+.btn-primary:disabled {
+  color: var(--text-subtle);
+  background: var(--surface-alt);
+  box-shadow: none;
+  cursor: not-allowed;
+}
 
 .btn-secondary {
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
+  box-shadow: var(--lift-1);
 }
 
 
 /* ===== 訊息 ===== */
 
 .result {
-  padding: 14px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
   margin-top: 12px;
 }
 
+/* ⚠️ 「查無此工號」是試辦期最常出現的畫面（名冊還沒補齊）。
+   所以錯誤訊息不能只說「錯了」，要告訴他下一步能做什麼 */
 .result.error {
-  color: var(--danger);
+  color: #7A1616;
   background: var(--danger-bg);
-  border: 1px solid var(--danger-border);
+  border: 0;
+  font-weight: 600;
 }
 
 
-/* ===== 狀態畫面（載入中 / 成功）===== */
+/* ===== 狀態畫面（載入中 / 成功）=====
+
+   ⚠️ 這個 app 的載入時間是 **3～8 秒**（Apps Script 的固定成本）。
+      那幾秒使用者看到什麼，決定他覺得系統「在跑」還是「壞了」。
+*/
 
 .state-box {
   text-align: center;
-  padding: 40px 20px;
+  padding: var(--sec-gap) 20px;
   color: var(--text-muted);
 }
+
+/*
+ * 骨架：先把「等一下會出現什麼形狀」畫出來。
+ *
+ * ⚠️ 為什麼不用轉圈圈：轉圈圈只表達「還在忙」，
+ *    形狀則表達「東西正在來，而且長這樣」——後者讓人願意多等幾秒。
+ */
+.skeleton {
+  display: block;
+  height: 48px;
+  border-radius: var(--radius);
+  background: linear-gradient(90deg,
+              var(--surface-alt) 25%, var(--surface) 50%, var(--surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton + .skeleton { margin-top: 10px; }
+.skeleton-sm { height: 20px; width: 42%; border-radius: var(--radius-sm); }
+
+@keyframes shimmer { to { background-position: -200% 0; } }
 
 .spinner {
   width: 32px;
   height: 32px;
   margin: 0 auto 16px;
   border: 3px solid var(--border);
-  border-top-color: var(--brand);
+  border-top-color: var(--action);
   border-radius: 50%;
   animation: spin .8s linear infinite;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ⚠️ 有些人開了系統的「減少動態」（會頭暈、或前庭功能敏感）。
+   要尊重那個設定，否則這兩個動畫會讓他們不舒服 */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .spinner  { animation-duration: 2.4s; }
+}
+
 .success-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: inherit;
 }
 
-.success-icon { font-size: 52px; line-height: 1; }
+/* 打勾放進一個實心圓裡：顏色是「已結案」的綠，
+   而綠色在這一版是有意義的顏色（成功），不是裝飾 */
+.success-icon {
+  width: 62px; height: 62px; margin: 0 auto 4px;
+  border-radius: 50%;
+  background: var(--ok); color: #F2F2EF;
+  display: flex; align-items: center; justify-content: center;
+}
+.success-icon svg { width: 30px; height: 30px; stroke-width: 2.4; }
 
 .success-box h2 {
-  font-size: 22px;
-  margin: 12px 0 4px;
+  font-size: var(--fs-title);
+  margin: 14px 0 4px;
 }
 
+/* 案件編號是整段流程的情緒高點，也是使用者唯一需要記住的東西。
+   ⚠️ 原本用虛線框——虛線在這一版看起來像「未完成」。改成實心卡片 */
 .case-box {
-  margin: 24px 0 8px;
+  margin: var(--sec-gap) 0 8px;
   padding: 18px;
-  background: var(--brand-light);
-  border: 2px dashed var(--brand-border);
-  border-radius: 12px;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-1);
 }
 
 .case-label {
-  font-size: 13px;
-  color: var(--brand-dark);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
 }
 
 .case-id {
-  font-size: 26px;
+  font-size: var(--fs-title);
   font-weight: 700;
-  letter-spacing: .5px;
-  color: var(--brand-dark);
+  letter-spacing: .04em;
+  /* 等寬數字：編號要一眼看清楚、抄得下來 */
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
   margin-top: 4px;
   word-break: break-all;
 }
@@ -484,7 +825,7 @@ textarea:focus {
   font-weight: 600;
 }
 
-.meal-icon  { font-size: 24px; line-height: 1; }
+.meal-icon svg { width: 22px; height: 22px; display: block; }
 .meal-label { font-size: var(--fs-xs); text-align: center; line-height: 1.3; }
 
 
@@ -523,8 +864,8 @@ textarea:focus {
   padding: 2px 4px;
   font-size: 11px;
   text-align: center;
-  color: #fff;
-  background: rgba(0, 0, 0, .55);
+  color: #F2F2EF;
+  background: rgba(26, 26, 28, .62);
 }
 
 .photo-remove {
@@ -535,8 +876,8 @@ textarea:focus {
   height: 28px;
   font-size: 18px;
   line-height: 1;
-  color: #fff;
-  background: rgba(0, 0, 0, .6);
+  color: #F2F2EF;
+  background: rgba(26, 26, 28, .68);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -567,7 +908,7 @@ textarea:focus {
   cursor: wait;
 }
 
-.photo-add-icon { font-size: 20px; line-height: 1; }
+.photo-add-icon svg { width: 20px; height: 20px; display: block; }
 
 
 /* ===== 查詢結果 ===== */
@@ -580,13 +921,15 @@ textarea:focus {
 
 .case-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
   margin-bottom: 10px;
   overflow: hidden;
 }
 
-.case-card.open { border-color: var(--brand); }
+/* 展開中的案件：用陰影浮起來，不用框線換色
+   （一整頁灰卡片裡，1px 的框線差異掃過去根本看不到）*/
+.case-card.open { box-shadow: var(--lift-1); }
 
 .case-head {
   display: flex;
@@ -635,9 +978,12 @@ textarea:focus {
   white-space: nowrap;
 }
 
-.status-badge.new  { color: #991b1b; background: #fee2e2; }
-.status-badge.proc { color: #92400e; background: #fef3c7; }
-.status-badge.done { color: #065f46; background: #d1fae5; }
+/* ⚠️ 顏色一律走 token，不要寫死。
+   員工端查詢頁、管理端案件列表、排程寄出的信這三個地方顯示的是同一批狀態，
+   三邊用不同色碼的話，同一件案子會出現三種顏色 */
+.status-badge.new  { color: var(--danger); background: var(--danger-bg); }
+.status-badge.proc { color: var(--warn);   background: var(--warn-bg); }
+.status-badge.done { color: var(--ok);     background: var(--ok-bg); }
 
 .case-detail {
   padding: 0 14px 14px;
@@ -751,7 +1097,7 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, .9);
+  background: rgba(20, 20, 22, .93);
   cursor: zoom-out;
 }
 
@@ -771,12 +1117,23 @@ textarea:focus {
 .page-narrow { max-width: 420px; }
 
 /* 登入 / 改密碼畫面上方的大圖示 */
+/* 登入 / 改密碼畫面上方的圖示。
+   ⚠️ 原本是 emoji（🔐 / 🔑）——每支手機長得不一樣，而且不能上色。
+      改成線性 SVG，顏色跟著文字走 */
 .admin-badge {
-  font-size: 44px;
-  line-height: 1;
-  text-align: center;
-  margin: 20px 0 8px;
+  width: 56px;
+  height: 56px;
+  margin: var(--sec-gap) auto 10px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--lift-1);
 }
+
+.admin-badge svg { width: 26px; height: 26px; }
 
 .admin-title {
   font-size: var(--fs-title);
@@ -800,9 +1157,9 @@ textarea:focus {
   gap: var(--gap);
   padding: 10px 14px;
   margin-bottom: var(--gap);
-  background: var(--brand-light);
-  border: 1px solid var(--brand-border);
-  border-radius: var(--radius);
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-lg);
   font-size: var(--fs-sm);
 }
 
@@ -821,12 +1178,16 @@ textarea:focus {
 
 .admin-bar-logout {
   flex-shrink: 0;
-  padding: 8px 14px;
+  /* ⚠️ 原本只有 37px。管理者一天要按好幾次，而且可能在現場用手機 */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
   font-size: var(--fs-sm);
   font-family: inherit;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -834,9 +1195,15 @@ textarea:focus {
 .admin-bar-logout:active { background: var(--surface-alt); }
 
 /* 員工端首頁角落的低調管理者入口 */
+/* ⚠️ 這個連結刻意保持低調（規格 §6.4），所以視覺上很小。
+   但「看起來小」不代表「按起來要小」——用 padding 把可點範圍撐到 44px，
+   外觀完全不變。管理者一天要按好幾次 */
 .admin-entry {
-  display: inline-block;
-  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  margin-top: 4px;
   font-size: var(--fs-xs);
   color: var(--text-subtle);
   text-decoration: none;
@@ -868,18 +1235,27 @@ textarea:focus {
   font-family: inherit;
   color: inherit;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-1);
   cursor: pointer;
 }
 
 .stat-card:active { background: var(--surface-alt); }
 
-/* 目前正依這個狀態篩選 */
+/* 目前正依這個狀態篩選。
+   ⚠️ 原本只是把框線換色——在一排三張一模一樣的卡片裡，
+      1px 的框線差異幾乎看不出來。改成實心反白，一眼就知道正在篩哪一個 */
 .stat-card.active {
-  border-color: var(--brand);
-  box-shadow: inset 0 0 0 1px var(--brand);
+  --fg: #F2F2EF;
+  color: var(--fg);
+  background: var(--action);
+  box-shadow: var(--lift-1);
 }
+
+.stat-card.active .stat-label { color: #C2C2BD; }
+/* 反白之後那三個狀態色會看不清楚，統一改成淺色 */
+.stat-card.active .stat-num   { color: var(--fg); }
 
 .stat-num {
   font-size: 26px;
@@ -908,10 +1284,12 @@ textarea:focus {
   font-size: var(--fs-sm);
   font-weight: 600;
   text-align: left;
-  color: var(--danger);
+  color: #7A1616;
   background: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
+  /* 整個管理端只有這一列有重陰影——它是唯一「現在就要動」的東西 */
+  box-shadow: var(--lift-2);
   cursor: pointer;
 }
 
@@ -922,8 +1300,8 @@ textarea:focus {
 .filter-box {
   margin-bottom: var(--gap);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1049,8 +1427,8 @@ input[type="date"] {
 
 .result.warn {
   color: var(--warn);
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: var(--warn-bg);
+  border: 0;
   margin-bottom: var(--gap);
 }
 
@@ -1111,8 +1489,8 @@ input[type="date"] {
   margin-top: 14px;
   padding: 14px;
   background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 .reply-title {
@@ -1233,16 +1611,51 @@ input[type="date"] {
   line-height: 1;
 }
 
+/*
+ * ⚠️ 這份清單會**隨著時間越來越長**——每個有案件的月份都是一列。
+ *    現在只有幾個月還好，一年後就是十幾列，展開之後整頁被推得很長，
+ *    使用者得先捲過一大片才看得到案件。
+ *
+ *    所以限制高度：一次露出「全部時間 + 約 3 個月」，其餘用捲的。
+ *
+ * ⚠️ 高度刻意不是整數列，而是**留半列露在下面**——
+ *    那是「下面還有東西」最便宜也最有效的提示。
+ *    切齊整列的話，使用者會以為清單就這麼多。
+ */
 .month-picker {
   margin-bottom: var(--gap);
   padding: 8px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
+
+  /*
+   * 高度跟著螢幕走，不是固定值：
+   *
+   *   手機直立（812px）→ 約 244px：全部時間 + 3 個多月（使用者要的就是這個）
+   *   電腦（1200px）    → 約 360px：全部時間 + 5 個多月，大螢幕不浪費
+   *   手機橫放（400px） → 夾在下限 190px，才不會整個畫面被清單佔滿
+   *
+   * ⚠️ 用 dvh 而不是 vh：手機瀏覽器的網址列會伸縮，
+   *    `vh` 算的是「網址列縮起來時」的高度，所以清單會比實際可視範圍還高。
+   *    下面兩行是漸進式的——不支援 dvh 的舊瀏覽器會用到第一行。
+   */
+  max-height: clamp(190px, 30vh,  420px);
+  max-height: clamp(190px, 30dvh, 420px);
+
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;   /* iOS 的慣性捲動 */
+  overscroll-behavior: contain;        /* 捲到底不要連帶把整頁也捲動 */
 }
 
+/* 捲動時標題留在最上面，才知道自己在看什麼 */
 .month-picker-title {
-  padding: 4px 8px 8px;
+  position: sticky;
+  top: -8px;                            /* 抵銷 .month-picker 的 padding */
+  z-index: 1;
+  padding: 8px 8px 8px;
+  margin: -8px -8px 0;
+  background: var(--surface);
   font-size: var(--fs-xs);
   color: var(--text-muted);
 }
@@ -1267,10 +1680,13 @@ input[type="date"] {
 
 .month-item:active { background: var(--surface-alt); }
 
+/* 選中＝實心近黑，與分類按鈕、統計卡片同一套語彙。
+   原本是「深色字 + 淺灰底」，在一長串同樣的列裡不夠明顯 */
 .month-item.active {
-  color: var(--brand);
-  font-weight: 600;
-  background: var(--brand-light);
+  --fg: #F2F2EF;
+  color: var(--fg);
+  font-weight: 700;
+  background: var(--action);
 }
 
 .month-count {
@@ -1279,7 +1695,7 @@ input[type="date"] {
   color: var(--text-muted);
 }
 
-.month-item.active .month-count { color: var(--brand); }
+.month-item.active .month-count { color: #C2C2BD; }
 
 
 /* ===== 指派處理者 ===== */
@@ -1336,8 +1752,8 @@ input[type="date"] {
   padding: var(--pad-card);
   margin-bottom: 10px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 /* 已停用的整列調淡，一眼就能分辨誰還在用 */
@@ -1400,7 +1816,7 @@ input[type="date"] {
 
 .tag-warn {
   color: var(--warn);
-  background: #fffbeb;
+  background: var(--warn-bg);
 }
 
 /*
@@ -1440,7 +1856,7 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, .6);
+  background: rgba(20, 20, 22, .68);
 }
 
 .pw-box {
@@ -1627,10 +2043,8 @@ input[type="date"] {
 .dash-card,
 .dash-tile {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom: 2px solid var(--border-strong);
-  border-right: 2px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 .dash-card { padding: var(--pad-card); margin-bottom: 6px; }
@@ -1783,8 +2197,11 @@ input[type="date"] {
   height: 2px;
   vertical-align: middle;
 }
-.legend-count  { background: #17457a; }
-.legend-rating { background: #e8a33d; }
+/* ⚠️ 圖例的顏色要跟圖表本身一致。
+   回報數用中性深色——**回報數多不代表壞，也不代表好**，上色等於幫讀者下結論；
+   滿意度沿用星等色，因為它跟星星講的是同一件事 */
+.legend-count  { background: var(--action); }  /* 與 js/admin-dashboard.js 的 TREND_COUNT_COLOR 一致 */
+.legend-rating { background: var(--chart-rating); }   /* 與 js/admin-dashboard.js 的 TREND_RATING_COLOR 一致 */
 
 /* --- 各餐廳表現表 --- */
 
@@ -1851,10 +2268,13 @@ input[type="date"] {
 .admin-nav-tab:hover { color: var(--text); }
 
 /* 目前這一頁：底線 + 加深。它是 <span> 不是 <a>，點自己沒有意義 */
+/* ⚠️ 底線用 3px 不是 2px：2px 在手機上幾乎看不出來，
+   而這條線是「我在哪一頁」的唯一線索 */
 .admin-nav-tab.active {
-  color: var(--brand-dark);
-  font-weight: 600;
-  border-bottom-color: var(--brand);
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-width: 3px;
+  border-bottom-color: var(--action);
   cursor: default;
 }
 
@@ -1908,20 +2328,14 @@ input[type="date"] {
 /* ===== 電腦螢幕：字級放大、卡片浮起 ===== */
 
 /*
- * 這個 app 是為了工廠員工的手機設計的，字級也照那個情境定。
- * 但管理端在電腦上看時，同樣的 12～14px 在 24 吋螢幕上偏小。
+ * ⚠️ 這裡原本有一段「電腦上把字級換成固定值」的規則，關卡 5-2 已移除。
  *
- * 只調整字級變數，不動任何版面——所有用到這些變數的地方會一起變大。
+ *    字級改用 clamp() 之後，手機到電腦本來就是連續縮放的，
+ *    這一段固定值反而會在 1000px 以上**蓋掉 clamp**，
+ *    電腦上就變回跳一階、而且不再隨視窗變化。
+ *
+ *    要調整電腦上的字級，改 :root 裡那組 clamp 的第三個參數（上限）就好。
  */
-@media (min-width: 1000px) {
-  :root {
-    --fs-xs:    13px;
-    --fs-sm:    15px;
-    --fs-body:  16px;
-    --fs-lg:    19px;
-    --fs-title: 26px;
-  }
-}
 
 /*
  * 卡片的浮起效果。
@@ -1930,12 +2344,14 @@ input[type="date"] {
  * 而 Sheet 做不出陰影。動態表確定做成網頁之後那個限制就不存在了，
  * 改用真的陰影，層次比框線清楚很多。
  */
+/* ⚠️ 用統一的 --lift-1，不要自己另外算一組陰影。
+   陰影一旦有兩套來源，日後調整只會改到其中一套，
+   同一頁上就會出現深淺不一的卡片 */
 .dash-card,
 .dash-tile,
 .dash-controls {
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, .06),
-              0 2px 6px rgba(16, 24, 40, .05);
+  border: 0;
+  box-shadow: var(--lift-1);
 }
 
 .dash-tile { transition: box-shadow .15s; }
@@ -2042,7 +2458,8 @@ input[type="date"] {
  *    不限定 screen 的話，列印時會不定地跳成手機版的卡片排版。
  */
 
-.print-only { display: none; }
+.print-only,
+.print-watermark { display: none; }
 
 @media print {
 
@@ -2051,11 +2468,34 @@ input[type="date"] {
     margin: 12mm;
   }
 
+  /*
+   * ⚠️ 字級一定要在這裡改回固定值。
+   *
+   *    :root 的字級是 clamp(..., ...vw, ...)，而**列印時的 vw 指的是紙張寬度**，
+   *    算出來的字級無法預期（跟螢幕寬度完全無關）。
+   *    用 pt 是因為紙張的單位本來就是 pt，不受縮放影響。
+   */
+  :root {
+    --fs-xs:      8pt;
+    --fs-sm:      9pt;
+    --fs-body:    10pt;
+    --fs-input:   10pt;
+    --fs-lg:      12pt;
+    --fs-title:   16pt;
+    --fs-display: 22pt;
+    --gap:        8pt;
+    --pad-card:   10pt;
+    --sec-gap:    14pt;
+  }
+
   /* 紙張沒有捲動，版面上限拿掉才不會左右留白 */
   .page,
   .page-wide { max-width: none; padding: 0; }
 
-  body { background: #ffffff; }
+  /* 紙張本來就是白的，而且白底最省墨。
+     ⚠️ 文字色不改回黑——螢幕上的 #1A1A1D 印出來也很正常，
+        兩邊一致比較好對照 */
+  body { background: #ffffff; color: var(--text); }
 
   /*
    * 預設瀏覽器會把背景色與圖片省略以節省墨水，
@@ -2081,7 +2521,7 @@ input[type="date"] {
   .print-header {
     padding-bottom: 10px;
     margin-bottom: 16px;
-    border-bottom: 2px solid #1f2328;
+    border-bottom: 2px solid var(--text);
   }
 
   .print-header-title {
@@ -2091,7 +2531,7 @@ input[type="date"] {
 
   .print-header-meta {
     margin-top: 4px;
-    color: #4b5563;
+    color: var(--text-muted);
     font-size: 10pt;
   }
 
@@ -2116,16 +2556,32 @@ input[type="date"] {
   .dash-card,
   .dash-tile {
     box-shadow: none;
-    border: 1px solid #d0d5dd;
+    border: 1px solid var(--border-strong);
   }
 
   .dash-card { padding: 10px; }
   .dash-tile { padding: 8px 10px; }
 
   /* --- 版面：紙張放得下三欄 --- */
-  .dash-charts { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .dash-tiles  { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  /*
+   * ⚠️ 紙是直的，三張圖並排會很難讀。
+   *
+   *    A4 扣掉邊界只有 703px 寬，切三欄之後每欄只剩約 230px——
+   *    長條圖短到分不出「42 件」跟「31 件」的差別，那張圖就白畫了。
+   *
+   *    改成一欄之後每張圖有整個紙寬可以伸展，而且**剛好把第 1 頁填滿**——
+   *    原本月份區塊只佔第 1 頁的 37%，下面 63% 是空白。
+   */
+  .dash-charts { grid-template-columns: 1fr; gap: 14px; }
+  .dash-tiles  { grid-template-columns: repeat(5, 1fr); gap: 8px; }
   .dash-tiles-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* 紙上的長條圖可以做大：看得清楚比塞得多重要 */
+  .dash-bar-track { height: 20px; }
+  .dash-bar-row   { margin-bottom: 12px; }
+  .dash-bar-name  { width: 130px; }
+  .dash-tile      { padding: 14px 12px; }
+  .dash-tile-num  { font-size: 22pt; }
 
   /* --- 斷頁 --- */
 
@@ -2139,14 +2595,70 @@ input[type="date"] {
   .dash-section,
   .dash-sub { break-after: avoid; page-break-after: avoid; }
 
-  /* 年度區塊從新的一頁開始，兩個區塊各自完整 */
-  .dash-section-top {
+  /*
+   * 第 1 頁＝月份、第 2 頁＝年度。
+   *
+   * ⚠️ 斷頁指令下在 `<section>` 上，不是下在裡面的 `<h3>` 上。
+   *    原本下在 h3，而那個 h3 同時還有 `break-after: avoid`（標題不可與內容分離）——
+   *    兩個指令打在同一個元素上，某些瀏覽器會多插一次斷頁，
+   *    結果中間跑出一整片空白。
+   */
+  #yearSection {
     break-before: page;
     page-break-before: always;
+  }
+
+  .dash-section-top {
     margin-top: 0;
     padding-top: 0;
     border-top: none;
   }
+
+  /*
+   * ⚠️ 月份區塊不要再被切開。
+   *    它裡面的圖表若有一塊放不下而整塊被推到下一頁，
+   *    第 1 頁下半就會空掉，看起來像「中間空白太大」。
+   */
+  #monthSection { break-inside: avoid; page-break-inside: avoid; }
+
+  /* --- 浮水印 --- */
+
+  /*
+   * ⚠️ 用 `position: fixed` 才會**每一頁都出現**（列印時 fixed 元素會重複在每頁）。
+   *
+   * ⚠️ z-index 不能用負值。列印時 body 有白色底色，
+   *    負的 z-index 會讓浮水印被那片白底蓋掉，變成完全看不見。
+   *    正確做法是浮水印 z-index:0、內容 z-index:1。
+   *
+   * ⚠️ 字級不能太大。旋轉之後的水平寬度若超過紙寬（A4 扣邊界約 703px），
+   *    會撐出額外的空白頁。54pt 旋轉 30 度後約 460px，安全。
+   */
+  .print-watermark {
+    display: block;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    z-index: 0;
+
+    font-size: 54pt;
+    font-weight: 800;
+    letter-spacing: .14em;
+    white-space: nowrap;
+    color: var(--text);
+    /*
+     * 淡到不影響閱讀，但轉 PDF 或影印之後仍看得出來。
+     *
+     * ⚠️ 這個值不能再往下調太多。螢幕上的 PDF 預覽會比實際印在紙上明顯，
+     *    低於 4% 之後很多雷射印表機會直接把它當成白色不印。
+     *    真的印出來看不到的話，把這裡調回 .06～.07。
+     */
+    opacity: .05;
+    pointer-events: none;
+  }
+
+  /* 內容壓在浮水印上面 */
+  #mainView { position: relative; z-index: 1; }
 
   /* --- 表格：紙上維持表格，不要變成卡片 --- */
   .dash-card-table { overflow: visible; }

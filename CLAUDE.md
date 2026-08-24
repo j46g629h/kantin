@@ -417,6 +417,7 @@ node tools/test-report-api.js  # 排程報表（收件人 / 日報 / 月報 / �
 node tools/test-stats-api.js   # Dashboard 統計（月 / 年 / 趨勢 / 各餐廳表現）
 node tools/test-backup-api.js  # 每月自動備份（保留份數 / 不誤刪使用者檔案 / 失敗處理）
 node tools/test-retention-api.js # 結案滿 13 個月去識別化（分界日 / 誰不能碰 / 安全煞車）
+node tools/check-contrast.js   # 配色對比度（WCAG AA），改任何顏色 token 之後跑
 node tools/test-version-sync.js # 版本號與系統資訊有沒有漏改（見設計約定第 5 條）
 ```
 

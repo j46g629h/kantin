@@ -3,9 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#EFEFED">
+  <!--
+    圖示（關卡 5-5）。三個位置各講不同的事，沒有一個浪費：
+      分頁圖示（16/32px）→ PCI       只有 3 個字的空間，放最短最獨特的識別
+      主畫面圖示（180px）→ PCI GA    空間夠，可以放完整
+      主畫面名稱          → Kantin PCI（在 manifest.json）作業系統畫的，永遠清楚，
+                                      負責回答「這是什麼」
+
+    ⚠️ apple-touch-icon 一定要有 PNG——**iOS 不吃 SVG**。
+       少了這個檔案，iPhone 加到主畫面時會拿「網頁截圖」當圖示。
+    ⚠️ 那個 PNG 是**直角滿版**的：iOS 與 Android 會自己套圓角遮罩，
+       圖檔自己再帶圓角的話會變成「圓角疊圓角」，四個角出現缺口。
+  -->
+  <link rel="icon" href="favicon.svg?v=2.8" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.8">
+  <link rel="manifest" href="manifest.json?v=2.8">
+  <style>html{background:#EFEFED}</style>
   <meta name="robots" content="noindex, nofollow">
   <title>Kelola Akun · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=2.7">
+  <link rel="stylesheet" href="css/style.css?v=2.8">
 </head>
 <body>
 
@@ -129,12 +146,12 @@
 
   </div>
 
-  <script src="js/config.js?v=2.7"></script>
-  <script src="js/i18n.js?v=2.7"></script>
-  <script src="js/ui.js?v=2.7"></script>
-  <script src="js/api.js?v=2.7"></script>
-  <script src="js/admin-session.js?v=2.7"></script>
-  <script src="js/admin-accounts.js?v=2.7"></script>
+  <script src="js/config.js?v=2.8"></script>
+  <script src="js/i18n.js?v=2.8"></script>
+  <script src="js/ui.js?v=2.8"></script>
+  <script src="js/api.js?v=2.8"></script>
+  <script src="js/admin-session.js?v=2.8"></script>
+  <script src="js/admin-accounts.js?v=2.8"></script>
 
 </body>
 </html>

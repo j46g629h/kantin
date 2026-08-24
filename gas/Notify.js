@@ -215,13 +215,13 @@ function isAuthorizationError(error) {
 function buildEmailHtml(title, subtitle, body, linkText, linkUrl) {
   return [
     '<div style="font-family:Arial,\'Helvetica Neue\',Helvetica,sans-serif;',
-    '            font-size:14px;line-height:1.6;color:#1f2328;',
+    '            font-size:14px;line-height:1.6;color:#1A1A1D;',
     '            max-width:680px;margin:0 auto;padding:16px;">',
 
-    '  <div style="border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:20px;">',
+    '  <div style="border-bottom:3px solid #1A1A1C;padding-bottom:12px;margin-bottom:20px;">',
     '    <div style="font-size:18px;font-weight:bold;">' + escapeForHtml(title) + '</div>',
     subtitle
-      ? '    <div style="color:#6b7280;font-size:13px;margin-top:4px;">' + escapeForHtml(subtitle) + '</div>'
+      ? '    <div style="color:#53535A;font-size:13px;margin-top:4px;">' + escapeForHtml(subtitle) + '</div>'
       : '',
     '  </div>',
 
@@ -230,7 +230,7 @@ function buildEmailHtml(title, subtitle, body, linkText, linkUrl) {
     linkUrl
       ? ('  <div style="margin-top:24px;">' +
          '    <a href="' + escapeForHtml(linkUrl) + '" ' +
-         '       style="display:inline-block;background:#2563eb;color:#ffffff;' +
+         '       style="display:inline-block;background:#1A1A1C;color:#F2F2EF;' +
          '              text-decoration:none;padding:12px 20px;border-radius:8px;' +
          '              font-weight:bold;">' + escapeForHtml(linkText) + '</a>' +
          '  </div>')
@@ -274,19 +274,19 @@ function buildEmailTable(headers, rows) {
   ];
 
   headers.forEach(function (h) {
-    out.push('    <th style="text-align:left;padding:8px 10px;background:#f9fafb;' +
-             'border-bottom:2px solid #e5e7eb;white-space:nowrap;">' + escapeForHtml(h) + '</th>');
+    out.push('    <th style="text-align:left;padding:8px 10px;background:#E7E7E6;' +
+             'border-bottom:2px solid #DEDEDD;white-space:nowrap;">' + escapeForHtml(h) + '</th>');
   });
   out.push('  </tr>');
 
   rows.forEach(function (row) {
     // 逾期的整列標紅（規格 §10.1）。
     // 只在文字上加顏色是不夠的——一整片表格裡，一個紅字掃過去根本看不到
-    const bg = row.highlight ? 'background:#fef2f2;' : '';
+    const bg = row.highlight ? 'background:#FBEDEC;' : '';
     out.push('  <tr style="' + bg + '">');
     row.cells.forEach(function (cell) {
-      out.push('    <td style="padding:8px 10px;border-bottom:1px solid #f0f1f3;' +
-               (row.highlight ? 'color:#b91c1c;' : '') + '">' + cell + '</td>');
+      out.push('    <td style="padding:8px 10px;border-bottom:1px solid #EDEDEB;' +
+               (row.highlight ? 'color:#A81E1E;' : '') + '">' + cell + '</td>');
     });
     out.push('  </tr>');
   });
@@ -333,14 +333,14 @@ function buildEmailFooter() {
                       + (SYSTEM_INFO.year ? ' · ' + SYSTEM_INFO.year : '');
 
     rows.push('    <div><a href="' + escapeForHtml(SITE_URL) + '" ' +
-              'style="color:#6b7280;text-decoration:underline;">' +
+              'style="color:#53535A;text-decoration:underline;">' +
               escapeForHtml(versionText) + '</a></div>');
   }
 
   return [
-    '  <div style="margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;',
-    '              color:#9ca3af;font-size:12px;line-height:1.7;">',
-    '    <div style="color:#6b7280;font-weight:bold;">'
+    '  <div style="margin-top:28px;padding-top:12px;border-top:1px solid #DEDEDD;',
+    '              color:#6A6A70;font-size:12px;line-height:1.7;">',
+    '    <div style="color:#53535A;font-weight:bold;">'
       + escapeForHtml(REPORT.SENDER_NAME) + '</div>',
     rows.join('\n'),
     '    <div style="margin-top:8px;">',

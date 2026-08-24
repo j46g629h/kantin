@@ -154,16 +154,16 @@ function buildDailyReportHtml(report, today) {
   const truncated  = report.total - shown.length;
 
   const summary = [
-    '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;',
+    '<div style="background:#E7E7E6;border:1px solid #DEDEDD;border-radius:8px;',
     '            padding:14px 16px;margin-bottom:20px;">',
     '  <div style="font-size:16px;font-weight:bold;">',
     '    ' + report.total + ' laporan belum diproses · ' + report.total + ' 件未處理',
     '  </div>',
     report.overdue > 0
-      ? ('  <div style="color:#b91c1c;font-weight:bold;margin-top:6px;">' +
+      ? ('  <div style="color:#A81E1E;font-weight:bold;margin-top:6px;">' +
          '⚠️ ' + report.overdue + ' sudah lewat ' + CASE_LIST.OVERDUE_DAYS + ' hari · ' +
          '其中 ' + report.overdue + ' 件已逾期超過 ' + CASE_LIST.OVERDUE_DAYS + ' 天</div>')
-      : '  <div style="color:#047857;margin-top:6px;">Tidak ada yang terlambat · 沒有逾期案件</div>',
+      : '  <div style="color:#046C4E;margin-top:6px;">Tidak ada yang terlambat · 沒有逾期案件</div>',
     '</div>',
   ].join('\n');
 
@@ -188,7 +188,7 @@ function buildDailyReportHtml(report, today) {
   );
 
   const more = truncated > 0
-    ? ('<div style="margin-top:10px;color:#6b7280;font-size:13px;">' +
+    ? ('<div style="margin-top:10px;color:#53535A;font-size:13px;">' +
        '… dan ' + truncated + ' lainnya · 還有 ' + truncated + ' 件未列出</div>')
     : '';
 
@@ -430,7 +430,7 @@ function monthlySummaryHtml(stats) {
     '  <tr>' + cells[0] + cells[1] + '</tr>',
     '  <tr>' + cells[2] + cells[3] + '</tr>',
     '</table>',
-    '<div style="color:#6b7280;font-size:12px;margin-top:6px;">' + escapeForHtml(note) + '</div>',
+    '<div style="color:#53535A;font-size:12px;margin-top:6px;">' + escapeForHtml(note) + '</div>',
   ].join('\n');
 }
 
@@ -438,9 +438,9 @@ function monthlySummaryHtml(stats) {
 /** 一格數字方塊。用 td 排版，因為信箱軟體不見得吃 flex / grid */
 function tileHtml(label, value, delta) {
   return [
-    '<td style="width:50%;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;',
+    '<td style="width:50%;background:#E7E7E6;border:1px solid #DEDEDD;border-radius:8px;',
     '           padding:12px 14px;vertical-align:top;">',
-    '  <div style="color:#6b7280;font-size:12px;line-height:1.4;">' + escapeForHtml(label) + '</div>',
+    '  <div style="color:#53535A;font-size:12px;line-height:1.4;">' + escapeForHtml(label) + '</div>',
     '  <div style="font-size:22px;font-weight:bold;margin-top:4px;">' + escapeForHtml(value) + '</div>',
     delta,
     '</td>',
@@ -468,14 +468,14 @@ function deltaHtml(current, previous, mode, unit) {
   const tail = unit || '';
 
   if (diff === 0) {
-    return '<div style="color:#6b7280;font-size:12px;margin-top:2px;">→ sama · 與上月持平</div>';
+    return '<div style="color:#53535A;font-size:12px;margin-top:2px;">→ sama · 與上月持平</div>';
   }
 
   const text = (diff > 0 ? '▲ +' : '▼ ') + diff + tail;
 
   const color = mode === 'higher_better'
-    ? (diff > 0 ? '#047857' : '#b91c1c')
-    : '#6b7280';
+    ? (diff > 0 ? '#046C4E' : '#A81E1E')
+    : '#53535A';
 
   return '<div style="color:' + color + ';font-size:12px;margin-top:2px;font-weight:bold;">'
        + escapeForHtml(text) + '</div>';
@@ -554,16 +554,16 @@ function monthlyCategoryHtml(stats, options) {
 function monthlyOpenCasesHtml(stats, options) {
   if (stats.total === 0) {
     return sectionHtml('', '',
-      '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;' +
-      'padding:14px 16px;color:#6b7280;">' +
+      '<div style="background:#E7E7E6;border:1px solid #DEDEDD;border-radius:8px;' +
+      'padding:14px 16px;color:#53535A;">' +
       'Tidak ada laporan bulan ini · 這個月沒有任何回報' +
       '</div>');
   }
 
   if (stats.open_total === 0) {
     return sectionHtml('Belum selesai · 未結案清單', '',
-      '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;' +
-      'padding:14px 16px;color:#047857;font-weight:bold;">' +
+      '<div style="background:#E7F5EE;border:1px solid #BFE3D3;border-radius:8px;' +
+      'padding:14px 16px;color:#046C4E;font-weight:bold;">' +
       '✅ Semua laporan sudah selesai · 這個月的案件全部結案' +
       '</div>');
   }
@@ -585,7 +585,7 @@ function monthlyOpenCasesHtml(stats, options) {
   });
 
   const more = truncated > 0
-    ? ('<div style="margin-top:10px;color:#6b7280;font-size:13px;">' +
+    ? ('<div style="margin-top:10px;color:#53535A;font-size:13px;">' +
        '… dan ' + truncated + ' lainnya · 還有 ' + truncated + ' 件未列出</div>')
     : '';
 
@@ -609,7 +609,7 @@ function sectionHtml(title, note, body) {
          (note ? '2px' : '10px') + ';">' + escapeForHtml(title) + '</div>')
       : '',
     note
-      ? '  <div style="color:#6b7280;font-size:12px;margin-bottom:10px;">' + note + '</div>'
+      ? '  <div style="color:#53535A;font-size:12px;margin-bottom:10px;">' + note + '</div>'
       : '',
     body,
     '</div>',

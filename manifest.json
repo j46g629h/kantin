@@ -1,0 +1,25 @@
+{
+  "name": "Kantin PCI · 員工餐廳回饋",
+  "short_name": "Kantin PCI",
+  "description": "PCI 員工餐廳問題回報系統",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EFEFED",
+  "theme_color": "#EFEFED",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any maskable"
+    }
+  ]
+}

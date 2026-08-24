@@ -90,10 +90,37 @@ const el = {
  *    這一版相鄰色的明暗差是 1.31～4.49，而且色相跨越藍 / 橘 / 綠 / 紫 / 青。
  *    好處是**印成黑白也分得出來**，不必靠顏色濃度硬撐。
  */
-const CHART_COLORS  = ['#17457a', '#e8a33d', '#2a7d5f', '#9d6fc4', '#5bb8d4'];
+const CHART_COLORS  = ['#2B4C7A', '#C07405', '#046C4E', '#7A5AA8', '#3E8FA8'];
 
-/** 狀態是有語意的，不能依序取色：紅=未處理、橘=處理中、綠=已結案 */
-const STATUS_COLORS = { ST_NEW: '#c0392b', ST_PROC: '#e8a33d', ST_DONE: '#2a7d5f' };
+/**
+ * 狀態是有語意的，不能依序取色：紅=未處理、橘=處理中、綠=已結案。
+ *
+ * ⚠️ **這三個值必須跟 css/style.css 的 --danger / --warn / --ok 一模一樣。**
+ *
+ *    原本這裡是 #c0392b / #e8a33d / #2a7d5f，跟 CSS 的 token 不同——
+ *    結果同一件「未處理」的案子，在案件列表是一種紅、在動態表的圖表是另一種紅。
+ *    使用者不會說得出哪裡怪，但會覺得這兩個畫面不像同一個系統。
+ *
+ *    改任何一邊都要同步改另一邊。`node tools/check-contrast.js` 會檢查 CSS 那一邊。
+ */
+const STATUS_COLORS = { ST_NEW: '#A81E1E', ST_PROC: '#8A5300', ST_DONE: '#046C4E' };
+
+/**
+ * 年度趨勢圖的兩條線。
+ *
+ * ⚠️ 回報數用中性深色——**回報數變多不代表壞，也不代表好**
+ *    （可能是問題變多，也可能是員工更願意反映），上色等於幫讀者下了結論。
+ *    滿意度沿用星等色，因為它跟星星講的是同一件事。
+ *
+ * 這兩個值要與 css/style.css 的 .legend-count / .legend-rating 一致。
+ *
+ * ⚠️ 滿意度線用的是 --chart-rating，**不是星星的 --star**。
+ *    星星靠深色描邊撐對比度，所以填色可以很鮮豔；
+ *    但一條線沒有描邊，對比度只能靠自己，必須維持較深的色。
+ *    這兩個很容易被當成同一件事（都在講「滿意度」）。
+ */
+const TREND_COUNT_COLOR  = '#1A1A1C';
+const TREND_RATING_COLOR = '#C07405';
 
 
 // ===== 啟動 =====
@@ -398,16 +425,16 @@ function trendChart(monthly) {
     // 只有一個點的區段畫不出線，補一個小圓點
     if (seg.length === 1) {
       const xy = seg[0].split(',');
-      return `<circle cx="${xy[0]}" cy="${xy[1]}" r="3" fill="#e8a33d"></circle>`;
+      return `<circle cx="${xy[0]}" cy="${xy[1]}" r="3" fill="${TREND_RATING_COLOR}"></circle>`;
     }
-    return `<polyline points="${seg.join(' ')}" fill="none" stroke="#e8a33d"
+    return `<polyline points="${seg.join(' ')}" fill="none" stroke="${TREND_RATING_COLOR}"
              stroke-width="2.5" stroke-dasharray="5 4"></polyline>`;
   }).join('');
 
   const dots = monthly.map(function (m, i) {
     if (!m.count) return '';
     return `<circle cx="${(LEFT + i * step).toFixed(1)}" cy="${y(m.count, maxCount).toFixed(1)}"
-             r="3" fill="#17457a"></circle>`;
+             r="3" fill="${TREND_COUNT_COLOR}"></circle>`;
   }).join('');
 
   const labels = monthly.map(function (m, i) {
@@ -417,7 +444,7 @@ function trendChart(monthly) {
   return `<svg viewBox="0 0 ${W} ${H}" class="dash-trend" role="img"
             aria-label="${escapeHtml(t('dash.trend'))}">
     <line x1="${LEFT - 16}" y1="${BOTTOM}" x2="${RIGHT + 16}" y2="${BOTTOM}"></line>
-    <polyline points="${countPts}" fill="none" stroke="#17457a" stroke-width="2.5"></polyline>
+    <polyline points="${countPts}" fill="none" stroke="${TREND_COUNT_COLOR}" stroke-width="2.5"></polyline>
     ${ratingLines}
     ${dots}
     <g class="dash-trend-label">${labels}</g>

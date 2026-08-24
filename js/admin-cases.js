@@ -310,6 +310,17 @@ document.querySelectorAll('.stat-card[data-status]').forEach((card) => {
 el.periodBar.addEventListener('click', () => {
   el.monthPicker.classList.toggle('hidden');
   renderMonthPicker();
+
+  /*
+   * ⚠️ 手機上很容易發生：範圍列被捲到接近畫面底部時展開，
+   *    清單整個開在畫面外，使用者只看到按鈕變了但「什麼都沒發生」。
+   *
+   *    把清單捲進畫面。用 'nearest' 是因為清單已經在畫面裡時不要亂動，
+   *    否則每點一次畫面都跳一下。
+   */
+  if (!el.monthPicker.classList.contains('hidden')) {
+    el.monthPicker.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 });
 
 
@@ -355,6 +366,18 @@ function renderMonthPicker() {
       monthLabel(entry.month) + (entry.month === thisMonth ? t('admin.period.current') : ''),
       entry.count));
   });
+
+  /**
+   * ⚠️ 清單有高度上限（一次露出約 3 個月，其餘用捲的，見 css 的 .month-picker）。
+   *    所以**目前選中的月份可能在看不見的地方**——
+   *    使用者展開之後會看到一片沒有反白的列，以為自己什麼都沒選。
+   *
+   *    捲到選中那一列。用 'nearest' 而不是 'center'：
+   *    選中的是第一個月時，'center' 會把清單往下捲，
+   *    反而把「全部時間」推出畫面外。
+   */
+  const active = el.monthPicker.querySelector('.month-item.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
 }
 
 

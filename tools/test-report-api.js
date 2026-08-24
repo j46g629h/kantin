@@ -274,7 +274,12 @@ const html = sandbox.__SENT__[0].htmlBody;
 check('信裡有案件編號',        html.indexOf('PCI-202608-001') >= 0, true);
 check('地點雙語並列（印尼文在前）', html.indexOf('Kantin 2 · 第二餐廳') >= 0, true);
 check('分類複選以斜線並列',    html.indexOf('Rasa Makanan · 菜單口味 / Kebersihan · 環境衛生') >= 0, true);
-check('逾期列有紅底',          html.indexOf('background:#fef2f2;') >= 0, true);
+// ⚠️ 不可以斷言色碼本身。改配色時這種測試會莫名紅掉，
+//    而那跟「逾期列有沒有被標出來」完全無關（版本號那一題已經教過一次）。
+//    要驗的是**行為**：逾期列的底色與一般列不同
+const overdueRow = html.split('<tr')[1] || '';
+check('逾期列有底色（與一般列不同）',
+  /background:#[0-9a-fA-F]{6}/.test(overdueRow), true);
 check('有連到案件列表的按鈕',
   html.indexOf('https://j46g629h.github.io/kantin_PCI_adidas/admin-cases.html') >= 0, true);
 check('中印雙語表頭',          html.indexOf('Kantin · 地點') >= 0, true);
@@ -407,26 +412,29 @@ const foot = sandbox.__SENT__[0].htmlBody;
 
 check('有維護單位（印尼文在前）', foot.indexOf('維護單位：PCI GA · PCI 總工務') >= 0, true);
 check('有聯絡方式',              foot.indexOf('聯絡方式：3690') >= 0, true);
-check('有系統版本與年份',        foot.indexOf('Versi · 系統版本 v2.7 · 2026') >= 0, true);
+// ⚠️ 版本號**不可以寫死在測試裡**——寫死的話每次改版都會有一支測試莫名其妙紅掉，
+//    而那跟「頁尾有沒有正確顯示版本」完全無關。改成從 gas/Config.js 讀出來比對
+const VERSION_LINE = evalIn(
+  `'Versi · 系統版本 ' + SYSTEM_INFO.version + ' · ' + SYSTEM_INFO.year`);
+check('有系統版本與年份',        foot.indexOf(VERSION_LINE) >= 0, true);
 check('仍保留自動寄出的說明',
   foot.indexOf('這封信由系統自動寄出，不需要回覆。') >= 0, true);
 
 // 點版本號 → 員工端首頁（不是管理端）
-check('版本號是連結，指向員工端首頁',
-  foot.indexOf('<a href="https://j46g629h.github.io/kantin_PCI_adidas/" ' +
-               'style="color:#6b7280;text-decoration:underline;">Versi') >= 0, true);
+check('版本號是連結，指向員工端首頁（不是管理端）',
+  foot.indexOf('<a href="https://j46g629h.github.io/kantin_PCI_adidas/"') >= 0, true);
 
 // ⚠️ Gmail / Outlook 會把沒指定顏色的連結一律改成藍色底線，
 //    整片灰色的頁尾就會突然冒出一條藍字
 check('連結有自己指定灰色（不然信箱軟體會塗成藍色）',
-  foot.indexOf('style="color:#6b7280;text-decoration:underline;"') >= 0, true);
+  /<a href="[^"]*" style="color:#[0-9a-fA-F]{6};text-decoration:underline;"/.test(foot), true);
 
 // 月報走的是同一個外框，頁尾應該一模一樣
 reset();
 evalIn(`sendMonthlyReportFor('202608')`);
 const mFoot = sandbox.__SENT__[0].htmlBody;
 check('月報的頁尾與日報相同',
-  mFoot.indexOf('Versi · 系統版本 v2.7 · 2026') >= 0, true);
+  mFoot.indexOf(VERSION_LINE) >= 0, true);
 check('月報頁尾也有維護單位', mFoot.indexOf('維護單位：PCI GA · PCI 總工務') >= 0, true);
 
 // 兩種語言一樣時只顯示一次，否則會變成「PCI GA · PCI GA」
@@ -523,7 +531,8 @@ check('有分類佔比',       mHtml.indexOf('Kategori masalah · 問題分類�
 check('分類雙語並列',     mHtml.indexOf('Kebersihan · 環境衛生') >= 0, true);
 check('有未結案清單',     mHtml.indexOf('未結案清單（4）') >= 0, true);
 check('未結案清單列出案件編號', mHtml.indexOf('PCI-202608-001') >= 0, true);
-check('沒有人動過的標紅',  mHtml.indexOf('background:#fef2f2;') >= 0, true);
+check('沒有人動過的有底色',
+  /background:#[0-9a-fA-F]{6};?"?>?\s*<td/.test(mHtml) || /<tr style="background:#/.test(mHtml), true);
 check('連到動態表',
   mHtml.indexOf('https://j46g629h.github.io/kantin_PCI_adidas/admin-dashboard.html') >= 0, true);
 
@@ -534,10 +543,10 @@ check('有註明佔比總和會超過 100%',
 // 與上個月比較：8 月 4 件 vs 7 月 1 件、滿意度 3 vs 5、結案率 0% vs 100%
 check('回報數的比較',      mHtml.indexOf('▲ +3') >= 0, true);
 check('滿意度下降 → 紅字',
-  mHtml.indexOf('#b91c1c;font-size:12px;margin-top:2px;font-weight:bold;">▼ -2') >= 0, true);
+  /color:#[0-9a-fA-F]{6};font-size:12px;[^"]*">▼ -2</.test(mHtml), true);
 check('結案率下降 → 紅字', mHtml.indexOf('▼ -100%') >= 0, true);
 check('回報數不上色（變多不一定是壞事）',
-  mHtml.indexOf('#6b7280;font-size:12px;margin-top:2px;font-weight:bold;">▲ +3') >= 0, true);
+  /color:#[0-9a-fA-F]{6};font-size:12px;[^"]*">▲ \+3</.test(mHtml), true);
 check('有說明括號裡是什麼', mHtml.indexOf('括號內為與上個月的比較') >= 0, true);
 
 

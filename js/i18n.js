@@ -744,23 +744,86 @@ const I18N = {
 
 
 /** 餐別的圖示 */
+/**
+ * 圖示（關卡 5-2：emoji 改成 SVG）
+ *
+ * ⚠️ 為什麼不用 emoji：
+ *
+ *    1. **每支手機長得都不一樣。** 🍜 在 iPhone、三星、小米上是三種畫風，
+ *       擺在一起像從不同地方剪貼來的。
+ *    2. **不能上色。** emoji 的顏色是字型決定的，改不了——
+ *       而這一版的設計原則是「畫面上只要有顏色，就一定代表意義」，
+ *       一堆彩色 emoji 會把那個原則整個打掉。
+ *    3. 讀起來像暫代品。
+ *
+ * 這些 SVG 用 `stroke="currentColor"`，所以**顏色是跟著父層的文字色走的**——
+ * 放進深色按鈕就自動變淺色，不必為每種情境各寫一套（見 style.css 的 on-surface 說明）。
+ *
+ * 尺寸由 CSS 的 width/height 控制，不要在這裡寫死。
+ */
+const ICON_BASE = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+                + 'stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
+
+const svg = (paths) => '<svg ' + ICON_BASE + '>' + paths + '</svg>';
+
+/** 餐別的圖示（早／午／晚以太陽的高度表示） */
 const MEAL_ICONS = {
-  MEAL_BREAKFAST: '🌅',
-  MEAL_LUNCH:     '☀️',
-  MEAL_DINNER:    '🌇',
-  _default:       '🍽️',
+  // 日出：地平線 + 半個太陽 + 上升箭頭
+  MEAL_BREAKFAST: svg('<path d="M3 18h18M7 18a5 5 0 0 1 10 0"/><path d="M12 3v3M5.6 8.6l2.1 2.1M18.4 8.6l-2.1 2.1"/>'),
+  // 正午：完整的太陽
+  MEAL_LUNCH:     svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>'),
+  // 日落：地平線 + 半個太陽 + 下降箭頭
+  MEAL_DINNER:    svg('<path d="M3 18h18M7 18a5 5 0 0 1 10 0"/><path d="M12 9V6M9 6l3 3 3-3"/>'),
+  // 預設：刀叉
+  _default:       svg('<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10"/><path d="M17 3c-1.7 1.2-2.5 3-2.5 5s.8 3 2.5 3v10"/>'),
 };
 
-
-/** 問題分類的圖示（依代碼對應，選項設定新增分類時可在這裡補） */
+/** 問題分類的圖示（選項設定新增分類時，在這裡補一筆就好） */
 const CATEGORY_ICONS = {
-  CAT_TASTE:    '🍜',
-  CAT_HYGIENE:  '🧹',
-  CAT_SERVICE:  '🙂',
-  CAT_FACILITY: '🔧',
-  CAT_OTHER:    '💡',
-  _default:     '📝',
+  // 菜單口味：一碗熱食 + 蒸氣
+  CAT_TASTE:    svg('<path d="M4 12h16a8 8 0 0 1-8 8 8 8 0 0 1-8-8Z"/><path d="M9 8c0-1 .8-1.5.8-2.5S9 3.5 9 3M14 8c0-1 .8-1.5.8-2.5S14 3.5 14 3"/>'),
+  // 環境衛生：噴瓶 + 亮點
+  CAT_HYGIENE:  svg('<path d="M9 8h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><path d="M10 8V4h4v4"/><path d="M19 5h.01M21 8h.01M19 11h.01"/>'),
+  // 服務態度：笑臉
+  CAT_SERVICE:  svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>'),
+  // 餐廳設備：扳手
+  CAT_FACILITY: svg('<path d="M14.7 6.3a4 4 0 0 0 5 5L21 10a5.5 5.5 0 0 1-7.6 6.9l-6 6a2.1 2.1 0 0 1-3-3l6-6A5.5 5.5 0 0 1 17.3 6L14.7 6.3Z"/>'),
+  // 其他建議：燈泡
+  CAT_OTHER:    svg('<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.7.5 1.1v1h6v-1c0-.4.1-.8.5-1.1A6 6 0 0 0 12 3Z"/>'),
+  // 預設：紙筆
+  _default:     svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'),
 };
+
+/** 其他單獨用到的圖示 */
+const UI_ICONS = {
+  // 加照片：相機
+  photo:   svg('<path d="M3 8a2 2 0 0 1 2-2h2.5l1.2-2h6.6L16.5 6H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="13" r="3.5"/>'),
+  // 送出成功：打勾
+  check:   svg('<path d="m4 12.5 5.5 5.5L20 7"/>'),
+  // 查無資料：放大鏡
+  search:  svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+};
+
+/**
+ * 滿意度的星星。
+ *
+ * ⚠️ 原本用 `★` 這個文字字元，改成 SVG 有兩個理由：
+ *
+ *   1. **文字星星每支手機長得不一樣**（跟 emoji 同一個問題），
+ *      而且沒辦法可靠地加描邊。
+ *
+ *   2. **更鮮豔＝更亮＝對比度更低。** 星星是「圖形」，
+ *      WCAG 1.4.11 要求對背景至少 3:1，而越鮮豔的金色越亮、對比越低。
+ *      改成 SVG 之後可以「鮮豔的填色 + 深色描邊」——
+ *      對比度由描邊負責，填色就能放開。
+ *      而且深色描邊在工廠的爛光線下本來就更好認。
+ *
+ * 未選＝只有外框，已選＝實心 + 描邊。這比「灰色實心 vs 金色實心」好認得多。
+ */
+const STAR_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">'
+  + '<path d="M12 2.6l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.66l-5.9 3.11'
+  + ' 1.13-6.57L2.45 9.54l6.6-.96z" stroke-linejoin="round"/></svg>';
 
 
 // ===== 語言管理 =====
