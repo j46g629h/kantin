@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海報草稿三選一 · Kantin PCI</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!--
+  ⚠️ 這是「挑風格用」的草稿頁，不是最終檔案。
+
+  用法：
+    1. 螢幕上三張並排比較
+    2. 想看真實大小就直接列印（會印出三張 A4，一張一頁）
+       貼到餐廳牆上、站遠一點看哪一張真的看得到
+    3. 選定之後我再做正式的列印版（單張、可換文字、可換 QR）
+
+  ⚠️ 上面的 QR 全部是**假的**，只是為了看版面比例。
+     真正的 QR 要等網址改名定案之後才產生（見 APP_URL）。
+
+  ⚠️ 印尼文尚未經當地同仁校對。
+-->
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ==========================================================
+   草稿頁本身的外框（列印時整個藏起來）
+   ========================================================== */
+.lab {
+  --slot-w: 380px;
+  max-width: 1260px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+.lab h1 { font-size: 26px; letter-spacing: -.02em; margin-bottom: 10px; }
+.lab .lede { color: var(--text-muted); max-width: 62ch; margin-bottom: 6px; }
+.lab .warn {
+  margin: 18px 0 26px;
+  padding: 14px 16px;
+  background: var(--warn-bg);
+  color: #6E4200;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+/* ⚠️ 欄寬要寫死，不能用 1fr。
+   海報本身是 794px（A4 @96dpi），縮小是靠 transform——
+   而 transform **不會改變元素佔的位置**，
+   所以 1fr 的欄位還是會被那 794px 撐開，三張並排就爆版。
+   寫死欄寬並讓 .frame 用同一個值，兩邊就永遠對得起來。 */
+.stage {
+  display: grid;
+  grid-template-columns: repeat(3, var(--slot-w, 380px));
+  justify-content: center;
+  gap: 26px;
+  align-items: start;
+}
+.slot h2 {
+  font-size: 17px;
+  margin-bottom: 2px;
+  letter-spacing: -.01em;
+}
+.slot .tag { font-size: 13px; color: var(--text-subtle); margin-bottom: 12px; }
+.slot .notes { font-size: 13px; line-height: 1.75; color: var(--text-muted); margin-top: 12px; }
+.slot .notes b { color: var(--text); font-weight: 600; }
+
+/* 螢幕上把 A4 縮小排在一起。
+   ⚠️ 斷點一律寫 screen——A4 內容寬約 703px，
+      裸的 max-width 在列印時會被誤觸發（CLAUDE.md 常見陷阱） */
+.frame {
+  width: var(--slot-w, 380px);
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.13), 0 2px 6px rgba(0,0,0,.08);
+}
+.frame > .poster {
+  transform-origin: top left;
+  /* 210mm = 793.7px @96dpi。用 CSS 變數換算，改欄數時只改這裡 */
+  transform: scale(calc(var(--slot-w) / 793.7));
+}
+
+@media screen and (max-width: 1280px) {
+  .lab { --slot-w: 300px; }
+}
+@media screen and (max-width: 1000px) {
+  .lab { --slot-w: 340px; }
+  .stage { grid-template-columns: var(--slot-w); }
+}
+@media screen and (max-width: 420px) {
+  .lab { --slot-w: 280px; padding-left: 12px; padding-right: 12px; }
+}
+
+/* ==========================================================
+   海報本體（三張共用的骨架）
+   ========================================================== */
+.poster {
+  width: 210mm;
+  height: 297mm;
+  padding: 18mm 16mm;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
+}
+.poster .top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10mm;
+}
+.poster .eyebrow {
+  font-size: 12pt;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.poster .foot {
+  margin-top: auto;
+  padding-top: 6mm;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8mm;
+  font-size: 10.5pt;
+  color: var(--text-muted);
+}
+.poster .foot .zh { font-size: 9.5pt; color: var(--text-subtle); }
+
+/* --- 假的 QR --- */
+.qr {
+  background: #fff;
+  padding: 5mm;
+  border-radius: 3mm;
+  display: block;
+  position: relative;
+}
+.qr svg { display: block; width: 100%; height: auto; }
+.qr .fake {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  background: rgba(168,30,30,.92);
+  color: #fff;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: .16em;
+  padding: 2mm 6mm;
+  border-radius: 2mm;
+  white-space: nowrap;
+}
+.qr-cap {
+  font-size: 10pt;
+  color: var(--text-subtle);
+  text-align: center;
+  margin-top: 3mm;
+  word-break: break-all;
+}
+
+/* ==========================================================
+   風格 A · Tenang（安靜的正式）
+   ========================================================== */
+.pa .headline {
+  font-size: 40pt;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin-bottom: 5mm;
+}
+.pa .sub {
+  font-size: 14pt;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 30ch;
+  margin-bottom: 12mm;
+}
+.pa .qrwrap {
+  display: flex;
+  gap: 10mm;
+  align-items: center;
+  margin-bottom: 12mm;
+}
+.pa .qr { width: 62mm; flex: none; border: 1px solid var(--border-strong); }
+.pa .steps { display: grid; gap: 6mm; }
+.pa .step { display: flex; gap: 5mm; align-items: baseline; }
+.pa .step .n {
+  font-size: 15pt;
+  font-weight: 700;
+  color: var(--num);
+  flex: none;
+  width: 9mm;
+}
+.pa .step .t { font-size: 12.5pt; line-height: 1.45; }
+.pa .step .t b { display: block; font-weight: 700; }
+.pa .step .t span { color: var(--text-muted); font-size: 11pt; }
+
+/* ==========================================================
+   風格 B · Tegas（大字報，遠距離可讀）
+   ========================================================== */
+.pb {
+  background: var(--action);
+  color: #F2F2EF;
+}
+.pb .eyebrow { color: #93938E; }
+.pb .wordmark b { background: #F2F2EF; color: var(--action); }
+.pb .wordmark i { color: #F2F2EF; border-color: rgba(255,255,255,.45); }
+.pb .headline {
+  font-size: 56pt;
+  line-height: .98;
+  letter-spacing: -.035em;
+  font-weight: 800;
+  margin-bottom: 8mm;
+}
+.pb .headline em { font-style: normal; color: var(--star); }
+.pb .oneline {
+  font-size: 16pt;
+  color: #C2C2BD;
+  margin-bottom: 10mm;
+  letter-spacing: .01em;
+}
+.pb .qr { width: 86mm; margin: 0 auto; }
+.pb .qr-cap { color: #93938E; }
+.pb .foot { border-top-color: rgba(255,255,255,.18); color: #C2C2BD; }
+.pb .foot .zh { color: #93938E; }
+
+/* ==========================================================
+   風格 C · Ngobrol（對話式，最親切）
+   ========================================================== */
+.pc .bubbles { display: grid; gap: 4mm; margin-bottom: 8mm; }
+.pc .bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6mm 6mm 6mm 1.5mm;
+  padding: 4mm 6mm;
+  font-size: 15pt;
+  width: fit-content;
+  max-width: 88%;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+.pc .bubble:nth-child(2) { margin-left: 14mm; border-radius: 6mm 6mm 1.5mm 6mm; }
+.pc .bubble:nth-child(3) { margin-left: 5mm; }
+.pc .headline {
+  font-size: 30pt;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  font-weight: 700;
+  margin-bottom: 4mm;
+}
+.pc .sub {
+  font-size: 12.5pt;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 42ch;
+  margin-bottom: 8mm;
+}
+.pc .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5mm;
+  padding: 7mm;
+  display: flex;
+  gap: 8mm;
+  align-items: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,.06);
+}
+.pc .qr { width: 55mm; flex: none; border: 1px solid var(--border-strong); }
+.pc .card .say { font-size: 13pt; line-height: 1.55; }
+.pc .card .say b { display: block; font-size: 15pt; margin-bottom: 2mm; }
+.pc .card .say span { color: var(--text-muted); font-size: 11pt; }
+
+/* 共用小字提示 */
+.hint {
+  font-size: 10.5pt;
+  color: var(--text-subtle);
+  line-height: 1.55;
+  margin-top: 6mm;
+}
+
+/* ==========================================================
+   列印：只印海報，一張一頁
+   ========================================================== */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  .lab-chrome { display: none !important; }
+  .lab { max-width: none; margin: 0; padding: 0; }
+  .stage { display: block; gap: 0; }
+  .slot h2, .slot .tag, .slot .notes { display: none !important; }
+  .frame {
+    width: auto; aspect-ratio: auto; overflow: visible;
+    border-radius: 0; box-shadow: none;
+  }
+  .frame > .poster { transform: none; page-break-after: always; }
+  .slot:last-child .frame > .poster { page-break-after: auto; }
+  /* 深色那張要印得出底色 */
+  .pb { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="lab">
+
+  <div class="lab-chrome">
+    <h1>海報草稿三選一</h1>
+    <p class="lede">
+      三張都是 A4 直式、印尼文為主、共用同一個 QR Code（適用全部四間餐廳）。
+      內容一樣，差別在「說話的方式」。
+    </p>
+    <p class="lede">
+      想看真實大小就直接按列印 —— 會印出三張 A4，一張一頁。
+      <b>建議真的印出來貼到牆上，站三公尺外看哪一張還讀得到。</b>
+    </p>
+
+    <div class="warn">
+      ⚠️ <b>QR Code 是假的</b>，只是為了看版面比例 —— 真的掃不出東西，不要拿去印給員工。
+      正式的 QR 要等網址改名定案之後才產生。<br>
+      ⚠️ <b>印尼文尚未經當地同仁校對</b>，選定風格之後請一併送校。
+    </div>
+  </div>
+
+  <div class="stage">
+
+    <!-- ==================== A ==================== -->
+    <div class="slot">
+      <h2>A · Tenang（安靜的正式）</h2>
+      <p class="tag">跟 app 一模一樣的設計語言</p>
+      <div class="frame">
+        <section class="poster pa">
+          <div class="top">
+            <span class="wordmark"><b>PCI</b><i>GA</i></span>
+            <span class="eyebrow">Suara Karyawan</span>
+          </div>
+
+          <h2 class="headline">Makanan hari ini gimana?</h2>
+          <p class="sub">Kasih tahu kami. Kantin bisa jadi lebih baik kalau kamu ikut ngomong.</p>
+
+          <div class="qrwrap">
+            <div class="qr" data-qr="a">
+              <span class="fake">CONTOH</span>
+            </div>
+            <div class="steps">
+              <div class="step"><span class="n">01</span><span class="t"><b>Scan QR ini</b><span>Pakai kamera HP kamu</span></span></div>
+              <div class="step"><span class="n">02</span><span class="t"><b>Isi NIK &amp; pilih kantin</b><span>Pilih juga makan pagi / siang / malam</span></span></div>
+              <div class="step"><span class="n">03</span><span class="t"><b>Kirim</b><span>Nggak sampai 1 menit</span></span></div>
+            </div>
+          </div>
+
+          <p class="hint">
+            Berlaku untuk semua kantin — Kantin 2 · Kantin 4 · Kantin R3 · Kantin VIP.<br>
+            Simpan nomor laporannya ya, buat cek statusnya nanti.
+          </p>
+
+          <div class="foot">
+            <span>Dikelola oleh PCI GA · Ext. 3690</span>
+            <span class="zh">員工餐廳意見回報</span>
+          </div>
+        </section>
+      </div>
+      <p class="notes">
+        <b>優點：</b>跟 app 的畫面完全同一種語言，掃進去毫無違和；三個步驟講得最清楚。<br>
+        <b>缺點：</b>在吵雜、貼滿公告的餐廳牆上<b>最不跳</b>，走過去可能不會注意到。
+      </p>
+    </div>
+
+    <!-- ==================== B ==================== -->
+    <div class="slot">
+      <h2>B · Tegas（大字報）</h2>
+      <p class="tag">為「三公尺外瞄一眼」設計</p>
+      <div class="frame">
+        <section class="poster pb">
+          <div class="top">
+            <span class="wordmark"><b>PCI</b><i>GA</i></span>
+            <span class="eyebrow">Suara Karyawan</span>
+          </div>
+
+          <h2 class="headline">SUARA<br>KAMU<br>BIKIN KANTIN<br><em>LEBIH BAIK</em></h2>
+          <p class="oneline">Scan · Lapor · Selesai — 1 menit aja</p>
+
+          <div class="qr" data-qr="b">
+            <span class="fake">CONTOH</span>
+          </div>
+          <p class="qr-cap">Scan pakai kamera HP · Siapkan NIK kamu</p>
+
+          <div class="foot">
+            <span>Semua kantin · PCI GA · Ext. 3690</span>
+            <span class="zh">員工餐廳意見回報</span>
+          </div>
+        </section>
+      </div>
+      <p class="notes">
+        <b>優點：</b>遠距離最容易被看到，深色底在一整面白色公告裡會跳出來；QR 最大最好掃。<br>
+        <b>缺點：</b>字最少，<b>沒有解釋「為什麼」</b>；深色滿版很吃碳粉／墨水。
+      </p>
+    </div>
+
+    <!-- ==================== C ==================== -->
+    <div class="slot">
+      <h2>C · Ngobrol（對話式）</h2>
+      <p class="tag">最親切，直接講「不是要找誰麻煩」</p>
+      <div class="frame">
+        <section class="poster pc">
+          <div class="top">
+            <span class="wordmark"><b>PCI</b><i>GA</i></span>
+            <span class="eyebrow">Suara Karyawan</span>
+          </div>
+
+          <div class="bubbles">
+            <div class="bubble">“Nasinya keras…”</div>
+            <div class="bubble">“Sayurnya udah dingin.”</div>
+            <div class="bubble">“Antrinya lama banget.”</div>
+          </div>
+
+          <h2 class="headline">Ceritain aja ke kami.</h2>
+          <p class="sub">
+            Bukan buat nyari salah siapa-siapa — buat bikin makan kamu lebih enak.
+            Setiap laporan dibaca tim GA, dan kamu bisa cek sendiri sudah diproses belum.
+          </p>
+
+          <div class="card">
+            <div class="qr" data-qr="c">
+              <span class="fake">CONTOH</span>
+            </div>
+            <div class="say">
+              <b>Scan, terus cerita.</b>
+              <span>
+                Siapkan NIK kamu · Nggak sampai 1 menit<br>
+                Berlaku untuk semua kantin
+              </span>
+            </div>
+          </div>
+
+          <p class="hint">
+            Tips: habis scan, pilih “Tambah ke Layar Utama” — lain kali tinggal buka, nggak usah scan lagi.
+          </p>
+
+          <div class="foot">
+            <span>Dikelola oleh PCI GA · Ext. 3690</span>
+            <span class="zh">員工餐廳意見回報</span>
+          </div>
+        </section>
+      </div>
+      <p class="notes">
+        <b>優點：</b>唯一一張直接處理員工的心理障礙（「講了會不會被找麻煩」）；也唯一放了「加到主畫面」的提示。<br>
+        <b>缺點：</b>字最多，走路經過的人不會停下來讀完；最不像「正式公告」。
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/**
+ * 畫一個「看起來像 QR」的假圖，只是為了評估版面比例。
+ *
+ * ⚠️ 它不是真的 QR，掃不出任何東西——所以中間壓了一條 CONTOH。
+ *    真正的 QR 要等網址定案之後才產生。
+ *
+ * 用固定種子的亂數，這樣每次重新整理圖案都一樣，
+ * 比較版面時不會因為圖案變了而覺得哪裡不對。
+ */
+const APP_URL = 'https://j46g629h.github.io/kantin/';   // ← 改名之後的網址；正式產生 QR 時用這個
+
+const MODULES = 29;          // 版面比例接近真實的 QR（版本 3 左右）
+
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return function () {
+    // 很單純的線性同餘，只是要「每次都一樣」的亂數
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+/**
+ * 三個角落的定位圖案（真的 QR 也長這樣，比例才會像）。
+ * 回傳 true / false 表示這一格屬於定位圖案且該不該塗黑；
+ * 回傳 null 表示這一格不在定位圖案裡，交給亂數決定。
+ */
+function isFinder(r, c) {
+  const ring = (r0, c0) => {
+    const dr = r - r0, dc = c - c0;
+    if (dr < 0 || dr > 6 || dc < 0 || dc > 6) return null;   // 不在這個角落
+    const edge = dr === 0 || dr === 6 || dc === 0 || dc === 6;   // 外框
+    const core = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;       // 中間的實心方塊
+    return edge || core;
+  };
+
+  const corners = [ring(0, 0), ring(0, MODULES - 7), ring(MODULES - 7, 0)];
+  for (const hit of corners) {
+    if (hit !== null) return hit;
+  }
+  return null;
+}
+
+function buildFakeQr(seed) {
+  const rand = seededRandom(seed);
+  let rects = '';
+
+  for (let r = 0; r < MODULES; r++) {
+    for (let c = 0; c < MODULES; c++) {
+      const finder = isFinder(r, c);
+      const on = finder !== null ? finder : rand() > 0.48;
+      if (on) rects += '<rect x="' + c + '" y="' + r + '" width="1" height="1"/>';
+    }
+  }
+
+  return '<svg viewBox="0 0 ' + MODULES + ' ' + MODULES + '" ' +
+         'xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" fill="#1A1A1D">' +
+         rects + '</svg>';
+}
+
+document.querySelectorAll('.qr').forEach(function (box, index) {
+  box.insertAdjacentHTML('afterbegin', buildFakeQr(20260824 + index * 977));
+});
+</script>
+
+</body>
+</html>

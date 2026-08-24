@@ -51,7 +51,7 @@
         ⚠️ 兩張卡片的份量刻意不同：主要動作是近黑實心 + 重陰影，次要是淺色平面。
            改版前兩張都是白底 1px 框，只差在框粗 1px，掃過去分不出來。
       -->
-      <a href="report.html" class="menu-card menu-card-primary">
+      <a href="report.html" class="menu-card menu-card-primary" id="reportLink">
         <span class="menu-num">01</span>
         <span class="menu-text">
           <span class="menu-title" id="reportTitle">Lapor Masalah</span>
@@ -125,7 +125,30 @@
       });
     });
 
+    /**
+     * 把網址上的 ?loc= 一起帶到回報頁。
+     *
+     * report.html 本來就看得懂 ?loc=LOC_02（會自動選好餐廳），
+     * 但首頁的連結是寫死的 report.html——**參數走到這裡就掉了**。
+     * 少了這幾行，index.html?loc=LOC_02 會安靜地沒有效果，
+     * 而「安靜地沒有效果」是最難查的那一種問題。
+     *
+     * 📌 目前的海報只印一張共用的 QR Code（不帶 loc），所以這段平常用不到。
+     *    留著是為了「某一間餐廳想自己貼一張專屬的」那天——
+     *    到時候只要換 QR 的網址，不必再改程式。
+     */
+    function forwardLocation() {
+      const loc = new URLSearchParams(location.search).get('loc');
+      // 選項代碼長這樣：LOC_02。不是這個格式就當作沒有，
+      // 不要把來路不明的字串接到連結上
+      if (!loc || !/^[A-Za-z0-9_]{1,32}$/.test(loc)) return;
+
+      const link = document.getElementById('reportLink');
+      if (link) link.href = 'report.html?loc=' + encodeURIComponent(loc);
+    }
+
     render();
+    forwardLocation();
 
     // 背景預抓選項。不擋畫面、失敗不吭聲——
     // 抓不到的話 report.html 自己還是會抓一次，跟以前一樣
