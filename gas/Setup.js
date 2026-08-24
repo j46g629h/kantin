@@ -470,6 +470,20 @@ function resetAdminPassword() {
   const password = generateInitialPassword();
   setAdminPassword(admin.row, password, true);   // true = 下次登入強制改密碼
 
+  /**
+   * ⚠️ 一定要作廢舊 token（設計約定第 14 條）。
+   *
+   *    `withAuth()` 只讀 token 裡的 session 快照，不會回頭查 Sheet——
+   *    所以改了密碼之後，**舊的 token 在 6 小時內照樣能用**。
+   *
+   *    而這支函式最常用的情境正好是「忘記密碼」或「懷疑帳號被盜」，
+   *    後者正是最不能讓舊 session 活著的時候。
+   *
+   *    ⚠️ 管理端的 adminOpResetPassword() 本來就有做這件事，
+   *       但這支 Apps Script 的救援函式漏了。兩條路徑要一致。
+   */
+  const revoked = revokeSessionsForAccount(str(ACCOUNT).toLowerCase());
+
   // 順便解除登入鎖定，不必再等 15 分鐘
   clearLoginFailures(str(ACCOUNT).toLowerCase());
 
@@ -479,7 +493,8 @@ function resetAdminPassword() {
     '  帳號：' + str(admin.account),
     '  新密碼：' + password,
     '',
-    '登入鎖定也一併解除了。這組密碼只會出現這一次。',
+    '登入鎖定已解除；舊的登入狀態也已作廢（' + revoked + ' 個）。',
+    '這組密碼只會出現這一次。',
   ].join('\n');
 
   Logger.log(msg);
