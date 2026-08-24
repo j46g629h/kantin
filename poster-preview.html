@@ -32,9 +32,9 @@
   margin: 0 auto;
   padding: 28px 20px 60px;
 }
-.lab h1 { font-size: 26px; letter-spacing: -.02em; margin-bottom: 10px; }
-.lab .lede { color: var(--text-muted); max-width: 64ch; margin-bottom: 6px; }
-.lab .note {
+.lab-chrome h1 { font-size: 26px; letter-spacing: -.02em; margin-bottom: 10px; }
+.lab-chrome .lede { color: var(--text-muted); max-width: 64ch; margin-bottom: 6px; }
+.lab-chrome .note {
   margin: 18px 0 26px;
   padding: 14px 16px;
   border-radius: 10px;
@@ -54,10 +54,10 @@
   gap: 26px;
   align-items: start;
 }
-.slot h2 { font-size: 17px; margin-bottom: 2px; letter-spacing: -.01em; }
-.slot .tag { font-size: 13px; color: var(--text-subtle); margin-bottom: 12px; }
-.slot .notes { font-size: 13px; line-height: 1.75; color: var(--text-muted); margin-top: 12px; }
-.slot .notes b { color: var(--text); font-weight: 600; }
+.slot > h2 { font-size: 17px; margin-bottom: 2px; letter-spacing: -.01em; }
+.slot > .tag { font-size: 13px; color: var(--text-subtle); margin-bottom: 12px; }
+.slot > .notes { font-size: 13px; line-height: 1.75; color: var(--text-muted); margin-top: 12px; }
+.slot > .notes b { color: var(--text); font-weight: 600; }
 
 .frame {
   width: var(--slot-w);
@@ -288,7 +288,7 @@
   .lab-chrome { display: none !important; }
   .lab { max-width: none; margin: 0; padding: 0; }
   .stage { display: block; gap: 0; }
-  .slot h2, .slot .tag, .slot .notes { display: none !important; }
+  .slot > h2, .slot > .tag, .slot > .notes { display: none !important; }
   .frame { width: auto; aspect-ratio: auto; overflow: visible; border-radius: 0; box-shadow: none; }
   .frame > .poster { transform: none; page-break-after: always; }
   .slot:last-child .frame > .poster { page-break-after: auto; }

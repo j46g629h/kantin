@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海報定稿 · Kantin PCI</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!--
+  海報定稿（第 6 階段 6-5）— C 的內容 + B 的份量。
+
+  這一版把三張草稿的結論合起來：
+    · 份量取自 B —— 深底、大字，在貼滿白色公告的牆上會跳出來
+    · 內容取自 C —— 真實對話證明「講了會有人回」，那才是願不願意花一分鐘的關鍵
+    · 手機縮影留著 —— 讓人先看到掃進去長什麼樣，降低不確定感
+
+  ⚠️ 插圖全部是這個檔案裡手寫的 SVG，沒有引入任何外部圖檔或套件。
+     動畫只在螢幕上跑；列印時、以及使用者開了「減少動態效果」時都會停。
+
+  ✅ QR 是真的（assets/qr-kantin.svg，糾錯等級 H），
+     已用獨立解碼器驗證解出來就是 https://j46g629h.github.io/kantin/
+
+  列印：直接按列印會輸出一張 A4，滿版深色底。
+-->
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ==========================================================
+   螢幕上的外框（列印時整個藏起來）
+   ========================================================== */
+.lab { max-width: 900px; margin: 0 auto; padding: 26px 20px 60px; }
+.lab-chrome h1 { font-size: 24px; letter-spacing: -.02em; margin-bottom: 8px; }
+.lab-chrome .lede { color: var(--text-muted); margin-bottom: 6px; line-height: 1.7; }
+.lab-chrome .note {
+  margin: 16px 0 24px; padding: 13px 16px; border-radius: 10px;
+  font-size: 14px; line-height: 1.75;
+  background: var(--ok-bg); color: #04543D;
+}
+
+/* 螢幕上以實際 A4 大小呈現；螢幕不夠寬才等比縮小 */
+.frame {
+  width: 794px; height: 1123px;          /* 210 x 297mm @96dpi */
+  margin: 0 auto;
+  overflow: hidden; border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.28), 0 3px 10px rgba(0,0,0,.12);
+}
+.frame > .poster { transform-origin: top left; }
+
+/* ⚠️ 斷點一律寫 screen——A4 內容寬約 703px，
+      裸的 max-width 在列印時會被誤觸發（CLAUDE.md 常見陷阱） */
+@media screen and (max-width: 880px) {
+  .frame { width: 560px; height: 792px; }
+  .frame > .poster { transform: scale(.7053); }
+}
+@media screen and (max-width: 620px) {
+  .lab { padding-left: 12px; padding-right: 12px; }
+  .frame { width: 340px; height: 481px; }
+  .frame > .poster { transform: scale(.4283); }
+}
+
+/* ==========================================================
+   海報本體
+   ========================================================== */
+.poster {
+  width: 210mm; height: 297mm;
+  padding: 15mm 14mm 13mm;
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+  background: var(--action);
+  color: #F2F2EF;
+}
+
+/* 背景聲波：從右下角擴散，壓在最底層 */
+.waves {
+  position: absolute; right: -46mm; bottom: -50mm;
+  width: 175mm; height: 175mm; z-index: 0; pointer-events: none;
+}
+.waves svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.waves circle {
+  fill: none; stroke: var(--star); stroke-width: 1.5; opacity: .14;
+  transform-origin: 50% 50%;
+}
+@media screen {
+  .waves circle { animation: pulse 4.5s ease-out infinite; }
+  .waves circle:nth-child(2) { animation-delay: 1.1s; }
+  .waves circle:nth-child(3) { animation-delay: 2.2s; }
+  .waves circle:nth-child(4) { animation-delay: 3.3s; }
+}
+@keyframes pulse {
+  0%   { transform: scale(.28); opacity: .34; }
+  100% { transform: scale(1);   opacity: 0; }
+}
+
+.poster > *:not(.waves) { position: relative; z-index: 2; }
+
+/* --- 頁首 --- */
+.top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 9mm;
+}
+.top .wordmark b { background: #F2F2EF; color: var(--action); }
+.top .wordmark i { color: #F2F2EF; border-color: rgba(255,255,255,.45); }
+.eyebrow {
+  font-size: 11.5pt; letter-spacing: .22em; text-transform: uppercase;
+  color: #A8A8A2;
+}
+
+/* --- 大標 --- */
+.headline {
+  font-size: 60pt; line-height: .96; letter-spacing: -.035em;
+  font-weight: 800; margin-bottom: 4mm;
+}
+.headline em { font-style: normal; color: var(--star); }
+
+.lede-line {
+  font-size: 15pt; line-height: 1.5; color: #C2C2BD;
+  max-width: 44ch; margin-bottom: 7mm;
+}
+
+/* --- 證明帶：真的對話 + 手機縮影 --- */
+.proof { display: flex; gap: 9mm; align-items: center; margin-bottom: 7mm; }
+.chat { flex: 1; display: grid; gap: 3.5mm; }
+
+.bubble {
+  padding: 3.5mm 5mm; font-size: 12.5pt; line-height: 1.45;
+  width: fit-content; max-width: 100%;
+  border-radius: 5mm 5mm 5mm 1.5mm;
+}
+.bubble .who {
+  display: block; font-size: 8.5pt; letter-spacing: .04em;
+  margin-bottom: 1mm; text-transform: uppercase;
+}
+
+/* 員工：透明帶框，像「有人在旁邊說話」 */
+.bubble.me {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.30);
+  color: #E4E4E0;
+}
+.bubble.me .who { color: #A8A8A2; }
+
+/* GA 的回覆：整張海報上最亮的一塊。
+   ⚠️ 這是這張海報的重點——「有人回」要用看的就知道，不是用讀的 */
+.bubble.them {
+  margin-left: auto;
+  border-radius: 5mm 5mm 1.5mm 5mm;
+  background: #F4F4F1; color: #1A1A1D;
+  box-shadow: 0 2mm 6mm rgba(0,0,0,.35);
+  font-weight: 500;
+}
+.bubble.them .who { color: #8A5300; }
+
+@media screen {
+  .bubble { animation: pop .55s ease-out both; }
+  .bubble:nth-child(1) { animation-delay: .2s; }
+  .bubble:nth-child(2) { animation-delay: .9s; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(4mm) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.phone { width: 32mm; flex: none; }
+.phone svg { display: block; width: 100%; height: auto; }
+@media screen { .phone { animation: float 5.5s ease-in-out infinite; } }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2mm); }
+}
+
+/* --- 掃描區 --- */
+.scanrow { display: flex; align-items: center; gap: 9mm; margin-bottom: 7mm; }
+.qr {
+  background: #fff; padding: 4mm; border-radius: 3mm;
+  width: 64mm; flex: none; line-height: 0;
+  box-shadow: 0 2mm 8mm rgba(0,0,0,.4);
+}
+.qr img { display: block; width: 100%; height: auto; }
+.scansay { font-size: 13pt; line-height: 1.5; color: #C2C2BD; }
+.scansay b { display: block; color: #F2F2EF; font-size: 19pt; margin-bottom: 2.5mm; letter-spacing: -.01em; }
+.scansay .kantins { color: #A8A8A2; font-size: 11.5pt; }
+
+.tips {
+  font-size: 10.5pt; line-height: 1.5; color: #C2C2BD;
+  border-left: 1mm solid var(--star);
+  padding: 1mm 0 1mm 4mm;
+}
+
+/* --- 頁尾 --- */
+.foot {
+  margin-top: auto; padding-top: 5mm;
+  border-top: 1px solid rgba(255,255,255,.20);
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm;
+  font-size: 10pt; color: #C2C2BD;
+}
+.foot .zh { font-size: 9pt; color: #A8A8A2; }
+
+/* ==========================================================
+   動畫的兩道煞車
+   ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .waves circle, .bubble, .phone { animation: none !important; }
+}
+
+/* ==========================================================
+   列印：一張 A4，滿版深色底，動畫停掉
+   ========================================================== */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  .lab-chrome { display: none !important; }
+  .lab { max-width: none; margin: 0; padding: 0; }
+  .frame { width: auto; height: auto; overflow: visible; border-radius: 0; box-shadow: none; }
+  .frame > .poster { transform: none; }
+  .waves circle, .bubble, .phone { animation: none !important; }
+  /* 深色滿版一定要開，不然印出來是白的 */
+  .poster { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="lab">
+
+  <div class="lab-chrome">
+    <h1>海報定稿 — C 的內容 + B 的份量</h1>
+    <p class="lede">
+      深底大字（B 的份量，三公尺外看得到）＋ 真實對話與手機縮影（C 的內容，
+      證明「講了會有人回」）。A4 直式，印尼文為主，一張 QR 適用全部四間餐廳。
+    </p>
+    <p class="lede">
+      <b>直接按列印會輸出一張 A4。</b>滿版深色底 —— 印之前先確認印表機的
+      「列印背景圖形／背景色」是開著的，否則會印出一張白紙。
+    </p>
+    <div class="note">
+      ✅ QR 是真的（糾錯等級 H），已用獨立解碼器驗證解出來就是
+      <code>https://j46g629h.github.io/kantin/</code>。
+      <b>印出來之後請務必用手機實際掃一次</b> —— 那才是最後一道驗收。
+    </div>
+  </div>
+
+  <div class="frame">
+    <section class="poster">
+
+      <div class="waves">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="200" cy="200" r="190"/>
+          <circle cx="200" cy="200" r="190"/>
+          <circle cx="200" cy="200" r="190"/>
+          <circle cx="200" cy="200" r="190"/>
+        </svg>
+      </div>
+
+      <div class="top">
+        <span class="wordmark"><b>PCI</b><i>GA</i></span>
+        <span class="eyebrow">Suara Karyawan</span>
+      </div>
+
+      <h1 class="headline">CERITAIN<br>AJA<br><em>KE KAMI.</em></h1>
+
+      <p class="lede-line">
+        Bukan buat nyari salah siapa-siapa — buat bikin makan kamu lebih enak.
+      </p>
+
+      <div class="proof">
+        <div class="chat">
+          <div class="bubble me">
+            <span class="who">Karyawan</span>
+            “Sayurnya udah dingin dari tadi…”
+          </div>
+          <div class="bubble them">
+            <span class="who">Tim GA · 2 hari kemudian</span>
+            “Sudah kami cek. Mulai minggu ini sayur diganti tiap 30 menit.”
+          </div>
+        </div>
+
+        <div class="phone">
+          <svg viewBox="0 0 150 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2" y="2" width="146" height="296" rx="22" fill="#000"/>
+            <rect x="5" y="5" width="140" height="290" rx="20" fill="#3A3A3E"/>
+            <rect x="9" y="9" width="132" height="282" rx="16" fill="#EFEFED"/>
+            <rect x="58" y="14" width="34" height="6" rx="3" fill="#1A1A1C" opacity=".5"/>
+            <!-- app 首頁縮影 -->
+            <rect x="20" y="32" width="26" height="10" rx="3" fill="#1A1A1C"/>
+            <rect x="49" y="32" width="15" height="10" rx="3" fill="none" stroke="#80807A" stroke-width="1.2"/>
+            <rect x="20" y="54" width="80" height="7" rx="3.5" fill="#1A1A1D"/>
+            <rect x="20" y="66" width="58" height="5" rx="2.5" fill="#8C8C86"/>
+            <!-- 主要卡片（近黑） -->
+            <rect x="20" y="86" width="110" height="46" rx="10" fill="#1A1A1C"/>
+            <rect x="30" y="96" width="12" height="6" rx="2" fill="#7E7E77"/>
+            <rect x="30" y="107" width="60" height="7" rx="3.5" fill="#F2F2EF"/>
+            <rect x="30" y="118" width="76" height="5" rx="2.5" fill="#93938E"/>
+            <!-- 次要卡片 -->
+            <rect x="20" y="140" width="110" height="46" rx="10" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.2"/>
+            <rect x="30" y="150" width="12" height="6" rx="2" fill="#B9B9B4"/>
+            <rect x="30" y="161" width="52" height="7" rx="3.5" fill="#1A1A1D"/>
+            <rect x="30" y="172" width="70" height="5" rx="2.5" fill="#8C8C86"/>
+            <!-- 星等 -->
+            <g fill="#F2A007" stroke="#7A4E00" stroke-width=".8">
+              <path d="M32 208l1.7 3.4 3.8.5-2.8 2.7.7 3.8-3.4-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/>
+              <path d="M48 208l1.7 3.4 3.8.5-2.8 2.7.7 3.8-3.4-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/>
+              <path d="M64 208l1.7 3.4 3.8.5-2.8 2.7.7 3.8-3.4-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/>
+            </g>
+            <rect x="20" y="232" width="110" height="16" rx="8" fill="#1A1A1C"/>
+            <rect x="56" y="238" width="38" height="4" rx="2" fill="#F2F2EF"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="scanrow">
+        <div class="qr">
+          <img src="assets/qr-kantin.svg" alt="QR Code Kantin PCI" width="330" height="330">
+        </div>
+        <div class="scansay">
+          <b>Scan · Lapor · Selesai</b>
+          Pakai kamera HP · Siapkan NIK kamu<br>
+          Nggak sampai 1 menit.
+          <br><br>
+          <span class="kantins">Berlaku untuk semua kantin —<br>Kantin 2 · Kantin 4 · Kantin R3 · Kantin VIP</span>
+        </div>
+      </div>
+
+      <p class="tips">
+        Habis scan, pilih <b>“Tambah ke Layar Utama”</b> —
+        lain kali tinggal buka, nggak usah scan lagi.
+      </p>
+
+      <div class="foot">
+        <span>Dikelola oleh PCI GA · Ext. 3690</span>
+        <span class="zh">員工餐廳意見回報</span>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+</body>
+</html>
