@@ -310,6 +310,17 @@ document.querySelectorAll('.stat-card[data-status]').forEach((card) => {
 el.periodBar.addEventListener('click', () => {
   el.monthPicker.classList.toggle('hidden');
   renderMonthPicker();
+
+  /*
+   * ⚠️ 手機上很容易發生：範圍列被捲到接近畫面底部時展開，
+   *    清單整個開在畫面外，使用者只看到按鈕變了但「什麼都沒發生」。
+   *
+   *    把清單捲進畫面。用 'nearest' 是因為清單已經在畫面裡時不要亂動，
+   *    否則每點一次畫面都跳一下。
+   */
+  if (!el.monthPicker.classList.contains('hidden')) {
+    el.monthPicker.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 });
 
 

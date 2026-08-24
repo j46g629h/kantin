@@ -1591,7 +1591,20 @@ input[type="date"] {
   border: 0;
   border-radius: var(--radius-lg);
 
-  max-height: calc(var(--tap-min) * 4.5 + 36px);
+  /*
+   * 高度跟著螢幕走，不是固定值：
+   *
+   *   手機直立（812px）→ 約 244px：全部時間 + 3 個多月（使用者要的就是這個）
+   *   電腦（1200px）    → 約 360px：全部時間 + 5 個多月，大螢幕不浪費
+   *   手機橫放（400px） → 夾在下限 190px，才不會整個畫面被清單佔滿
+   *
+   * ⚠️ 用 dvh 而不是 vh：手機瀏覽器的網址列會伸縮，
+   *    `vh` 算的是「網址列縮起來時」的高度，所以清單會比實際可視範圍還高。
+   *    下面兩行是漸進式的——不支援 dvh 的舊瀏覽器會用到第一行。
+   */
+  max-height: clamp(190px, 30vh,  420px);
+  max-height: clamp(190px, 30dvh, 420px);
+
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;   /* iOS 的慣性捲動 */
   overscroll-behavior: contain;        /* 捲到底不要連帶把整頁也捲動 */
