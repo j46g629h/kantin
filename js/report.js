@@ -320,12 +320,36 @@ el.empId.addEventListener('input', () => {
     return;
   }
 
-  el.empStatus.textContent = t('form.checking');
-  el.empStatus.className = 'field-note';
+  showCachedEmployee(value);
 
   // 每打一個字就打一次 API 太浪費，停止輸入 500 毫秒後才查
   verifyTimer = setTimeout(() => verifyEmpId(value), 500);
 });
+
+/**
+ * 這台裝置上次驗證成功的就是這個工號的話，姓名立刻顯示出來。
+ *
+ * 差別在於「第二次回報」：本來要盯著「查詢中…」等 3～8 秒，
+ * 現在打完最後一碼就看到自己的名字。
+ *
+ * ⚠️ 這只是提早顯示，**不是跳過驗證**——
+ *    500 毫秒後照樣會打一次 API，離職或改名都會被蓋掉（見 verifyEmpId）。
+ *    而且就算這裡顯示了錯的姓名也送不出錯的案件：
+ *    後端在 submitFeedback 會自己再驗一次工號。
+ */
+function showCachedEmployee(empId) {
+  const cached = readEmployeeCache(empId);
+
+  if (cached) {
+    state.employee = cached;
+    el.empStatus.textContent = '✓ ' + cached.emp_name;
+    el.empStatus.className = 'field-note ok';
+    return;
+  }
+
+  el.empStatus.textContent = t('form.checking');
+  el.empStatus.className = 'field-note';
+}
 
 /**
  * 工號只允許數字與英文字母，英文一律轉成大寫。
@@ -362,6 +386,7 @@ async function verifyEmpId(empId) {
       state.empError = '';
       el.empStatus.textContent = '✓ ' + result.data.emp_name;
       el.empStatus.className = 'field-note ok';
+      writeEmployeeCache(empId, result.data);   // 下次同一個人就不必再等
     } else {
       state.employee = null;
       state.empError = 'err.' + (result.error || 'EMP_NOT_FOUND');
