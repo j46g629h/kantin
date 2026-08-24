@@ -131,6 +131,45 @@ function checkDashboardColors() {
 }
 
 
+/**
+ * 信件裡的每一個色碼，都必須是 CSS token 裡有的值。
+ *
+ * ⚠️ 為什麼信件不能直接讀 CSS 的 token：
+ *    信箱軟體（尤其 Outlook）會把 `<style>` 區塊整個丟掉，
+ *    所以顏色必須逐個寫在標籤的 `style="..."` 裡，而且只能是字面值。
+ *
+ * ⚠️ 那為什麼不把顏色抽成 EMAIL_COLORS 常數再串接：
+ *    信件的 HTML 已經夠密了，每個顏色都寫成 `' + EMAIL_COLORS.x + '`
+ *    會變得完全讀不懂。**保持字面值，改用檢查來守。**
+ *
+ * 所以這裡反過來做：掃出信件程式裡所有的 #xxxxxx，
+ * 只要有任何一個不在 CSS 的調色盤裡，就是走鐘了。
+ *
+ * 這正是動態表圖表色踩過的坑——同一件案子在兩個畫面是兩種紅。
+ */
+const EMAIL_FILES = ['gas/Notify.js', 'gas/Reports.js'];
+
+/** 信件另外允許的顏色（CSS token 裡沒有，但有正當理由） */
+const EMAIL_EXTRA = {
+  '#EDEDEB': '表格列的細線（比 --border 再淡一階，信件的表格列很多）',
+};
+
+function checkEmailColors() {
+  const palette = new Set(Object.values(T));
+  Object.keys(EMAIL_EXTRA).forEach((c) => palette.add(c));
+
+  const out = [];
+  EMAIL_FILES.forEach((rel) => {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    const found = new Set((src.match(/#[0-9a-fA-F]{6}/g) || []).map((c) => c.toUpperCase()));
+    found.forEach((c) => {
+      out.push([rel, c, palette.has(c)]);
+    });
+  });
+  return out;
+}
+
+
 let pass = 0, fail = 0;
 const rows = [];
 
@@ -174,6 +213,14 @@ checkDashboardColors().forEach(([jsVal, cssVal, label]) => {
   const ok = !!jsVal && !!cssVal && jsVal === cssVal;
   ok ? pass++ : fail++;
   console.log(`  ${ok ? 'OK  ' : 'FAIL'} ${label}：js=${jsVal || '(找不到)'}  css=${cssVal || '(找不到)'}`);
+});
+
+console.log('\n----- 信件顏色是否都在調色盤內 -----\n');
+
+checkEmailColors().forEach(([file, color, ok]) => {
+  ok ? pass++ : fail++;
+  const note = EMAIL_EXTRA[color] ? '（' + EMAIL_EXTRA[color] + '）' : '';
+  console.log(`  ${ok ? 'OK  ' : 'FAIL'} ${color}  ${file}${note}`);
 });
 
 console.log(`\n===== 通過 ${pass} 項，失敗 ${fail} 項 =====\n`);
