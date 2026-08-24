@@ -79,8 +79,12 @@ const PAIRS = [
   ['--text-subtle', '--surface',   4.5, '輔助文字 / 卡片'],
   ['--num',         '--bg',        3,   '大型步驟編號 / 底色（大字）'],
   ['--num',         '--surface',   3,   '大型步驟編號 / 卡片（大字）'],
-  ['--star',        '--bg',        3,   '星等 / 底色（圖形）'],
-  ['--star',        '--surface',   3,   '星等 / 卡片（圖形）'],
+  /* ⚠️ 星星的對比度是由**描邊**負責的，不是填色。
+     檢查填色會得出「星星不能太鮮豔」的錯誤結論——
+     實際上只要邊界看得清楚，圖形就分得出來（WCAG 1.4.11）。 */
+  ['--star-edge',   '--bg',        3,   '星等描邊 / 底色（圖形）'],
+  ['--star-edge',   '--surface',   3,   '星等描邊 / 卡片（圖形）'],
+  ['--chart-rating','--surface',   3,   '圖表的滿意度線 / 卡片（圖形）'],
 
   ['--danger',      '--bg',        4.5, '未處理 / 底色'],
   ['--danger',      '--danger-bg', 4.5, '未處理 / 淺紅底'],
@@ -126,7 +130,7 @@ function checkDashboardColors() {
     [up(grab('ST_PROC')),              T['--warn'],   '圖表的「處理中」色'],
     [up(grab('ST_DONE')),              T['--ok'],     '圖表的「已結案」色'],
     [up(grabConst('TREND_COUNT_COLOR')),  T['--action'], '趨勢圖的回報數線'],
-    [up(grabConst('TREND_RATING_COLOR')), T['--star'],   '趨勢圖的滿意度線'],
+    [up(grabConst('TREND_RATING_COLOR')), T['--chart-rating'], '趨勢圖的滿意度線'],
   ];
 }
 

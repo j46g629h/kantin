@@ -113,6 +113,11 @@ const STATUS_COLORS = { ST_NEW: '#A81E1E', ST_PROC: '#8A5300', ST_DONE: '#046C4E
  *    滿意度沿用星等色，因為它跟星星講的是同一件事。
  *
  * 這兩個值要與 css/style.css 的 .legend-count / .legend-rating 一致。
+ *
+ * ⚠️ 滿意度線用的是 --chart-rating，**不是星星的 --star**。
+ *    星星靠深色描邊撐對比度，所以填色可以很鮮豔；
+ *    但一條線沒有描邊，對比度只能靠自己，必須維持較深的色。
+ *    這兩個很容易被當成同一件事（都在講「滿意度」）。
  */
 const TREND_COUNT_COLOR  = '#1A1A1C';
 const TREND_RATING_COLOR = '#C07405';

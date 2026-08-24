@@ -69,7 +69,18 @@
   --danger-tag:  #F7DEDC;
   --warn:        #8A5300;
   --warn-bg:     #FBF2E3;
-  --star:        #C07405;   /* 對底色 3.18:1，通過圖形的 3:1（原 #C97B08 只有 2.89）*/
+  /* ⚠️ 星星的對比度是由**描邊**負責的，不是填色。
+     越鮮豔的金色越亮、對比越低——單靠填色最多只能到 3.18:1（很勉強）。
+     改成「鮮豔填色 + 深色描邊」之後，填色可以放開，
+     而深色的邊在工廠的爛光線下本來就更好認。 */
+  --star:      #F2A007;   /* 填色：鮮豔的琥珀金 */
+  --star-edge: #7A4E00;   /* 描邊：對底色 6.2:1，遠高於圖形要求的 3:1 */
+
+  /* ⚠️ 圖表的滿意度線是**另一個顏色**，不能跟著星星變鮮豔。
+     星星靠描邊撐對比度，但一條線沒有描邊——它的對比度只能靠自己。
+     這兩個很容易被當成同一件事（它們講的都是「滿意度」），
+     所以分成兩個 token，並由 check-contrast.js 各自把關。 */
+  --chart-rating: #C07405;   /* 對卡片 3.15:1 */
 
   /* --- 圓角 --- */
   --radius-sm:   10px;
@@ -558,18 +569,45 @@ textarea:focus {
 
 .star {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
   padding: 8px 0;
-  font-size: 34px;
-  line-height: 1;
-  /* ⚠️ 未選的星星原本用 --border-strong，只有 1.4:1——
-     工廠光線下看不見，使用者會不知道總共有五顆 */
-  color: var(--num);
   background: none;
   border: none;
   cursor: pointer;
 }
 
-.star.on { color: var(--star); }
+.star svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+  /* 未選：只有外框。
+     ⚠️ 顏色用 --num（3.55:1）不用 --border-strong（1.4:1）——
+        後者在工廠光線下看不見，使用者會不知道總共有五顆 */
+  fill: none;
+  stroke: var(--num);
+  stroke-width: 1.7;
+  transition: transform .12s ease-out;
+}
+
+/* 已選：鮮豔實心 + 深色描邊 + 一點點浮起。
+   描邊是對比度的來源，所以填色可以放心用鮮豔的 */
+.star.on svg {
+  fill: var(--star);
+  stroke: var(--star-edge);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 2px 3px rgba(122, 78, 0, .32));
+}
+
+/* 按下去的回饋。⚠️ 有些人開了「減少動態」，要尊重 */
+.star:active svg { transform: scale(.88); }
+
+@media (prefers-reduced-motion: reduce) {
+  .star svg { transition: none; }
+  .star:active svg { transform: none; }
+}
 
 
 /* ===== 按鈕 ===== */
@@ -2163,7 +2201,7 @@ input[type="date"] {
    回報數用中性深色——**回報數多不代表壞，也不代表好**，上色等於幫讀者下結論；
    滿意度沿用星等色，因為它跟星星講的是同一件事 */
 .legend-count  { background: var(--action); }  /* 與 js/admin-dashboard.js 的 TREND_COUNT_COLOR 一致 */
-.legend-rating { background: var(--star); }   /* 與 js/admin-dashboard.js 的 TREND_RATING_COLOR 一致 */
+.legend-rating { background: var(--chart-rating); }   /* 與 js/admin-dashboard.js 的 TREND_RATING_COLOR 一致 */
 
 /* --- 各餐廳表現表 --- */
 
@@ -2420,7 +2458,8 @@ input[type="date"] {
  *    不限定 screen 的話，列印時會不定地跳成手機版的卡片排版。
  */
 
-.print-only { display: none; }
+.print-only,
+.print-watermark { display: none; }
 
 @media print {
 
@@ -2524,9 +2563,25 @@ input[type="date"] {
   .dash-tile { padding: 8px 10px; }
 
   /* --- 版面：紙張放得下三欄 --- */
-  .dash-charts { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .dash-tiles  { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  /*
+   * ⚠️ 紙是直的，三張圖並排會很難讀。
+   *
+   *    A4 扣掉邊界只有 703px 寬，切三欄之後每欄只剩約 230px——
+   *    長條圖短到分不出「42 件」跟「31 件」的差別，那張圖就白畫了。
+   *
+   *    改成一欄之後每張圖有整個紙寬可以伸展，而且**剛好把第 1 頁填滿**——
+   *    原本月份區塊只佔第 1 頁的 37%，下面 63% 是空白。
+   */
+  .dash-charts { grid-template-columns: 1fr; gap: 14px; }
+  .dash-tiles  { grid-template-columns: repeat(5, 1fr); gap: 8px; }
   .dash-tiles-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* 紙上的長條圖可以做大：看得清楚比塞得多重要 */
+  .dash-bar-track { height: 20px; }
+  .dash-bar-row   { margin-bottom: 12px; }
+  .dash-bar-name  { width: 130px; }
+  .dash-tile      { padding: 14px 12px; }
+  .dash-tile-num  { font-size: 22pt; }
 
   /* --- 斷頁 --- */
 
@@ -2540,14 +2595,64 @@ input[type="date"] {
   .dash-section,
   .dash-sub { break-after: avoid; page-break-after: avoid; }
 
-  /* 年度區塊從新的一頁開始，兩個區塊各自完整 */
-  .dash-section-top {
+  /*
+   * 第 1 頁＝月份、第 2 頁＝年度。
+   *
+   * ⚠️ 斷頁指令下在 `<section>` 上，不是下在裡面的 `<h3>` 上。
+   *    原本下在 h3，而那個 h3 同時還有 `break-after: avoid`（標題不可與內容分離）——
+   *    兩個指令打在同一個元素上，某些瀏覽器會多插一次斷頁，
+   *    結果中間跑出一整片空白。
+   */
+  #yearSection {
     break-before: page;
     page-break-before: always;
+  }
+
+  .dash-section-top {
     margin-top: 0;
     padding-top: 0;
     border-top: none;
   }
+
+  /*
+   * ⚠️ 月份區塊不要再被切開。
+   *    它裡面的圖表若有一塊放不下而整塊被推到下一頁，
+   *    第 1 頁下半就會空掉，看起來像「中間空白太大」。
+   */
+  #monthSection { break-inside: avoid; page-break-inside: avoid; }
+
+  /* --- 浮水印 --- */
+
+  /*
+   * ⚠️ 用 `position: fixed` 才會**每一頁都出現**（列印時 fixed 元素會重複在每頁）。
+   *
+   * ⚠️ z-index 不能用負值。列印時 body 有白色底色，
+   *    負的 z-index 會讓浮水印被那片白底蓋掉，變成完全看不見。
+   *    正確做法是浮水印 z-index:0、內容 z-index:1。
+   *
+   * ⚠️ 字級不能太大。旋轉之後的水平寬度若超過紙寬（A4 扣邊界約 703px），
+   *    會撐出額外的空白頁。54pt 旋轉 30 度後約 460px，安全。
+   */
+  .print-watermark {
+    display: block;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    z-index: 0;
+
+    font-size: 54pt;
+    font-weight: 800;
+    letter-spacing: .14em;
+    white-space: nowrap;
+    color: var(--text);
+    /* 淡到不影響閱讀，但影印或轉 PDF 之後仍看得出來 */
+    opacity: .07;
+    pointer-events: none;
+  }
+
+  /* 內容壓在浮水印上面 */
+  #mainView { position: relative; z-index: 1; }
 
   /* --- 表格：紙上維持表格，不要變成卡片 --- */
   .dash-card-table { overflow: visible; }

@@ -260,7 +260,7 @@ function renderStars() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'star' + (i <= state.rating ? ' on' : '');
-    btn.textContent = '★';
+    btn.innerHTML = STAR_SVG;
     btn.setAttribute('aria-label', String(i));
 
     btn.addEventListener('click', () => {

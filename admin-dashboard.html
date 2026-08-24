@@ -53,6 +53,13 @@
 
       <div id="errorView" class="result error hidden"></div>
 
+      <!--
+        列印用的浮水印。螢幕上不顯示（見 css 的 .print-watermark）。
+        ⚠️ 放在 mainView 外面：它要用 position:fixed 鋪在每一頁的背景，
+           放進 mainView 裡的話會跟著內容捲動與分頁。
+      -->
+      <div class="print-watermark" aria-hidden="true">PCI KANTIN</div>
+
       <div id="mainView" class="hidden">
 
         <h2 class="dash-title" id="dashTitle"></h2>
