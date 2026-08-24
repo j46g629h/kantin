@@ -94,10 +94,49 @@
 /* --- 頁首 --- */
 .top {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 9mm;
+  margin-bottom: 7mm;
 }
-.top .wordmark b { background: #F2F2EF; color: var(--action); }
-.top .wordmark i { color: #F2F2EF; border-color: rgba(255,255,255,.45); }
+/* 標誌在海報上要當 logo 用，不是頁首的小字。
+   做成兩塊「牌子」：PCI 實心亮面、GA 空心描邊，底下再收一條琥珀線。
+
+   ⚠️ letter-spacing 會在**最後一個字母後面**也加一份空白，
+      所以右邊的 padding 要比左邊少，否則看起來會偏左。 */
+.top .wordmark {
+  align-items: center;
+  gap: 2.5mm;
+  position: relative;
+  padding-bottom: 3mm;
+}
+.top .wordmark::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 1mm; border-radius: .5mm;
+  background: linear-gradient(90deg, var(--star) 0%, var(--star) 45%, rgba(242,160,7,0) 100%);
+}
+.top .wordmark b {
+  font-size: 27pt;
+  font-weight: 800;
+  letter-spacing: .06em;
+  line-height: 1;
+  padding: 2mm 2.6mm 2mm 3.2mm;
+  border-radius: 2mm;
+  background: #F2F2EF;
+  color: var(--action);
+  /* 外圈一層很淡的琥珀，讓亮塊不會硬邦邦地貼在深底上 */
+  box-shadow: 0 0 0 .7mm rgba(242,160,7,.30), 0 2mm 7mm rgba(0,0,0,.45);
+}
+.top .wordmark i {
+  font-style: normal;
+  font-size: 13pt;
+  font-weight: 600;
+  letter-spacing: .26em;
+  line-height: 1;
+  color: #F2F2EF;
+  border: .5mm solid rgba(255,255,255,.55);
+  border-radius: 1.6mm;
+  padding: 2mm 1.4mm 2mm 2.6mm;
+  margin: 0;
+}
 .eyebrow {
   font-size: 11.5pt; letter-spacing: .22em; text-transform: uppercase;
   color: #A8A8A2;
@@ -105,14 +144,14 @@
 
 /* --- 大標 --- */
 .headline {
-  font-size: 60pt; line-height: .96; letter-spacing: -.035em;
+  font-size: 56pt; line-height: .96; letter-spacing: -.035em;
   font-weight: 800; margin-bottom: 4mm;
 }
 .headline em { font-style: normal; color: var(--star); }
 
 .lede-line {
   font-size: 15pt; line-height: 1.5; color: #C2C2BD;
-  max-width: 44ch; margin-bottom: 7mm;
+  max-width: 44ch; margin-bottom: 6mm;
 }
 
 /* --- 證明帶：真的對話 + 手機縮影 --- */
@@ -167,7 +206,7 @@
 }
 
 /* --- 掃描區 --- */
-.scanrow { display: flex; align-items: center; gap: 9mm; margin-bottom: 7mm; }
+.scanrow { display: flex; align-items: center; gap: 9mm; margin-bottom: 5mm; }
 .qr {
   background: #fff; padding: 4mm; border-radius: 3mm;
   width: 64mm; flex: none; line-height: 0;
@@ -191,7 +230,7 @@
   display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm;
   font-size: 10pt; color: #C2C2BD;
 }
-.foot .zh { font-size: 9pt; color: #A8A8A2; }
+.foot .sub { font-size: 10pt; color: #A8A8A2; letter-spacing: .02em; }
 
 /* ==========================================================
    動畫的兩道煞車
@@ -324,7 +363,7 @@
 
       <div class="foot">
         <span>Dikelola oleh PCI GA · Ext. 3690</span>
-        <span class="zh">員工餐廳意見回報</span>
+        <span class="sub">Kotak Saran Kantin Karyawan</span>
       </div>
 
     </section>
