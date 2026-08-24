@@ -40,23 +40,60 @@ const localStorage = {
   removeItem: (k) => { delete store[k]; },
 };
 
-/** 假後端。nextResponse 決定下一次回什麼，calls 記錄打了幾次 */
+/**
+ * 假後端。
+ *
+ * js/api.js 是先 `response.text()` 再自己 `JSON.parse`，
+ * 所以這裡要回「原始字串」而不是物件——這樣才測得到
+ * 「Apps Script 回了一頁 HTML」那種情況。
+ */
 let calls = 0;
-let nextResponse = null;
-let networkDown = false;
+let nextResponse = null;   // 正常時回這個物件（會被 JSON.stringify）
+let networkDown = false;   // true → fetch 直接 reject
+let rawBody = null;        // 不是 null 就直接回這段字串（測 HTML 404）
+let failTimes = 0;         // 前 N 次失敗，之後成功（測重試）
+let hangForever = false;   // 永遠不回應，只有被 abort 才會結束（測逾時）
+let lastInit = null;       // 記下最後一次的 fetch 參數，用來檢查有沒有帶 signal
 
-function fetchStub() {
+function fetchStub(url, init) {
   calls++;
+  lastInit = init || {};
+
+  if (hangForever) {
+    return new Promise(function (resolve, reject) {
+      if (!lastInit.signal) return;   // 沒帶 signal 就真的永遠卡住（測試會逾時，正好）
+      lastInit.signal.addEventListener('abort', function () {
+        reject(new Error('AbortError'));
+      });
+    });
+  }
+
+  if (failTimes > 0) { failTimes--; return Promise.reject(new Error('failed to fetch')); }
   if (networkDown) return Promise.reject(new Error('offline'));
-  const body = nextResponse;
-  return Promise.resolve({ json: () => Promise.resolve(body) });
+
+  const body = rawBody !== null ? rawBody : JSON.stringify(nextResponse);
+  return Promise.resolve({ status: 200, text: () => Promise.resolve(body) });
 }
+
+/**
+ * ⚠️ sandbox 裡的 setTimeout 會**把長延遲縮成 5 毫秒**。
+ *
+ * js/api.js 的逾時是 25 秒、重試前等 1 秒。照實際秒數跑的話，
+ * 光是測逾時就要等 25 秒——那種測試沒有人會跑第二次，等於沒有。
+ * 縮短的只有「等多久」，被測的邏輯（有沒有 abort、有沒有重試）完全沒變。
+ */
+const shrink = (fn, ms) => setTimeout(fn, ms >= 1000 ? 5 : ms);
 
 const sandbox = {
   console,
   localStorage,
   fetch: fetchStub,
   URLSearchParams,
+  AbortController,
+  setTimeout: shrink,
+  clearTimeout,
+  setInterval,
+  clearInterval,
   crypto: { randomUUID: () => 'uuid-test' },
   API_URL: 'https://example.test/exec',
   // 真正的 t() 在 js/i18n.js，這裡只需要它「有回傳東西」
@@ -77,8 +114,16 @@ const check = (label, actual, expected) => {
   else { fail++; console.log('  FAIL ' + label + '\n         預期 ' + e + '\n         實際 ' + a); }
 };
 
-/** 讓所有已經排好的 microtask 跑完（等背景更新真的做完） */
+/**
+ * 等背景的事情真的做完。
+ *
+ * ⚠️ 不能只 drain microtask。加上重試之後，失敗的請求會**排定在幾毫秒後**
+ *    再打一次；只清 microtask 的話那次重試會落到下一個情境裡執行，
+ *    帶著下一個情境的旗標跑——測試會在毫不相干的地方紅掉，而且時好時壞。
+ */
 async function flush() {
+  for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+  await new Promise((r) => setTimeout(r, 60));
   for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
 }
 
@@ -106,7 +151,12 @@ function reset() {
   calls = 0;
   failWrite = false;
   networkDown = false;
+  rawBody = null;
+  failTimes = 0;
+  hangForever = false;
+  lastInit = null;
   nextResponse = { ok: true, data: optionsData('新的') };
+  run('setApiRetryNotice(null)');
 }
 
 const MINUTE = 60 * 1000;
@@ -224,7 +274,7 @@ async function main() {
   networkDown = true;
   check('呼叫本身不丟例外', run('prefetchOptions(); "ok"'), 'ok');
   await flush();
-  check('去抓了', calls, 1);
+  check('去抓了，而且失敗後有重試一次', calls, 2);
 
   reset();
   seedOptionsCache('舊的', 10 * MINUTE);
@@ -275,6 +325,89 @@ async function main() {
   failWrite = true;
   check('安靜地失敗',
     run('writeEmployeeCache("A1234", { emp_id: "A1234", emp_name: "Budi" }); "ok"'), 'ok');
+
+  // ===== 連線層：逾時與自動重試 =====
+  //
+  // 📌 這一段是 2026-08-24 上線後補的。
+  //    實測 Apps Script 的 /exec 連打 15 次會有 1 次在 33 秒後回 HTTP 404
+  //    （Google 那端的問題）。少了重試，那 1/15 的使用者看到的是
+  //    「載入中…」轉很久然後跳「連線有問題」——而他只要再按一次就會成功。
+
+  console.log('\n【22】連線失敗一次：自動重試，使用者完全不知道發生過');
+  reset();
+  failTimes = 1;
+  data = await run('loadOptions()');
+  check('照樣拿到資料', data.LOCATION[0].name_id, '新的');
+  check('總共打了兩次（第一次失敗、第二次成功）', calls, 2);
+
+  console.log('\n【23】連續失敗：只重試一次就放棄，不要讓人等到天荒地老');
+  reset();
+  failTimes = 5;
+  err = '';
+  try { await run('loadOptions()'); } catch (e) { err = e.message; }
+  check('有丟例外', err.length > 0, true);
+  check('只打了兩次', calls, 2);
+
+  console.log('\n【24】後端回的是 HTML（Apps Script 的 404 頁）：當成連線問題，會重試');
+  reset();
+  rawBody = '<!DOCTYPE html><html><body>Sorry, the file you have requested…</body></html>';
+  err = '';
+  try { await run('loadOptions()'); } catch (e) { err = e.message; }
+  check('沒有把 HTML 當成資料', err.length > 0, true);
+  check('有重試（不是解析失敗就直接放棄）', calls, 2);
+
+  console.log('\n【25】後端回 ok:false：這是正常回應，**不可以**重試');
+  reset();
+  nextResponse = { ok: false, error: 'EMP_NOT_FOUND' };
+  const verified = await run("Api.verifyEmployee('A1234')");
+  check('原封不動回給呼叫端', verified, { ok: false, error: 'EMP_NOT_FOUND' });
+  check('只打了一次（重試也只是白等）', calls, 1);
+
+  console.log('\n【26】重試時要通知畫面，否則使用者以為當掉了');
+  reset();
+  failTimes = 1;
+  run('globalThis.noticeCount = 0; setApiRetryNotice(function () { globalThis.noticeCount++; })');
+  await run('loadOptions()');
+  check('通知了一次', run('globalThis.noticeCount'), 1);
+
+  console.log('\n【27】畫面的回呼自己炸掉，不可以連累重試');
+  reset();
+  failTimes = 1;
+  run("setApiRetryNotice(function () { throw new Error('畫面壞了'); })");
+  data = await run('loadOptions()');
+  check('資料照樣拿得到', data.LOCATION[0].name_id, '新的');
+
+  console.log('\n【28】逾時：卡住不回應的請求要被砍掉，不能無限等下去');
+  reset();
+  hangForever = true;
+  err = '';
+  try { await run("Api.getOptions()"); } catch (e) { err = e.message; }
+  check('有被中斷', err.indexOf('Abort') >= 0, true);
+  check('每一次請求都帶了 signal', !!(lastInit && lastInit.signal), true);
+
+  console.log('\n【29】哪些寫入類 API 可以自動重試（重試錯了會多建一筆資料）');
+  reset();
+  failTimes = 1;
+  await run("Api.submitFeedback({ client_submit_id: 'sid-1' })");
+  check('submitFeedback 會重試（有 client_submit_id 去重）', calls, 2);
+
+  reset();
+  failTimes = 1;
+  err = '';
+  try { await run("Api.createAdmin('tok', { account: 'a', name: 'b', role: 'ADMIN' })"); }
+  catch (e) { err = e.message; }
+  check('新增管理者不重試', calls, 1);
+  check('直接把錯誤丟出來', err.length > 0, true);
+
+  reset();
+  failTimes = 1;
+  try { await run("Api.resetAdminPassword('tok', 'a', '')"); } catch (e) { /* 預期失敗 */ }
+  check('重設密碼不重試', calls, 1);
+
+  reset();
+  failTimes = 1;
+  try { await run("Api.adminLogin('a', 'b')"); } catch (e) { /* 預期失敗 */ }
+  check('登入不重試', calls, 1);
 
   console.log('\n===== 通過 ' + pass + ' 項，失敗 ' + fail + ' 項 =====\n');
   process.exit(fail ? 1 : 0);

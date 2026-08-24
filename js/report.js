@@ -50,6 +50,10 @@ async function init() {
   bindLanguageButtons();
   renderTexts();
 
+  // 連線失敗自動重試時，把載入文字換掉。
+  // 少了這一行，使用者看到的是骨架畫面卡住不動，而他不知道還在跑
+  setApiRetryNotice(function () { setText('loadingText', t('loading.retry')); });
+
   try {
     state.options = await loadOptions();
   } catch (err) {

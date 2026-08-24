@@ -22,6 +22,9 @@ const I18N = {
     langName:       '中文',
     back:           '返回',
     loading:        '載入中…',
+    // 自動重試時才會出現。不解釋原因也不喊「錯誤」——
+    // 使用者要知道的只有「還在跑、不用重按」
+    'loading.retry': '連線比較慢，重試中…',
 
     // --- 首頁 ---
     'home.tagline':     '幫我們一起把餐廳變更好',
@@ -384,6 +387,7 @@ const I18N = {
     langName:       'Bahasa Indonesia',
     back:           'Kembali',
     loading:        'Sebentar ya…',
+    'loading.retry': 'Koneksi agak lambat, lagi dicoba ulang…',
 
     // --- Beranda ---
     'home.tagline':     'Bantu kami bikin kantin lebih baik',

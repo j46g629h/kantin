@@ -5,17 +5,129 @@
  * 頁面只要呼叫 Api.xxx()，不用重複處理 fetch 的細節。
  */
 
+// ===== 連線層：逾時與自動重試 =====
+//
+// 📌 為什麼需要這一層（2026-08-24 上線後實測到的）：
+//
+//    Apps Script 的 `/exec` 會**偶爾整支請求失敗**——實測連打 15 次，
+//    有 1 次在等了 33 秒之後回 HTTP 404（Google 那端的問題，不是我們的程式：
+//    真的跑到我們的程式一定會回 200 + JSON，就算是錯誤也是 `{ok:false}`）。
+//
+//    少了這一層的話，那 1/15 的使用者看到的是「載入中…」轉很久，
+//    然後跳「連線有問題」——而他只要再按一次就會成功。
+//    **他不會再按第二次。**
+//
+//    順序也很重要：404 回來的是一頁 HTML，不是 JSON。
+//    原本直接 `response.json()` 會丟一個看不懂的解析錯誤，
+//    現在統一轉成「連線問題」，訊息才對得上使用者實際遇到的事。
+
+/**
+ * 單次請求的逾時。
+ *
+ * ⚠️ 不可以設太短。實測正常回應 1.5～3 秒，但**同時有多個請求排隊時
+ *    會被 Apps Script 排到 20 秒**（它一次只跑一支）。
+ *    設 10 秒的話會把「其實正在跑而且會成功」的請求砍掉重練，反而更慢。
+ *    25 秒是取在「排隊最久 20 秒」與「Google 自己放棄的 33 秒」之間。
+ */
+const API_TIMEOUT_MS = 25000;
+
+/** 重試前先等一下，不要立刻打回去 */
+const API_RETRY_DELAY_MS = 1000;
+
+/**
+ * 只重試一次。
+ * 單次失敗率約 7%，重試一次就降到 0.5%；重試第二次只再降一點點，
+ * 卻會讓最壞情況多等 25 秒——使用者盯著骨架畫面的那 25 秒不值得。
+ */
+const API_RETRY_TIMES = 1;
+
+/**
+ * 開始重試時通知畫面（讓載入文字改成「連線比較慢，重試中…」）。
+ * 沒有註冊的話就安靜地重試。
+ */
+let apiRetryNotice = null;
+function setApiRetryNotice(fn) { apiRetryNotice = fn; }
+
+function apiDelay(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+/**
+ * 送出一次請求並解析 JSON。
+ *
+ * 三種情況都會丟例外，交給上層當成「連線問題」處理：
+ *   逾時、網路斷掉、回來的不是 JSON（Apps Script 掛掉時回的是 HTML）
+ */
+async function fetchJsonOnce(url, init) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller
+    ? setTimeout(function () { controller.abort(); }, API_TIMEOUT_MS)
+    : null;
+
+  try {
+    const options = Object.assign({}, init);
+    if (controller) options.signal = controller.signal;
+
+    const response = await fetch(url, options);
+    const text = await response.text();
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      // 回來的不是 JSON = 根本沒跑到我們的程式（多半是 Apps Script 的 404 頁）
+      throw new Error('BAD_RESPONSE');
+    }
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * 送出請求，失敗時自動重試。
+ *
+ * ⚠️ canRetry 只能給**重複做也不會出事**的 API：
+ *    讀取類的全部可以；寫入類的只有 `submitFeedback` 可以——
+ *    它靠 `client_submit_id` 去重，重送同一筆會直接回既有的案件編號
+ *    （見 gas/Feedback.js 的「防重複提交」）。
+ *    新增管理者、重設密碼那些**絕對不可以**自動重試。
+ *
+ * ⚠️ 只有「連線失敗」才重試。後端有回 JSON 就算它說 `ok:false`
+ *    （查無此工號之類）也是正常回應，重試只是白等一次。
+ */
+async function fetchJson(url, init, canRetry) {
+  let attemptsLeft = canRetry ? API_RETRY_TIMES : 0;
+
+  for (;;) {
+    try {
+      return await fetchJsonOnce(url, init);
+    } catch (err) {
+      if (attemptsLeft <= 0) throw err;
+      attemptsLeft--;
+
+      // 通知畫面「還在試」。這個回呼是頁面給的，炸掉不可以連累重試
+      if (apiRetryNotice) {
+        try { apiRetryNotice(); } catch (e) { /* 畫面的事，不影響連線 */ }
+      }
+
+      await apiDelay(API_RETRY_DELAY_MS);
+    }
+  }
+}
+
+
 const Api = {
 
   /**
    * GET 請求。
+   *
+   * 員工端的讀取全部走這裡，而讀取重複做不會有副作用，所以一律開重試。
+   *
    * @param {string} action 動作名稱
    * @param {Object} params 其他參數
    */
   async get(action, params = {}) {
     const query = new URLSearchParams({ action, ...params }).toString();
-    const response = await fetch(`${API_URL}?${query}`);
-    return response.json();
+    return fetchJson(`${API_URL}?${query}`, {}, true);
   },
 
   /**
@@ -24,14 +136,16 @@ const Api = {
    * ⚠️ Content-Type 必須是 text/plain。
    *    用 application/json 會觸發瀏覽器的預檢請求(preflight)，
    *    而 Apps Script 不支援 doOptions，請求會直接被擋掉。
+   *
+   * @param {Object} payload
+   * @param {boolean} [canRetry] 這支 API 重複做會不會出事。**預設不重試。**
    */
-  async post(payload) {
-    const response = await fetch(API_URL, {
+  async post(payload, canRetry = false) {
+    return fetchJson(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
-    });
-    return response.json();
+    }, canRetry);
   },
 
 
@@ -47,9 +161,15 @@ const Api = {
     return this.get('verifyEmployee', { empId });
   },
 
-  /** 提交回報 */
+  /**
+   * 提交回報。
+   *
+   * 這是唯一開重試的寫入類 API——它靠 `client_submit_id` 去重，
+   * 重送同一筆會回既有的案件編號而不是建立第二筆（gas/Feedback.js）。
+   * 而它也是最不能讓人重來的一支：表單填完了、照片也壓縮上傳了。
+   */
   submitFeedback(data) {
-    return this.post({ action: 'submitFeedback', ...data });
+    return this.post({ action: 'submitFeedback', ...data }, true);
   },
 
   /** 依案件編號查單筆 */
@@ -82,7 +202,7 @@ const Api = {
 
   /** 確認 token 還有效，並取回姓名與角色 */
   getAdminProfile(token) {
-    return this.post({ action: 'getAdminProfile', token });
+    return this.post({ action: 'getAdminProfile', token }, true);   // 純讀取，可重試
   },
 
   /**
@@ -100,12 +220,12 @@ const Api = {
       if (filters[key]) payload[key] = filters[key];
     });
 
-    return this.post(payload);
+    return this.post(payload, true);   // 純讀取，可重試
   },
 
   /** 取得回覆範本（管理者可自行在 Sheet 的「回覆範本」分頁增修） */
   getTemplates(token) {
-    return this.post({ action: 'getTemplates', token });
+    return this.post({ action: 'getTemplates', token }, true);   // 純讀取，可重試
   },
 
   /** 更新案件狀態、回覆與指派的處理者 */
@@ -128,7 +248,7 @@ const Api = {
 
   /** 列出所有管理者（不含任何密碼資料） */
   listAdmins(token) {
-    return this.post({ action: 'manageAdmin', token, op: 'list' });
+    return this.post({ action: 'manageAdmin', token, op: 'list' }, true);   // 純讀取，可重試
   },
 
   /**
@@ -204,7 +324,7 @@ const Api = {
    * 資料量很小，累積十年也才 120 個月份。
    */
   getDashboardStats(token) {
-    return this.post({ action: 'getDashboardStats', token });
+    return this.post({ action: 'getDashboardStats', token }, true);   // 純讀取，可重試
   },
 
 

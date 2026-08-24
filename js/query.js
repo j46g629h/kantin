@@ -37,6 +37,8 @@ async function init() {
   bindLanguageButtons();
   renderTexts();
 
+  setApiRetryNotice(function () { setText('loadingText', t('loading.retry')); });
+
   try {
     state.options = await loadOptions();
   } catch (err) {

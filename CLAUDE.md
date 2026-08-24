@@ -399,6 +399,53 @@ Sheet 裡只存雜湊，沒有任何地方存得回明文。）
 
 ---
 
+### 19. Apps Script 會**偶爾整支請求失敗**，前端一定要自動重試一次
+
+**這不是我們的程式有問題。** 真的跑到我們的程式一定會回 HTTP 200 + JSON，
+就算是錯誤也是 `{ok:false, error:'...'}`。但 `/exec` 這個網址本身
+**會偶爾回 HTTP 404**——實測連打 15 次有 1 次，而且是**等了 33 秒之後**才回。
+
+少了重試的話，那 1/15 的員工看到的是「載入中…」轉很久，然後跳「連線有問題」。
+**而他只要再按一次就會成功——但他不會再按第二次。**
+
+實作在 `js/api.js` 的 `fetchJson()`，三個數字都是量出來的，不是猜的：
+
+| 設定 | 值 | 為什麼是這個數字 |
+|---|---|---|
+| 逾時 | 25 秒 | 正常回應 1.5～3 秒，但**同時有多個請求時 Apps Script 會排隊，實測排到 20 秒**。設 10 秒會把「其實會成功」的請求砍掉重練，反而更慢。25 秒取在「排隊最久 20 秒」與「Google 自己放棄的 33 秒」之間 |
+| 重試 | 1 次 | 單次失敗率約 7%，重試一次降到 0.5%；再重試一次只再降一點點，卻讓最壞情況多等 25 秒 |
+| 重試前等 | 1 秒 | 不要立刻打回去 |
+
+**⚠️ 三件事不可以搞錯：**
+
+**① 只有「連線失敗」才重試。** 後端有回 JSON 就算它說 `ok:false`
+（查無此工號之類）也是**正常回應**，重試只是白等一次還多打一次 API。
+
+**② 回來的不是 JSON 要當成連線問題。** 404 回的是一頁 HTML。
+直接 `response.json()` 會丟一個看不懂的解析錯誤，訊息對不上使用者遇到的事。
+所以改成先 `response.text()` 再自己 `JSON.parse`，失敗就轉成連線錯誤。
+
+**③ 只有「重複做也不會出事」的 API 可以開重試。**
+`Api.post()` 的第二個參數預設是 `false`，要開必須自己寫出來：
+
+| 可以重試 | 為什麼 |
+|---|---|
+| 所有 GET（`getOptions` / `verifyEmployee` / 查詢）| 純讀取 |
+| POST 的讀取（`getCaseList` / `getTemplates` / `getDashboardStats` / `manageAdmin op=list`）| 純讀取，只是因為要帶 token 才用 POST |
+| `submitFeedback` | **靠 `client_submit_id` 去重**，重送同一筆會回既有的案件編號而不是建立第二筆（`gas/Feedback.js`）。而它也是最不能讓人重來的一支——表單填完了、照片也壓縮上傳了 |
+
+| **不可以**重試 | 為什麼 |
+|---|---|
+| `manageAdmin` 的 create / resetPassword / setStatus / setRole | 不是冪等的。重設密碼重試會產生**第二組**密碼 |
+| `adminLogin` | 會多算一次失敗次數 |
+| `updateCase` | 可能會重複寄出回覆通知信 |
+
+**④ 重試時要讓畫面知道。** `setApiRetryNotice()` 註冊一個回呼，
+載入文字會換成「連線比較慢，重試中…」。少了這行，使用者看到的是
+骨架畫面卡住不動 25 秒，他會以為當掉而重新整理——那反而讓他從頭再等一次。
+
+---
+
 ## 常見陷阱
 
 | 陷阱 | 說明 |
@@ -461,7 +508,7 @@ node tools/test-backup-api.js  # 每月自動備份（保留份數 / 不誤刪�
 node tools/test-retention-api.js # 結案滿 13 個月去識別化（分界日 / 誰不能碰 / 安全煞車）
 node tools/check-contrast.js   # 配色對比度（WCAG AA），改任何顏色 token 之後跑
 node tools/test-version-sync.js # 版本號與系統資訊有沒有漏改（見設計約定第 5 條）
-node tools/test-options-cache.js # 前端兩份快取（選項 / 工號），改 js/api.js 之後跑
+node tools/test-options-cache.js # 前端連線層與兩份快取（逾時 / 重試 / 選項 / 工號）
 ```
 
 ⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。
