@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>圖示模擬 v2 — 5-5</title>
+<style>
+:root{--bg:#EFEFED;--surface:#F9F9F8;--text:#1A1A1D;--muted:#53535A;
+--subtle:#6A6A70;--line:#DEDEDD;color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans TC","Segoe UI",system-ui,sans-serif;background:var(--bg);
+color:var(--text);line-height:1.75;padding:24px 16px 64px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-size:clamp(23px,1.3rem+1.3vw,32px);line-height:1.3}
+h2{font-size:clamp(18px,1rem+.7vw,22px);margin:38px 0 6px}
+p.lead{color:var(--muted);font-size:15px;margin-top:8px;max-width:700px}
+.note{background:#FBF2E3;border-left:4px solid #8A5300;padding:12px 16px;border-radius:8px;
+margin-top:16px;font-size:14px;color:#6E4200;max-width:780px;line-height:1.85}
+.ok{background:#E7F5EE;border-left-color:#046C4E;color:#04543D}
+.card{background:var(--surface);border-radius:16px;padding:20px;margin-top:14px}
+.row{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;margin:14px 0}
+.it{text-align:center}
+.it span{display:block;font-size:11px;color:var(--subtle);margin-top:6px}
+.p16{width:16px;height:16px} .p32{width:32px;height:32px}
+.p64{width:64px;height:64px} .p120{width:120px;height:120px}
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.tabbar{background:#E4E4E2;padding:6px 8px 0;border-radius:10px 10px 0 0;margin-top:10px}
+.tab{display:inline-flex;align-items:center;gap:7px;background:#F9F9F8;border-radius:9px 9px 0 0;
+padding:8px 14px 8px 10px;font-size:12px;color:var(--muted);max-width:210px}
+.tab img{width:16px;height:16px;flex:none}
+.tab b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home{background:linear-gradient(160deg,#5C6B7A,#2E3944);border-radius:18px;padding:18px 14px;
+margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px}
+.app{text-align:center}
+.app img,.app .fk{width:52px;height:52px;border-radius:12px;display:block;margin:0 auto}
+.app small{display:block;font-size:10px;color:#fff;margin-top:5px;
+text-shadow:0 1px 2px rgba(0,0,0,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fk{background:rgba(255,255,255,.22)} .fk.b{background:rgba(255,255,255,.13)}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{background:#EFEFED;font-size:12.5px}
+</style></head><body><div class="wrap">
+
+<h1>圖示 v2：幾何字形 + 大小兩種版本</h1>
+<p class="lead">依你的三點回饋重做。下面每一項都用<strong>真實尺寸</strong>呈現。</p>
+
+<h2>① 你發現的「粗糙」其實是一個 bug</h2>
+<div class="note">
+上一版我用的是 SVG 的 <code>&lt;text&gt;</code> 搭配 <code>font-family</code>。
+<strong>SVG 的文字是用「觀看者自己電腦上的字型」畫的</strong>——
+所以同一個圖示在 Windows 是 Segoe UI、在 iPhone 是 Helvetica、在 Android 又是別的。
+<strong>圖示會在不同手機長得不一樣。</strong><br><br>
+新版把每個字母改成<strong>幾何路徑</strong>（直線與橢圓弧），完全不依賴字型，
+所有裝置上都一模一樣。而且線寬、字距、高度全部量過對齊。
+</div>
+<div class="card">
+  <div class="row">
+    <div class="it"><img class="p120" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48dGV4dCB4PSIzMiIgeT0iNDEuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0YyRjJFRiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLEhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmb250LXdlaWdodD0iODAwIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5QQ0k8L3RleHQ+PC9zdmc+" alt=""><span>舊：系統字型</span></div>
+    <div class="it"><img class="p120" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGMkYyRUYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOC41IDQzIFYyMSBIMTMuNSBBNiA2IDAgMCAxIDEzLjUgMzMgSDguNSIvPjxwYXRoIGQ9Ik00My42NSAyNC45IEE3IDExIDAgMSAwIDQzLjY1IDM5LjEiLz48cGF0aCBkPSJNNTUuNSAyMSBWNDMiLz48L2c+PC9zdmc+" alt=""><span>新：幾何路徑</span></div>
+  </div>
+  <table>
+    <tr><th>量測項目</th><th>結果</th></tr>
+    <tr><td>三個字母的視覺高度</td><td>28 / 28 / 28（完全一致）</td></tr>
+    <tr><td>左右邊距</td><td>5.5 / 5.5（置中）</td></tr>
+    <tr><td>C 的字形</td><td>橢圓弧，不是正圓——真字型裡 C 本來就比圓形窄</td></tr>
+  </table>
+</div>
+
+<h2>② 「PCI GA」可以放進去——但要分成兩個檔案</h2>
+<div class="note">
+分頁圖示只有 <strong>16×16</strong>。「PCI」三個字每個約 3.8px 已是極限，
+再加「GA」會變成一團灰糊。<br><br>
+<strong>但這兩個尺寸本來就可以用不同的圖。</strong>
+瀏覽器與手機會依尺寸各自挑檔案——這是標準做法，不是取巧。
+</div>
+<div class="cols">
+  <div class="card">
+    <h3 style="font-size:16px">小尺寸 · 只放 PCI</h3>
+    <p style="font-size:13px;color:var(--muted)">瀏覽器分頁、書籤</p>
+    <div class="row">
+      <div class="it"><img class="p16" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGMkYyRUYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOC41IDQzIFYyMSBIMTMuNSBBNiA2IDAgMCAxIDEzLjUgMzMgSDguNSIvPjxwYXRoIGQ9Ik00My42NSAyNC45IEE3IDExIDAgMSAwIDQzLjY1IDM5LjEiLz48cGF0aCBkPSJNNTUuNSAyMSBWNDMiLz48L2c+PC9zdmc+" alt=""><span>16px</span></div>
+      <div class="it"><img class="p32" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGMkYyRUYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOC41IDQzIFYyMSBIMTMuNSBBNiA2IDAgMCAxIDEzLjUgMzMgSDguNSIvPjxwYXRoIGQ9Ik00My42NSAyNC45IEE3IDExIDAgMSAwIDQzLjY1IDM5LjEiLz48cGF0aCBkPSJNNTUuNSAyMSBWNDMiLz48L2c+PC9zdmc+" alt=""><span>32px</span></div>
+      <div class="it"><img class="p64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGMkYyRUYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOC41IDQzIFYyMSBIMTMuNSBBNiA2IDAgMCAxIDEzLjUgMzMgSDguNSIvPjxwYXRoIGQ9Ik00My42NSAyNC45IEE3IDExIDAgMSAwIDQzLjY1IDM5LjEiLz48cGF0aCBkPSJNNTUuNSAyMSBWNDMiLz48L2c+PC9zdmc+" alt=""><span>64px</span></div>
+    </div>
+    <div class="tabbar"><div class="tab"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGMkYyRUYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOC41IDQzIFYyMSBIMTMuNSBBNiA2IDAgMCAxIDEzLjUgMzMgSDguNSIvPjxwYXRoIGQ9Ik00My42NSAyNC45IEE3IDExIDAgMSAwIDQzLjY1IDM5LjEiLz48cGF0aCBkPSJNNTUuNSAyMSBWNDMiLz48L2c+PC9zdmc+" alt=""><b>Kantin PCI</b></div></div>
+  </div>
+  <div class="card">
+    <h3 style="font-size:16px">大尺寸 · PCI GA 兩行</h3>
+    <p style="font-size:13px;color:var(--muted)">手機主畫面、App 切換畫面</p>
+    <div class="row">
+      <div class="it"><img class="p64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4Ljk0IC0xLjQ2KSBzY2FsZSgwLjcyKSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjJGMkVGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTguNSA0MyBWMjEgSDEzLjUgQTYgNiAwIDAgMSAxMy41IDMzIEg4LjUiLz48cGF0aCBkPSJNNDMuNjUgMjQuOSBBNyAxMSAwIDEgMCA0My42NSAzOS4xIi8+PHBhdGggZD0iTTU1LjUgMjEgVjQzIi8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIxLjA1IDMwLjgpIHNjYWxlKDAuNDI4NikiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0YyRjJFRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xNS45IDI0LjkgQTcgMTEgMCAxIDAgMTYuNSAzOCBMMTYuNSAzMiBMMTEgMzIiLz48cGF0aCBkPSJNMzIuNSA0NiBMNDAgMTggTDQ3LjUgNDYiLz48cGF0aCBkPSJNMzQuOSAzNyBINDUuMSIvPjwvZz48L3N2Zz4=" alt=""><span>64px</span></div>
+      <div class="it"><img class="p120" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4Ljk0IC0xLjQ2KSBzY2FsZSgwLjcyKSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjJGMkVGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTguNSA0MyBWMjEgSDEzLjUgQTYgNiAwIDAgMSAxMy41IDMzIEg4LjUiLz48cGF0aCBkPSJNNDMuNjUgMjQuOSBBNyAxMSAwIDEgMCA0My42NSAzOS4xIi8+PHBhdGggZD0iTTU1LjUgMjEgVjQzIi8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIxLjA1IDMwLjgpIHNjYWxlKDAuNDI4NikiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0YyRjJFRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xNS45IDI0LjkgQTcgMTEgMCAxIDAgMTYuNSAzOCBMMTYuNSAzMiBMMTEgMzIiLz48cGF0aCBkPSJNMzIuNSA0NiBMNDAgMTggTDQ3LjUgNDYiLz48cGF0aCBkPSJNMzQuOSAzNyBINDUuMSIvPjwvZz48L3N2Zz4=" alt=""><span>120px</span></div>
+    </div>
+  </div>
+</div>
+
+<h2>③ 名稱：我建議跟你想的相反</h2>
+<div class="note">
+你提議「app 名稱＝PCI GA、圖示內文字＝Kantin PCI」。<strong>我建議反過來。</strong><br><br>
+<strong>圖示只有 2–3 個字的空間</strong>，所以要放最短、最獨特的識別＝<code>PCI</code>（大尺寸再加 GA）。
+<code>Kantin PCI</code> 是 10 個字，放進 16px 的方塊裡一定糊。<br><br>
+<strong>而圖示下面那行字是作業系統畫的，永遠清楚。</strong>
+它應該回答「這是什麼」——員工的主畫面上有幾十個 app，
+看到 <code>PCI GA</code> 他不會知道那是餐廳回報；看到 <code>Kantin PCI</code> 就知道。<br><br>
+這跟頁首「機構標記 + 產品名」是同一個邏輯：<strong>圖示放機構、名稱放產品。</strong>
+</div>
+<div class="cols">
+  <div class="card">
+    <h3 style="font-size:16px">我建議：名稱＝Kantin PCI</h3>
+    <div class="home">
+      <div class="app"><span class="fk"></span><small>WhatsApp</small></div>
+      <div class="app"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4Ljk0IC0xLjQ2KSBzY2FsZSgwLjcyKSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjJGMkVGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTguNSA0MyBWMjEgSDEzLjUgQTYgNiAwIDAgMSAxMy41IDMzIEg4LjUiLz48cGF0aCBkPSJNNDMuNjUgMjQuOSBBNyAxMSAwIDEgMCA0My42NSAzOS4xIi8+PHBhdGggZD0iTTU1LjUgMjEgVjQzIi8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIxLjA1IDMwLjgpIHNjYWxlKDAuNDI4NikiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0YyRjJFRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xNS45IDI0LjkgQTcgMTEgMCAxIDAgMTYuNSAzOCBMMTYuNSAzMiBMMTEgMzIiLz48cGF0aCBkPSJNMzIuNSA0NiBMNDAgMTggTDQ3LjUgNDYiLz48cGF0aCBkPSJNMzQuOSAzNyBINDUuMSIvPjwvZz48L3N2Zz4=" alt=""><small>Kantin PCI</small></div>
+      <div class="app"><span class="fk b"></span><small>相機</small></div>
+      <div class="app"><span class="fk"></span><small>設定</small></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:10px">
+      一眼知道是餐廳的東西。</p>
+  </div>
+  <div class="card">
+    <h3 style="font-size:16px">你的提議：名稱＝PCI GA</h3>
+    <div class="home">
+      <div class="app"><span class="fk"></span><small>WhatsApp</small></div>
+      <div class="app"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxQTFBMUMiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4Ljk0IC0xLjQ2KSBzY2FsZSgwLjcyKSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjJGMkVGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTguNSA0MyBWMjEgSDEzLjUgQTYgNiAwIDAgMSAxMy41IDMzIEg4LjUiLz48cGF0aCBkPSJNNDMuNjUgMjQuOSBBNyAxMSAwIDEgMCA0My42NSAzOS4xIi8+PHBhdGggZD0iTTU1LjUgMjEgVjQzIi8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIxLjA1IDMwLjgpIHNjYWxlKDAuNDI4NikiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0YyRjJFRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xNS45IDI0LjkgQTcgMTEgMCAxIDAgMTYuNSAzOCBMMTYuNSAzMiBMMTEgMzIiLz48cGF0aCBkPSJNMzIuNSA0NiBMNDAgMTggTDQ3LjUgNDYiLz48cGF0aCBkPSJNMzQuOSAzNyBINDUuMSIvPjwvZz48L3N2Zz4=" alt=""><small>PCI GA</small></div>
+      <div class="app"><span class="fk b"></span><small>相機</small></div>
+      <div class="app"><span class="fk"></span><small>設定</small></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:10px">
+      圖示與名稱重複講同一件事，而「這是什麼」沒有人講。</p>
+  </div>
+</div>
+
+<div class="note ok">
+<strong>結論：</strong>圖示小尺寸放 <code>PCI</code>、大尺寸放 <code>PCI GA</code>，
+主畫面名稱用 <code>Kantin PCI</code>。三個位置各自講不同的事，沒有一個浪費。
+</div>
+</div></body></html>
