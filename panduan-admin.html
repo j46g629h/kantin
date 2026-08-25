@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id" data-lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Admin · Kantin PCI</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!--
+  管理者操作手冊（第 6 階段）——⚠️ 目前是**模擬範例**，只做了第 1 章與第 3 章。
+
+  三個設計決定：
+
+  1. **雙語切換，跟 app 一模一樣的兩顆按鈕。**
+     管理端本來就是雙語的，而超級管理者讀中文、一般管理者可能讀印尼文。
+     只做一種語言必然有人看不懂。
+
+  2. **示意圖全部是手寫 SVG，不是截圖。**
+     管理端的真實畫面上有工號、姓名、員工寫的抱怨內容，
+     而這個 repo 是公開的——截圖等於把個資用圖片形式放上去，
+     而且圖片裡的字搜尋不到，日後想清也找不到。
+     示意圖裡的姓名工號全是編的。
+
+  3. **不吃 js/i18n.js。**
+     手冊的文字量很大，塞進 i18n 會讓 11,000 位員工每次開 app 都多載一份
+     他們永遠用不到的東西。這一頁自己帶兩種語言。
+
+  ⚠️ 手冊會過期。畫面改了它不會自己跟著改——
+     改動管理端畫面時，順手回來看一下這裡有沒有跟著錯。
+-->
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ==========================================================
+   雙語切換
+   ⚠️ 用 class 不用 [lang] 屬性——[lang="zh"] 會連 <html> 一起選到
+   ========================================================== */
+.tx-id, .tx-zh { display: none; }
+html[data-lang="id"] .tx-id { display: revert; }
+html[data-lang="zh"] .tx-zh { display: revert; }
+
+/* ==========================================================
+   版面
+   ========================================================== */
+body { background: var(--bg); }
+
+.doc {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* --- 頁首 --- */
+.doc-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 20px; padding: 26px 0 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 26px;
+}
+.doc-head .mark { display: flex; flex-direction: column; gap: 10px; }
+.doc-title { font-size: 27px; letter-spacing: -.02em; line-height: 1.25; }
+.doc-meta { font-size: 13px; color: var(--text-subtle); margin-top: 4px; }
+
+/* --- 範例說明橫幅（列印時不要）--- */
+.demo-note {
+  background: var(--warn-bg); color: #6E4200;
+  border-radius: 10px; padding: 14px 16px;
+  font-size: 14px; line-height: 1.75; margin-bottom: 28px;
+}
+.demo-note b { font-weight: 700; }
+
+/* --- 目錄 --- */
+.toc { margin-bottom: 40px; }
+.toc h2 { font-size: 15px; color: var(--text-subtle); letter-spacing: .06em; margin-bottom: 12px; }
+.toc ol { list-style: none; display: grid; gap: 2px; }
+.toc li {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 9px 12px; border-radius: 8px; font-size: 15px;
+}
+.toc li.ready { background: var(--surface); }
+.toc li.later { color: var(--text-subtle); }
+.toc .n { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-muted); min-width: 18px; }
+.toc a { color: inherit; text-decoration: none; font-weight: 600; }
+.toc a:hover { text-decoration: underline; }
+.toc .who {
+  margin-left: auto; font-size: 12px; padding: 2px 8px; border-radius: 20px;
+  background: var(--surface-alt); color: var(--text-muted); white-space: nowrap;
+}
+.toc li.later .who { background: transparent; border: 1px dashed var(--border-strong); }
+
+/* --- 章 --- */
+.chapter { margin-bottom: 52px; }
+.chapter > h2 {
+  font-size: 21px; letter-spacing: -.015em; margin-bottom: 6px;
+  padding-top: 8px;
+}
+.chapter > h2 .num {
+  display: inline-block; min-width: 1.9em;
+  color: var(--num); font-weight: 800;
+}
+.chapter .intro { color: var(--text-muted); line-height: 1.7; margin-bottom: 22px; }
+
+/* --- 步驟 --- */
+.step { display: grid; gap: 14px; margin-bottom: 30px; }
+.step-head { display: flex; align-items: baseline; gap: 12px; }
+.step-n {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--action); color: #F2F2EF;
+  font-size: 13px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  align-self: center;
+}
+.step-t { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.step-body { padding-left: 38px; }
+.step-body p { line-height: 1.75; margin-bottom: 8px; }
+.step-body ul { margin: 6px 0 8px 18px; line-height: 1.75; }
+
+/* --- 示意圖 --- */
+figure { margin: 14px 0 4px 38px; }
+figure svg {
+  display: block; width: 100%; height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.06);
+}
+figcaption {
+  font-size: 12.5px; color: var(--text-subtle);
+  margin-top: 8px; line-height: 1.6;
+}
+
+/* 圖上的編號圈圈：跟步驟編號長得不一樣，才不會被當成同一件事 */
+.callout circle { fill: var(--star); stroke: var(--star-edge); stroke-width: 1.6; }
+.callout text { fill: #2A1A00; font-size: 13px; font-weight: 800; text-anchor: middle; }
+
+/* --- 提示框 --- */
+.box {
+  border-radius: 10px; padding: 13px 16px; margin: 14px 0 14px 38px;
+  font-size: 14.5px; line-height: 1.75;
+}
+.box b { font-weight: 700; }
+.box.warn   { background: var(--warn-bg);   color: #6E4200; }
+.box.danger { background: var(--danger-bg); color: #7A1616; }
+.box.ok     { background: var(--ok-bg);     color: #04543D; }
+.box .tag { display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; font-weight: 600; }
+
+/* --- 語言按鈕（沿用 app 的樣式，只調大小）--- */
+.doc-head .lang-switch { margin: 0; flex: none; }
+
+/* ⚠️ 斷點一律寫 screen（CLAUDE.md 常見陷阱） */
+@media screen and (max-width: 620px) {
+  .doc { padding: 0 14px 60px; }
+  .doc-head { flex-direction: column; gap: 14px; }
+  .step-body, figure, .box { padding-left: 0; margin-left: 0; }
+}
+
+/* ==========================================================
+   列印：一章一頁，橫幅與目錄不印
+   ========================================================== */
+@page { size: A4 portrait; margin: 16mm 14mm; }
+@media print {
+  .demo-note, .lang-switch { display: none !important; }
+  .doc { max-width: none; padding: 0; }
+  .chapter { page-break-before: always; margin-bottom: 0; }
+  .chapter:first-of-type { page-break-before: auto; }
+  .step, figure { page-break-inside: avoid; }
+  figure svg { box-shadow: none; border: 1px solid var(--border-strong); }
+}
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+  <!-- ===================== 頁首 ===================== -->
+  <header class="doc-head">
+    <div class="mark">
+      <span class="wordmark"><b>PCI</b><i>GA</i></span>
+      <div>
+        <h1 class="doc-title">
+          <span class="tx-id">Panduan Admin — Suara Karyawan Kantin PCI</span>
+          <span class="tx-zh">管理者操作手冊 — PCI 員工餐廳回饋系統</span>
+        </h1>
+        <p class="doc-meta">
+          <span class="tx-id">Untuk aplikasi versi v3.1 · Diperbarui 25 Agustus 2026</span>
+          <span class="tx-zh">對應 app 版本 v3.1 · 2026 年 8 月 25 日更新</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="lang-switch">
+      <button type="button" class="lang-btn active" data-lang="id">Bahasa Indonesia</button>
+      <button type="button" class="lang-btn" data-lang="zh">中文</button>
+    </div>
+  </header>
+
+  <!-- ===================== 範例說明 ===================== -->
+  <div class="demo-note">
+    <span class="tx-zh">
+      ⚠️ <b>這是模擬範例，不是完成品。</b>
+      目前只做了<b>第 1 章</b>與<b>第 3 章（部分）</b>，用來確認三件事：
+      雙語切換好不好用、SVG 示意圖夠不夠清楚、版面讀起來順不順。
+      其餘五章的標題已經列在目錄裡，確認方向之後再一起補齊。
+    </span>
+    <span class="tx-id">
+      ⚠️ <b>Ini masih contoh, belum versi final.</b>
+      Baru <b>Bab 1</b> dan <b>Bab 3 (sebagian)</b> yang jadi — buat mastiin tiga hal:
+      tombol ganti bahasanya enak dipakai nggak, gambarnya cukup jelas nggak,
+      dan tata letaknya enak dibaca nggak. Bab lainnya sudah didaftar di daftar isi.
+    </span>
+  </div>
+
+  <!-- ===================== 目錄 ===================== -->
+  <nav class="toc">
+    <h2><span class="tx-id">DAFTAR ISI</span><span class="tx-zh">目錄</span></h2>
+    <ol>
+      <li class="ready">
+        <span class="n">1</span>
+        <a href="#bab1"><span class="tx-id">Login pertama kali &amp; ganti kata sandi</span><span class="tx-zh">第一次登入 · 變更密碼</span></a>
+        <span class="who"><span class="tx-id">Semua admin</span><span class="tx-zh">全部管理者</span></span>
+      </li>
+      <li class="later">
+        <span class="n">2</span>
+        <span><span class="tx-id">Membaca daftar laporan</span><span class="tx-zh">看懂案件列表</span></span>
+        <span class="who"><span class="tx-id">Menyusul</span><span class="tx-zh">預定</span></span>
+      </li>
+      <li class="ready">
+        <span class="n">3</span>
+        <a href="#bab3"><span class="tx-id">Membalas &amp; menyelesaikan laporan</span><span class="tx-zh">回覆案件 · 結案</span></a>
+        <span class="who"><span class="tx-id">Semua admin</span><span class="tx-zh">全部管理者</span></span>
+      </li>
+      <li class="later">
+        <span class="n">4</span>
+        <span><span class="tx-id">Email otomatis harian &amp; bulanan</span><span class="tx-zh">每天 / 每月的自動信</span></span>
+        <span class="who"><span class="tx-id">Menyusul</span><span class="tx-zh">預定</span></span>
+      </li>
+      <li class="later">
+        <span class="n">5</span>
+        <span><span class="tx-id">Dasbor statistik</span><span class="tx-zh">動態表</span></span>
+        <span class="who"><span class="tx-id">Super admin</span><span class="tx-zh">僅超級管理者</span></span>
+      </li>
+      <li class="later">
+        <span class="n">6</span>
+        <span><span class="tx-id">Mengelola akun admin</span><span class="tx-zh">帳號管理</span></span>
+        <span class="who"><span class="tx-id">Super admin</span><span class="tx-zh">僅超級管理者</span></span>
+      </li>
+      <li class="later">
+        <span class="n">7</span>
+        <span><span class="tx-id">Pertanyaan yang sering muncul</span><span class="tx-zh">常見問題</span></span>
+        <span class="who"><span class="tx-id">Menyusul</span><span class="tx-zh">預定</span></span>
+      </li>
+    </ol>
+  </nav>
+
+
+  <!-- ===================== 第 1 章 ===================== -->
+  <section class="chapter" id="bab1">
+    <h2><span class="num">1</span><span class="tx-id">Login pertama kali &amp; ganti kata sandi</span><span class="tx-zh">第一次登入 · 變更密碼</span></h2>
+    <p class="intro">
+      <span class="tx-id">Kata sandi pertama kamu dibuat otomatis oleh sistem dan diberikan lewat super admin. Kata sandi itu <b>bukan buat dipakai terus</b> — begitu kamu masuk, sistem langsung minta kamu bikin kata sandi sendiri.</span>
+      <span class="tx-zh">你的第一組密碼是系統隨機產生、由超級管理者轉交給你的。那組密碼<b>不是拿來一直用的</b>——一登入，系統就會要求你設定自己的密碼。</span>
+    </p>
+
+    <!-- 步驟 1 -->
+    <div class="step">
+      <div class="step-head">
+        <span class="step-n">1</span>
+        <span class="step-t"><span class="tx-id">Buka halaman login</span><span class="tx-zh">打開登入頁</span></span>
+      </div>
+      <div class="step-body">
+        <p>
+          <span class="tx-id">Buka <b>j46g629h.github.io/kantin/</b>, lalu klik <b>“Login Admin”</b> di paling bawah halaman.</span>
+          <span class="tx-zh">打開 <b>j46g629h.github.io/kantin/</b>，捲到頁面最下方，點<b>「管理者登入」</b>。</span>
+        </p>
+        <p>
+          <span class="tx-id">Simpan halaman ini di bookmark biar nggak usah cari-cari lagi.</span>
+          <span class="tx-zh">建議把這一頁加到書籤，之後不用再找。</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 步驟 2 + 圖 -->
+    <div class="step">
+      <div class="step-head">
+        <span class="step-n">2</span>
+        <span class="step-t"><span class="tx-id">Masukkan akun &amp; kata sandi awal</span><span class="tx-zh">輸入帳號與初始密碼</span></span>
+      </div>
+      <div class="step-body">
+        <p>
+          <span class="tx-id">Akun dan kata sandi awal dikasih sama super admin.</span>
+          <span class="tx-zh">帳號與初始密碼由超級管理者提供。</span>
+        </p>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Login">
+          <rect width="720" height="430" rx="10" fill="#EFEFED"/>
+          <!-- 瀏覽器外框 -->
+          <rect x="0" y="0" width="720" height="34" rx="10" fill="#E2E2E0"/>
+          <rect x="0" y="24" width="720" height="10" fill="#E2E2E0"/>
+          <circle cx="20" cy="17" r="4.5" fill="#C6C6C2"/><circle cx="36" cy="17" r="4.5" fill="#C6C6C2"/><circle cx="52" cy="17" r="4.5" fill="#C6C6C2"/>
+          <rect x="72" y="8" width="330" height="18" rx="9" fill="#F5F5F3"/>
+          <text x="84" y="21" font-size="11" fill="#8C8C86">j46g629h.github.io/kantin/admin.html</text>
+
+          <!-- 卡片 -->
+          <rect x="196" y="66" width="328" height="330" rx="14" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.5"/>
+          <!-- 標誌 -->
+          <rect x="228" y="94" width="42" height="19" rx="4" fill="#1A1A1C"/>
+          <text x="249" y="108" font-size="12" font-weight="800" fill="#F2F2EF" text-anchor="middle">PCI</text>
+          <rect x="276" y="94" width="27" height="19" rx="4" fill="none" stroke="#80807A" stroke-width="1.2"/>
+          <text x="290" y="108" font-size="10" fill="#53535A" text-anchor="middle">GA</text>
+
+          <text x="228" y="146" font-size="17" font-weight="700" fill="#1A1A1D" class="tx-id">Login Admin</text>
+          <text x="228" y="146" font-size="17" font-weight="700" fill="#1A1A1D" class="tx-zh">管理者登入</text>
+          <text x="228" y="168" font-size="11.5" fill="#53535A" class="tx-id">Halaman ini khusus untuk pengelola kantin</text>
+          <text x="228" y="168" font-size="11.5" fill="#53535A" class="tx-zh">這個頁面只給餐廳管理者使用</text>
+
+          <!-- 帳號 -->
+          <text x="228" y="204" font-size="11.5" font-weight="600" fill="#1A1A1D" class="tx-id">Akun</text>
+          <text x="228" y="204" font-size="11.5" font-weight="600" fill="#1A1A1D" class="tx-zh">帳號</text>
+          <rect x="228" y="212" width="264" height="34" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <text x="240" y="234" font-size="12.5" fill="#1A1A1D">budi.santoso</text>
+
+          <!-- 密碼 -->
+          <text x="228" y="272" font-size="11.5" font-weight="600" fill="#1A1A1D" class="tx-id">Kata Sandi</text>
+          <text x="228" y="272" font-size="11.5" font-weight="600" fill="#1A1A1D" class="tx-zh">密碼</text>
+          <rect x="228" y="280" width="264" height="34" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <g fill="#53535A"><circle cx="243" cy="297" r="3.2"/><circle cx="255" cy="297" r="3.2"/><circle cx="267" cy="297" r="3.2"/><circle cx="279" cy="297" r="3.2"/><circle cx="291" cy="297" r="3.2"/><circle cx="303" cy="297" r="3.2"/><circle cx="315" cy="297" r="3.2"/><circle cx="327" cy="297" r="3.2"/></g>
+
+          <!-- 按鈕 -->
+          <rect x="228" y="336" width="264" height="38" rx="9" fill="#1A1A1C"/>
+          <text x="360" y="360" font-size="13.5" font-weight="700" fill="#F2F2EF" text-anchor="middle" class="tx-id">Masuk</text>
+          <text x="360" y="360" font-size="13.5" font-weight="700" fill="#F2F2EF" text-anchor="middle" class="tx-zh">登入</text>
+
+          <!-- 編號 -->
+          <g class="callout">
+            <circle cx="512" cy="229" r="13"/><text x="512" y="234">1</text>
+            <circle cx="512" cy="297" r="13"/><text x="512" y="302">2</text>
+            <circle cx="512" cy="355" r="13"/><text x="512" y="360">3</text>
+          </g>
+        </svg>
+        <figcaption>
+          <span class="tx-id"><b>1</b> Akun (huruf kecil semua, tanpa spasi) · <b>2</b> Kata sandi awal dari super admin · <b>3</b> Klik Masuk</span>
+          <span class="tx-zh"><b>1</b> 帳號（全小寫、不含空白）· <b>2</b> 超級管理者給你的初始密碼 · <b>3</b> 按登入</span>
+        </figcaption>
+      </figure>
+
+      <div class="box danger">
+        <span class="tag"><span class="tx-id">Hati-hati</span><span class="tx-zh">注意</span></span>
+        <span class="tx-id">Kalau kata sandi salah <b>5 kali</b>, akun terkunci <b>15 menit</b>. Bukan rusak — tunggu aja, nanti bisa lagi.</span>
+        <span class="tx-zh">密碼輸錯 <b>5 次</b>會被鎖 <b>15 分鐘</b>。那不是壞掉，等一下就可以再試。</span>
+      </div>
+    </div>
+
+    <!-- 步驟 3 + 圖 -->
+    <div class="step">
+      <div class="step-head">
+        <span class="step-n">3</span>
+        <span class="step-t"><span class="tx-id">Bikin kata sandi sendiri (wajib)</span><span class="tx-zh">設定自己的密碼（必做）</span></span>
+      </div>
+      <div class="step-body">
+        <p>
+          <span class="tx-id">Setelah berhasil masuk, layar ini muncul otomatis. <b>Nggak bisa dilewati</b> — dan itu memang disengaja: kata sandi awal itu dibuat orang lain, jadi bukan cuma kamu yang tahu.</span>
+          <span class="tx-zh">登入成功後這個畫面會自動出現，<b>不能跳過</b>——這是刻意的：初始密碼是別人設定的，不是只有你知道。</span>
+        </p>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ganti kata sandi">
+          <rect width="720" height="400" rx="10" fill="#EFEFED"/>
+          <rect x="0" y="0" width="720" height="34" rx="10" fill="#E2E2E0"/>
+          <rect x="0" y="24" width="720" height="10" fill="#E2E2E0"/>
+          <circle cx="20" cy="17" r="4.5" fill="#C6C6C2"/><circle cx="36" cy="17" r="4.5" fill="#C6C6C2"/><circle cx="52" cy="17" r="4.5" fill="#C6C6C2"/>
+
+          <rect x="196" y="56" width="328" height="316" rx="14" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.5"/>
+
+          <text x="228" y="92" font-size="16" font-weight="700" fill="#1A1A1D" class="tx-id">Ganti Kata Sandi</text>
+          <text x="228" y="92" font-size="16" font-weight="700" fill="#1A1A1D" class="tx-zh">變更密碼</text>
+          <text x="228" y="113" font-size="11" fill="#53535A" class="tx-id">Ini login pertama kamu, buat kata sandi sendiri dulu</text>
+          <text x="228" y="113" font-size="11" fill="#53535A" class="tx-zh">這是你第一次登入，請先設定自己的密碼</text>
+
+          <!-- 三個欄位 -->
+          <g fill="#1A1A1D" font-size="11" font-weight="600">
+            <text x="228" y="142" class="tx-id">Kata sandi lama</text><text x="228" y="142" class="tx-zh">舊密碼</text>
+            <text x="228" y="200" class="tx-id">Kata sandi baru</text><text x="228" y="200" class="tx-zh">新密碼</text>
+            <text x="228" y="282" class="tx-id">Ulangi kata sandi baru</text><text x="228" y="282" class="tx-zh">再輸入一次新密碼</text>
+          </g>
+          <rect x="228" y="150" width="264" height="32" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <rect x="228" y="208" width="264" height="32" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <rect x="228" y="290" width="264" height="32" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <g fill="#53535A">
+            <circle cx="243" cy="166" r="3"/><circle cx="254" cy="166" r="3"/><circle cx="265" cy="166" r="3"/><circle cx="276" cy="166" r="3"/><circle cx="287" cy="166" r="3"/><circle cx="298" cy="166" r="3"/>
+            <circle cx="243" cy="224" r="3"/><circle cx="254" cy="224" r="3"/><circle cx="265" cy="224" r="3"/><circle cx="276" cy="224" r="3"/><circle cx="287" cy="224" r="3"/><circle cx="298" cy="224" r="3"/><circle cx="309" cy="224" r="3"/><circle cx="320" cy="224" r="3"/><circle cx="331" cy="224" r="3"/>
+            <circle cx="243" cy="306" r="3"/><circle cx="254" cy="306" r="3"/><circle cx="265" cy="306" r="3"/><circle cx="276" cy="306" r="3"/><circle cx="287" cy="306" r="3"/><circle cx="298" cy="306" r="3"/><circle cx="309" cy="306" r="3"/><circle cx="320" cy="306" r="3"/><circle cx="331" cy="306" r="3"/>
+          </g>
+
+          <!-- 規則提示 -->
+          <rect x="228" y="248" width="264" height="28" rx="6" fill="#FBF2E3"/>
+          <text x="240" y="266" font-size="10.5" fill="#6E4200" class="tx-id">Minimal 8 karakter, ada huruf dan angka</text>
+          <text x="240" y="266" font-size="10.5" fill="#6E4200" class="tx-zh">至少 8 個字，要有英文字母和數字</text>
+
+          <rect x="228" y="336" width="264" height="20" rx="0" fill="none"/>
+          <g class="callout">
+            <circle cx="512" cy="166" r="13"/><text x="512" y="171">1</text>
+            <circle cx="512" cy="224" r="13"/><text x="512" y="229">2</text>
+            <circle cx="512" cy="306" r="13"/><text x="512" y="311">3</text>
+          </g>
+        </svg>
+        <figcaption>
+          <span class="tx-id"><b>1</b> Kata sandi awal tadi · <b>2</b> Kata sandi baru buatan kamu · <b>3</b> Ketik ulang yang sama</span>
+          <span class="tx-zh"><b>1</b> 剛才那組初始密碼 · <b>2</b> 你自己想的新密碼 · <b>3</b> 再打一次一樣的</span>
+        </figcaption>
+      </figure>
+
+      <div class="box warn">
+        <span class="tag"><span class="tx-id">Penting</span><span class="tx-zh">重要</span></span>
+        <span class="tx-id">Kata sandi kamu <b>nggak bisa dilihat siapa pun</b>, termasuk super admin — sistem cuma simpan hasil acakannya, bukan kata sandinya. Kalau lupa, minta super admin <b>reset</b>, nanti dapat kata sandi baru dan ulangi langkah 3 ini.</span>
+        <span class="tx-zh">你的密碼<b>沒有任何人看得到</b>，包含超級管理者——系統只存加密過的結果，不存密碼本身。忘記的話請超級管理者<b>重設</b>，你會拿到一組新的初始密碼，再走一次上面的步驟 3。</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===================== 第 3 章 ===================== -->
+  <section class="chapter" id="bab3">
+    <h2><span class="num">3</span><span class="tx-id">Membalas &amp; menyelesaikan laporan</span><span class="tx-zh">回覆案件 · 結案</span></h2>
+    <p class="intro">
+      <span class="tx-id">Karyawan bisa lihat sendiri balasan kamu lewat halaman “Cek Laporan”. Jadi yang kamu tulis di sini <b>memang dibaca orangnya</b> — bukan catatan internal.</span>
+      <span class="tx-zh">員工可以在「查詢案件」頁看到你的回覆。所以這裡寫的東西<b>對方真的會看到</b>——不是內部備註。</span>
+    </p>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-n">1</span>
+        <span class="step-t"><span class="tx-id">Klik laporannya biar kebuka</span><span class="tx-zh">點案件把它展開</span></span>
+      </div>
+      <div class="step-body">
+        <p>
+          <span class="tx-id">Baris yang <b>merah</b> artinya sudah lewat batas waktu dan belum diproses. Itu yang didahulukan.</span>
+          <span class="tx-zh">整列<b>標紅</b>的是逾期未處理的案件，優先處理那些。</span>
+        </p>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Daftar laporan">
+          <rect width="720" height="300" rx="10" fill="#EFEFED"/>
+
+          <!-- 三張統計卡 -->
+          <g>
+            <rect x="24" y="22" width="212" height="62" rx="10" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.3"/>
+            <text x="40" y="46" font-size="11" fill="#53535A" class="tx-id">Belum Diproses</text>
+            <text x="40" y="46" font-size="11" fill="#53535A" class="tx-zh">未處理</text>
+            <text x="40" y="72" font-size="22" font-weight="800" fill="#A81E1E">4</text>
+
+            <rect x="254" y="22" width="212" height="62" rx="10" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.3"/>
+            <text x="270" y="46" font-size="11" fill="#53535A" class="tx-id">Sedang Diproses</text>
+            <text x="270" y="46" font-size="11" fill="#53535A" class="tx-zh">處理中</text>
+            <text x="270" y="72" font-size="22" font-weight="800" fill="#8A5300">2</text>
+
+            <rect x="484" y="22" width="212" height="62" rx="10" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.3"/>
+            <text x="500" y="46" font-size="11" fill="#53535A" class="tx-id">Selesai</text>
+            <text x="500" y="46" font-size="11" fill="#53535A" class="tx-zh">已結案</text>
+            <text x="500" y="72" font-size="22" font-weight="800" fill="#046C4E">17</text>
+          </g>
+
+          <!-- 逾期那一列 -->
+          <rect x="24" y="106" width="672" height="58" rx="10" fill="#FBEDEC" stroke="#F3CFCD" stroke-width="1.4"/>
+          <text x="42" y="130" font-size="12.5" font-weight="700" fill="#7A1616">PCI-202608-014</text>
+          <text x="42" y="150" font-size="11" fill="#8E3232">Kantin 2 · Menu Siang · Kebersihan</text>
+          <text x="676" y="130" font-size="11" font-weight="700" fill="#A81E1E" text-anchor="end" class="tx-id">Sudah 5 hari belum diproses</text>
+          <text x="676" y="130" font-size="11" font-weight="700" fill="#A81E1E" text-anchor="end" class="tx-zh">已 5 天未處理</text>
+          <g fill="#F2A007" stroke="#7A4E00" stroke-width=".7">
+            <path d="M600 142l1.5 3 3.3.5-2.4 2.3.6 3.3-3-1.6-3 1.6.6-3.3-2.4-2.3 3.3-.5z"/>
+            <path d="M616 142l1.5 3 3.3.5-2.4 2.3.6 3.3-3-1.6-3 1.6.6-3.3-2.4-2.3 3.3-.5z"/>
+          </g>
+
+          <!-- 一般列 -->
+          <rect x="24" y="176" width="672" height="58" rx="10" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.3"/>
+          <text x="42" y="200" font-size="12.5" font-weight="700" fill="#1A1A1D">PCI-202608-015</text>
+          <text x="42" y="220" font-size="11" fill="#53535A">Kantin 4 · Menu Malam · Rasa</text>
+          <rect x="596" y="190" width="80" height="20" rx="10" fill="#FBF2E3"/>
+          <text x="636" y="204" font-size="10" fill="#6E4200" text-anchor="middle" class="tx-id">Diproses</text>
+          <text x="636" y="204" font-size="10" fill="#6E4200" text-anchor="middle" class="tx-zh">處理中</text>
+
+          <g class="callout">
+            <circle cx="700" cy="135" r="13"/><text x="700" y="140">1</text>
+          </g>
+        </svg>
+        <figcaption>
+          <span class="tx-id"><b>1</b> Baris merah = terlambat, dahulukan yang ini</span>
+          <span class="tx-zh"><b>1</b> 紅色的列 = 逾期，優先處理</span>
+        </figcaption>
+      </figure>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-n">2</span>
+        <span class="step-t"><span class="tx-id">Pilih status, tulis balasan, lalu simpan</span><span class="tx-zh">選狀態、寫回覆、按儲存</span></span>
+      </div>
+      <div class="step-body">
+        <p>
+          <span class="tx-id">Kalau nggak mau ngetik dari nol, klik salah satu <b>Balasan cepat</b> — isinya otomatis masuk dan masih bisa kamu ubah.</span>
+          <span class="tx-zh">不想從頭打字的話，點一下<b>回覆範本</b>，內容會自動帶入，帶入後還可以改。</span>
+        </p>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Form balasan">
+          <rect width="720" height="400" rx="10" fill="#EFEFED"/>
+          <rect x="24" y="20" width="672" height="360" rx="12" fill="#F9F9F8" stroke="#DEDEDD" stroke-width="1.5"/>
+
+          <text x="46" y="52" font-size="14" font-weight="700" fill="#1A1A1D" class="tx-id">Proses laporan ini</text>
+          <text x="46" y="52" font-size="14" font-weight="700" fill="#1A1A1D" class="tx-zh">處理這則回報</text>
+
+          <!-- 員工語言提示 -->
+          <rect x="46" y="66" width="330" height="24" rx="6" fill="#E7F5EE"/>
+          <text x="58" y="82" font-size="10.5" fill="#04543D" class="tx-id">Karyawan ini lapor pakai Bahasa Indonesia</text>
+          <text x="58" y="82" font-size="10.5" fill="#04543D" class="tx-zh">這位員工用印尼文回報</text>
+
+          <!-- 狀態 -->
+          <text x="46" y="118" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-id">Status</text>
+          <text x="46" y="118" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-zh">狀態</text>
+          <rect x="46" y="126" width="230" height="32" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <text x="58" y="147" font-size="12" fill="#1A1A1D" class="tx-id">Sedang Diproses</text>
+          <text x="58" y="147" font-size="12" fill="#1A1A1D" class="tx-zh">處理中</text>
+          <path d="M256 138l5 6 5-6" stroke="#53535A" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+
+          <!-- 範本 -->
+          <text x="46" y="186" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-id">Balasan cepat</text>
+          <text x="46" y="186" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-zh">回覆範本</text>
+          <g>
+            <rect x="46" y="194" width="150" height="26" rx="13" fill="#EFEFED" stroke="#CBCBCA" stroke-width="1.2"/>
+            <text x="121" y="211" font-size="10.5" fill="#1A1A1D" text-anchor="middle" class="tx-id">Sudah kami cek</text>
+            <text x="121" y="211" font-size="10.5" fill="#1A1A1D" text-anchor="middle" class="tx-zh">已經確認過了</text>
+            <rect x="204" y="194" width="164" height="26" rx="13" fill="#EFEFED" stroke="#CBCBCA" stroke-width="1.2"/>
+            <text x="286" y="211" font-size="10.5" fill="#1A1A1D" text-anchor="middle" class="tx-id">Diteruskan ke dapur</text>
+            <text x="286" y="211" font-size="10.5" fill="#1A1A1D" text-anchor="middle" class="tx-zh">已轉給廚房</text>
+          </g>
+
+          <!-- 回覆內容 -->
+          <text x="46" y="248" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-id">Isi balasan</text>
+          <text x="46" y="248" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-zh">回覆內容</text>
+          <rect x="46" y="256" width="410" height="72" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <text x="58" y="278" font-size="11.5" fill="#1A1A1D" class="tx-id">Sudah kami cek. Mulai minggu ini sayur</text>
+          <text x="58" y="278" font-size="11.5" fill="#1A1A1D" class="tx-zh">已經確認過了。這週開始青菜每 30 分鐘</text>
+          <text x="58" y="296" font-size="11.5" fill="#1A1A1D" class="tx-id">diganti tiap 30 menit.</text>
+          <text x="58" y="296" font-size="11.5" fill="#1A1A1D" class="tx-zh">更換一次。</text>
+
+          <!-- 指派 -->
+          <text x="480" y="118" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-id">Tugaskan ke</text>
+          <text x="480" y="118" font-size="11" font-weight="600" fill="#1A1A1D" class="tx-zh">指派處理者</text>
+          <rect x="480" y="126" width="194" height="32" rx="7" fill="#fff" stroke="#80807A" stroke-width="1.3"/>
+          <text x="492" y="147" font-size="12" fill="#1A1A1D">Pak Agus · 2201</text>
+          <path d="M654 138l5 6 5-6" stroke="#53535A" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+
+          <!-- 儲存 -->
+          <rect x="480" y="256" width="194" height="38" rx="9" fill="#1A1A1C"/>
+          <text x="577" y="280" font-size="13" font-weight="700" fill="#F2F2EF" text-anchor="middle" class="tx-id">Simpan</text>
+          <text x="577" y="280" font-size="13" font-weight="700" fill="#F2F2EF" text-anchor="middle" class="tx-zh">儲存</text>
+
+          <g class="callout">
+            <circle cx="300" cy="142" r="13"/><text x="300" y="147">1</text>
+            <circle cx="392" cy="207" r="13"/><text x="392" y="212">2</text>
+            <circle cx="480" cy="292" r="13"/><text x="480" y="297">3</text>
+            <circle cx="700" cy="142" r="13"/><text x="700" y="147">4</text>
+            <circle cx="577" cy="318" r="13"/><text x="577" y="323">5</text>
+          </g>
+        </svg>
+        <figcaption>
+          <span class="tx-id"><b>1</b> Pilih status · <b>2</b> Balasan cepat (opsional) · <b>3</b> Isi balasan · <b>4</b> Tugaskan ke petugas (opsional) · <b>5</b> Simpan</span>
+          <span class="tx-zh"><b>1</b> 選狀態 · <b>2</b> 回覆範本（選用）· <b>3</b> 寫回覆 · <b>4</b> 指派處理者（選用）· <b>5</b> 儲存</span>
+        </figcaption>
+      </figure>
+
+      <div class="box warn">
+        <span class="tag"><span class="tx-id">Wajib</span><span class="tx-zh">必填</span></span>
+        <span class="tx-id">Status <b>“Sedang Diproses”</b> dan <b>“Selesai”</b> wajib ada isi balasannya. Kalau kosong, sistem nggak mau simpan — karena karyawan cuma lihat status berubah tanpa tahu apa yang terjadi.</span>
+        <span class="tx-zh">狀態選<b>「處理中」</b>或<b>「已結案」</b>時，一定要填回覆內容，沒填的話存不進去——因為員工只會看到狀態變了，卻不知道發生什麼事。</span>
+      </div>
+
+      <div class="box ok">
+        <span class="tag"><span class="tx-id">Tips</span><span class="tx-zh">小提醒</span></span>
+        <span class="tx-id">Balas pakai bahasa yang dipakai karyawan itu (ada tulisannya di atas form). Kalau dia lapor pakai Bahasa Indonesia tapi dibalas pakai Mandarin, dia nggak ngerti.</span>
+        <span class="tx-zh">用員工回報時使用的語言回覆（表單上方會寫）。他用印尼文寫、你用中文回，他看不懂。</span>
+      </div>
+
+      <div class="box">
+        <span class="tag" style="color:var(--text-muted)"><span class="tx-id">Beda “petugas” dan “admin”</span><span class="tx-zh">「處理者」和「管理者」不一樣</span></span>
+        <span class="tx-id" style="color:var(--text-muted)"><b>Petugas</b> itu orang yang benar-benar turun tangan di lapangan (kepala dapur, tim kebersihan, teknisi). Mereka <b>nggak punya akun</b> dan nggak buka aplikasi ini — namanya cuma dicatat sebagai penanggung jawab. Daftarnya diatur di Google Sheet, bukan di halaman kelola akun.</span>
+        <span class="tx-zh" style="color:var(--text-muted)"><b>處理者</b>是現場實際派工的人（廚房主管、清潔組長、維修人員）。他們<b>沒有帳號</b>，也不會打開這個 app——只是被記錄為某件案子的負責人。名單在 Google Sheet 裡維護，不在帳號管理頁。</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/**
+ * 語言切換。
+ *
+ * 記在 localStorage，跟 app 用同一個鍵——
+ * 管理者在 app 裡選了中文，打開手冊也會是中文，不用再選一次。
+ */
+const LANG_KEY = 'kantin_lang';
+
+function setLang(lang) {
+  const value = lang === 'zh' ? 'zh' : 'id';
+  document.documentElement.dataset.lang = value;
+  document.documentElement.lang = value === 'zh' ? 'zh-Hant' : 'id';
+  document.title = value === 'zh' ? '管理者操作手冊 · Kantin PCI' : 'Panduan Admin · Kantin PCI';
+
+  document.querySelectorAll('.lang-btn').forEach(function (btn) {
+    btn.classList.toggle('active', btn.dataset.lang === value);
+  });
+
+  try { localStorage.setItem(LANG_KEY, value); } catch (e) { /* 無痕視窗，記不住就算了 */ }
+}
+
+document.querySelectorAll('.lang-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () { setLang(btn.dataset.lang); });
+});
+
+let saved = null;
+try { saved = localStorage.getItem(LANG_KEY); } catch (e) { /* 同上 */ }
+setLang(saved || 'id');
+</script>
+
+</body>
+</html>
