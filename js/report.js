@@ -192,14 +192,16 @@ function renderMeals() {
 function applyDefaultMeal() {
   if (state.meal) return;                       // 已經選過就不要蓋掉
 
-  const hour = new Date().getHours();
-  const match = MEAL_TIME_RANGES.find((r) => hour >= r.from && hour < r.to);
-  if (!match) return;
+  // 判斷邏輯在 js/config.js（跟供餐時段放在一起，改時間只要動一個檔案）
+  const code = mealCodeAt(new Date());
+  if (!code) return;                            // 不在任何區間內就不預選
 
-  const exists = (state.options.MEAL || []).some((o) => o.code === match.code);
+  // 選項是從 Sheet 讀的，管理者可能把某一餐停用了。
+  // 預選一個畫面上根本沒有的按鈕，會變成「必填卻選不到」
+  const exists = (state.options.MEAL || []).some((o) => o.code === code);
   if (!exists) return;
 
-  state.meal = match.code;
+  state.meal = code;
   renderMeals();
 }
 
