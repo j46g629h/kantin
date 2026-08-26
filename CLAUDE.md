@@ -82,7 +82,7 @@ GitHub Pages（前端）→ Google Apps Script（後端）→ Google Sheet / Dri
 `Admins`（帳號管理，僅 SUPER）/ `Notify`（寄信共用）/ `Reports`（排程報表）/
 `Triggers`（排程安裝與移除）/ `Stats`（Dashboard 統計與月報統計）/
 `Backup`（每月備份 Sheet）/ `Retention`（滿 13 個月去識別化）/
-`Setup`（一次性腳本與維運工具）
+`Setup`（一次性腳本與維運工具）/ `Cleanup`（上線前清除測試資料）
 
 ⚠️ **前端檔案必須放在專案根目錄，不可移到子資料夾。**
 GitHub Pages 只允許 `/(root)` 或 `/docs` 兩種發布來源，而 `docs/` 已用於存放規格書。
@@ -525,6 +525,7 @@ node tools/check-contrast.js   # 配色對比度（WCAG AA），改任何顏色 
 node tools/test-version-sync.js # 版本號與系統資訊有沒有漏改（見設計約定第 5 條）
 node tools/test-options-cache.js # 前端連線層與兩份快取（逾時 / 重試 / 選項 / 工號）
 node tools/test-meal-time.js   # 依時間自動預選餐別（邊界 / 格式寫錯）
+node tools/test-cleanup-api.js # 上線前清除測試資料（不該刪的有沒有被刪掉）
 ```
 
 ⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。
