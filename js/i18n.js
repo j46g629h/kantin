@@ -149,6 +149,7 @@ const I18N = {
     'admin.role.SUPER':     '超級管理者',
     'admin.role.ADMIN':     '管理者',
     'admin.logout':         '登出',
+    'admin.help':           '操作說明',
     'admin.checking':       '確認登入狀態…',
     'admin.cases.title':    '案件列表',
 
@@ -512,6 +513,7 @@ const I18N = {
     'admin.role.SUPER':     'Admin Utama',
     'admin.role.ADMIN':     'Admin',
     'admin.logout':         'Keluar',
+    'admin.help':           'Panduan',
     'admin.checking':       'Mengecek status login…',
     'admin.cases.title':    'Daftar Laporan',
 

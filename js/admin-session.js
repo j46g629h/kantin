@@ -183,4 +183,12 @@ function renderAdminNav(currentKey, profile) {
       }
       return `<a href="${page.href}" class="admin-nav-tab">${escapeHtml(t(page.labelKey))}</a>`;
     }).join('');
+
+  // 操作說明。刻意不放進 ADMIN_PAGES：那三個是「app 的頁面」，
+  // 這一個是「文件」——混在一起會讓人以為手冊也是系統的一部分。
+  //
+  // ⚠️ 一定要 target="_blank"。管理者很可能正在寫回覆寫到一半才去翻說明，
+  //    直接跳走等於把他打的字丟掉。
+  nav.innerHTML += `<a href="panduan-admin.html" class="admin-nav-tab admin-nav-help"`
+    + ` target="_blank" rel="noopener">${escapeHtml(t('admin.help'))}</a>`;
 }
