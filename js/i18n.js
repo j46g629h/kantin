@@ -220,7 +220,7 @@ const I18N = {
 
     // --- 管理端：Dashboard（僅 SUPER）---
     'dash.entry':        '動態表',
-    'dash.title':        'PCI adidas 員工餐廳回報動態表',
+    'dash.title':        'PCI 員工餐廳回報動態表',
     'dash.loading':      '計算統計中…',
     'dash.updatedAt':    '資料時間 {t}',
     'dash.empty':        '目前還沒有任何回報資料，統計表要有資料才顯示得出來。',
@@ -583,7 +583,7 @@ const I18N = {
 
     // --- Admin: papan data (khusus SUPER) ---
     'dash.entry':        'Data',
-    'dash.title':        'Data Laporan Kantin PCI adidas',
+    'dash.title':        'Data Laporan Kantin PCI',
     'dash.loading':      'Menghitung data…',
     'dash.updatedAt':    'Data per {t}',
     'dash.empty':        'Belum ada laporan sama sekali, jadi belum ada yang bisa ditampilkan.',
