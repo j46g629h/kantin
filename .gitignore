@@ -21,3 +21,6 @@ node_modules/
 
 # 本機預覽用的暫存頁（帶假資料，不要 commit）
 _preview-*.html
+
+# 我在改東西時用的暫存腳本（.tmp-xxx.js），不該進版控
+.tmp-*

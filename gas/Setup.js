@@ -855,7 +855,7 @@ function checkEmployeeRoster() {
   // 清掉工號查詢的快取，讓新名冊立刻生效
   values.forEach(function (row) {
     const id = String(row[0] === null || row[0] === undefined ? '' : row[0]).trim();
-    if (id) cache.remove('emp:' + id);
+    if (id) storeRemove('emp:' + id);
   });
   report.push('（已清除工號查詢快取，新名冊立即生效）');
 
@@ -941,7 +941,7 @@ function normalizeEmployeeStatus() {
   const empIds = sheet.getRange(2, 1, count, 1).getValues();
   empIds.forEach(function (row) {
     const id = str(row[0]);
-    if (id) cache.remove('emp:' + id);
+    if (id) storeRemove('emp:' + id);
   });
   report.push('✔ 已清除工號查詢快取，變更立即生效');
 
