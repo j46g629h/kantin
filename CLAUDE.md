@@ -526,6 +526,7 @@ node tools/test-version-sync.js # 版本號與系統資訊有沒有漏改（見�
 node tools/test-options-cache.js # 前端連線層與兩份快取（逾時 / 重試 / 選項 / 工號）
 node tools/test-meal-time.js   # 依時間自動預選餐別（邊界 / 格式寫錯）
 node tools/test-cleanup-api.js # 上線前清除測試資料（不該刪的有沒有被刪掉）
+node tools/test-roster-check.js # 員工名冊檢查報告（會不會叫人做錯事 / 有沒有印出個資）
 ```
 
 ⚠️ 測試檔裡**不要寫死絕對路徑**（用 `path.join(__dirname, '..')`）。

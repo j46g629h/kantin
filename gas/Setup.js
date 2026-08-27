@@ -748,8 +748,11 @@ function checkEmployeeRoster() {
 
   if (lastRow < 2) {
     report.push('名冊是空的（只有標題列）。');
-    Logger.log(report.join(String.fromCharCode(10)));
-    return;
+    // 其他每一條路徑都會回傳報告內容，只有這裡漏了——
+    // 統一回傳，呼叫端與測試才不必為這一種情況寫特例
+    const empty = report.join(String.fromCharCode(10));
+    Logger.log(empty);
+    return empty;
   }
 
   const count = lastRow - 1;
@@ -765,6 +768,7 @@ function checkEmployeeRoster() {
   let numericCells = 0;
   let nonTextFormat = 0;
   const idLengths = {};
+  const idRowsByLength = {};     // 長度 → 列號，用來指出「跟大家不一樣的那幾筆」
   const emptyIdRows = [];
   const spacedIdRows = [];
   const seen = {};
@@ -786,21 +790,62 @@ function checkEmployeeRoster() {
 
     const key = id.trim().toUpperCase();
     idLengths[key.length] = (idLengths[key.length] || 0) + 1;
+    if (!idRowsByLength[key.length]) idRowsByLength[key.length] = [];
+    idRowsByLength[key.length].push(rowNo);
 
     if (seen[key]) duplicateRows.push(rowNo + '（與第 ' + seen[key] + ' 列重複）');
     else seen[key] = rowNo;
   });
 
+  // ⚠️ 這兩行講的是**兩件不同的事**，訊息不可以混在一起：
+  //
+  //    「被存成數字」＝ 資料**已經**壞了，前導零回不來，只能重貼
+  //    「格式不是純文字」＝ 現在的值還好好的，但**下次**編輯或貼上可能會壞
+  //
+  //    以前第二行不分情況都寫「建議設為純文字後重貼」，
+  //    結果資料明明完好的人也被嚇得重貼一次——而重貼本身才是真正的風險。
   report.push('【工號格式】');
   report.push('  被存成「數字」的儲存格：' + numericCells + ' 個'
-    + (numericCells > 0 ? '  ⚠️ 前導零可能已經消失，需要重貼' : '  ✅'));
-  report.push('  格式不是「純文字」的儲存格：' + nonTextFormat + ' 個'
-    + (nonTextFormat > 0 ? '  ⚠️ 建議整欄設為純文字後重貼' : '  ✅'));
+    + (numericCells > 0 ? '  ⚠️ 前導零已經消失，這幾筆要重貼' : '  ✅'));
+
+  if (nonTextFormat === 0) {
+    report.push('  格式不是「純文字」的儲存格：0 個  ✅');
+  } else if (numericCells > 0) {
+    report.push('  格式不是「純文字」的儲存格：' + nonTextFormat + ' 個');
+    report.push('    ⚠️ 這就是上面那些值變成數字的原因。');
+    report.push('       先把 A 欄設成「格式 → 數值 → 純文字」，再重貼壞掉的那幾筆。');
+  } else {
+    report.push('  格式不是「純文字」的儲存格：' + nonTextFormat + ' 個');
+    report.push('    ⚠️ 目前的值都還是文字，**資料沒有壞，不需要重貼**。');
+    report.push('       但下次貼新名冊或手動編輯時可能被轉成數字。');
+    report.push('       建議把 A 欄設成「格式 → 數值 → 純文字」（只改格式，不會動到現有的值）。');
+  }
 
   const lengthKeys = Object.keys(idLengths).sort(function (a, b) { return a - b; });
   report.push('  工號長度分布：' + lengthKeys.map(function (k) {
     return k + ' 碼 × ' + idLengths[k] + ' 筆';
   }).join('、'));
+
+  // 只有一種長度就沒什麼好講的；有兩種以上時，把「少數的那幾筆」的列號印出來。
+  //
+  // ⚠️ 只印列號，不印工號本身——執行紀錄會留在 Google 帳號裡，
+  //    而工號是個資（這份報告從頭到尾都沒有印過任何工號或姓名）。
+  //
+  // 📌 長度不一樣**不一定是錯的**：外包、外派、不同編制本來就可能不同格式。
+  //    但它也可能是「多按了一個數字」或「前導零被吃掉」，
+  //    而那兩種情況下，那個人掃碼會看到「查無此工號」，**而你不會知道**。
+  if (lengthKeys.length > 1) {
+    let majority = lengthKeys[0];
+    lengthKeys.forEach(function (k) { if (idLengths[k] > idLengths[majority]) majority = k; });
+
+    lengthKeys.forEach(function (k) {
+      if (k === majority) return;
+      const rows = idRowsByLength[k];
+      report.push('    · ' + k + ' 碼的在第 ' + rows.slice(0, 20).join(', ') + ' 列'
+        + (rows.length > 20 ? ' …等 ' + rows.length + ' 筆' : ''));
+    });
+    report.push('    （長度不一樣不一定是錯的，但請確認一下不是打錯或前導零被吃掉）');
+  }
   report.push('');
 
   // --- 2. 資料完整性 ---
@@ -847,10 +892,18 @@ function checkEmployeeRoster() {
   const problems = numericCells + emptyIdRows.length + emptyNameRows.length
     + spacedIdRows.length + duplicateRows.length + otherStatus;
 
+  // 建議 ≠ 問題。混在一起講的話，一個「✅ 沒有發現問題」配上滿screen的 ⚠️
+  // 會讓人不知道到底要不要處理
+  const suggestions = (nonTextFormat > 0 && numericCells === 0 ? 1 : 0)
+                    + (blankStatus > 0 ? 1 : 0);
+
   report.push('=== 結論 ===');
   report.push(problems === 0
-    ? '✅ 沒有發現問題，名冊可以使用。'
-    : '⚠️ 發現 ' + problems + ' 處需要處理，詳見上方。');
+    ? '✅ 資料沒有問題，名冊可以使用。'
+    : '⚠️ 發現 ' + problems + ' 處**資料問題**，要處理完才能用，詳見上方。');
+  if (suggestions > 0) {
+    report.push('　 另有 ' + suggestions + ' 項建議（不影響現在使用，但值得順手做掉）。');
+  }
 
   // 清掉工號查詢的快取，讓新名冊立刻生效
   values.forEach(function (row) {
