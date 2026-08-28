@@ -218,9 +218,26 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   .lab-chrome { display: none; }
 
   /* --- 底部行動按鈕 --- */
-  .mcta { display: grid; gap: 10px; margin: 4px 0 20px; }
-  .mcta .menu-card { padding: 14px 16px; }
-  .mcta .menu-title { font-size: 17px; }
+  /* ⚠️ display 一定要寫——上面的預設是 display:none，這裡不覆蓋的話整塊不會出現。
+     （改版時把原本的 display:grid 拿掉就踩到了一次） */
+  .mcta { display: block; margin: 8px 0 22px; text-align: center; }
+  .mcta-ask {
+    font-size: 16px; color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  /* 份量跟首頁的主要動作一樣（近黑實心 + 陰影），但置中、沒有編號——
+     它不是目錄裡的一個項目，是一句「現在就開始」 */
+  .mcta-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 56px; padding: 14px 20px;
+    background: var(--action); color: #F2F2EF;
+    font-size: 19px; font-weight: 700; letter-spacing: -.01em;
+    text-decoration: none;
+    border-radius: var(--radius-pill);
+    box-shadow: 0 6px 18px rgba(0,0,0,.20), 0 2px 4px rgba(0,0,0,.10);
+  }
+  .mcta-btn:active { background: var(--action-press); }
+  .mcta-btn svg { width: 22px; height: 22px; flex: none; display: block; }
 }
 
 /* ========== 列印：一張 A4 ========== */
@@ -451,24 +468,26 @@ html[data-lang="zh"] .tx-zh { display: revert; }
       </p>
 
       <!--
-        看完說明就可以直接開始——刻意做成跟首頁**一模一樣**的兩張卡片。
-        員工在首頁已經看過這個樣子，這裡不該再學一次新東西。
+        看完四個步驟就可以直接開始。
+
+        ⚠️ 只放「提交回報」一顆，不放「查詢案件」——
+           會捲到這裡的人是**想通報**才把說明看完的。
+           多一個選項只會讓他停下來想，而停下來就是流失。
+           想查進度的人在上面的「怎麼查進度」那一段已經知道怎麼做了。
+
+        ⚠️ 文字刻意**不跟首頁一樣**。首頁的「Lapor Masalah」是目錄裡的
+           一個項目；這裡是看完說明之後的一句邀請，語氣要往前推一把。
+
         ⚠️ 只在手機上出現（列印與 A4 預覽都不顯示，紙上的按鈕沒有意義）。
       -->
       <div class="mcta">
-        <a href="report.html" class="menu-card menu-card-primary">
-          <span class="menu-num">01</span>
-          <span class="menu-text">
-            <span class="menu-title" id="ctaReport">Lapor Masalah</span>
-          </span>
-          <span class="menu-arrow">→</span>
-        </a>
-        <a href="query.html" class="menu-card">
-          <span class="menu-num">02</span>
-          <span class="menu-text">
-            <span class="menu-title" id="ctaQuery">Cek Laporan</span>
-          </span>
-          <span class="menu-arrow">→</span>
+        <p class="mcta-ask" id="ctaAsk">Udah paham caranya?</p>
+        <a href="report.html" class="mcta-btn">
+          <span id="ctaGo">Yuk, lapor sekarang</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h13M12 5.5l6.5 6.5-6.5 6.5" fill="none" stroke="currentColor"
+                  stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </a>
       </div>
 
@@ -496,11 +515,11 @@ function setLang(lang) {
 
   // 置頂列與底部按鈕的文字（這一頁不吃 js/i18n.js，字串就寫在這裡）
   const words = value === 'zh'
-    ? { back: '首頁', report: '提交回報', query: '查詢案件' }
-    : { back: 'Beranda', report: 'Lapor Masalah', query: 'Cek Laporan' };
-  document.getElementById('backText').textContent  = words.back;
-  document.getElementById('ctaReport').textContent = words.report;
-  document.getElementById('ctaQuery').textContent  = words.query;
+    ? { back: '首頁', ask: '都看懂了嗎？', go: '好，現在就回報' }
+    : { back: 'Beranda', ask: 'Udah paham caranya?', go: 'Yuk, lapor sekarang' };
+  document.getElementById('backText').textContent = words.back;
+  document.getElementById('ctaAsk').textContent   = words.ask;
+  document.getElementById('ctaGo').textContent    = words.go;
   try { localStorage.setItem(LANG_KEY, value); } catch (e) { /* 無痕視窗 */ }
 }
 

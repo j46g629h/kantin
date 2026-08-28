@@ -71,7 +71,7 @@ const REPORT = {
  *    改版本號的完整清單見 CLAUDE.md 設計約定第 5 條。
  */
 const SYSTEM_INFO = {
-  version: 'v3.5',
+  version: 'v3.6',
   year:    '2026',
 
   /** 維護單位（信裡兩種語言並列，印尼文在前） */
