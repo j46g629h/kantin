@@ -8,6 +8,16 @@
 <!--
   員工端一頁圖解（第 6 階段 6-8）。
 
+  ⚠️ 這個檔案有**兩種版面**，同一份文字、同一批插圖：
+
+     電腦 / 列印  →  一張 A4（給主管印出來、截圖丟 WhatsApp）
+     手機（<620px）→ 直式流動排版，只上下捲動
+                     （員工從 app 首頁的「怎麼使用？」點進來看的就是這個）
+
+     ⚠️ 手機版**不需要列印**，所以 @media print 完全不必動——
+        screen 與 print 的規則永遠不會同時生效。
+        但**基礎樣式（沒有包在 media 裡的）是共用的**，改那裡就會連累列印。
+
   ⚠️ 這**不是手冊**，是一張 A4。
 
      員工端只有三個畫面、整個流程 1 分鐘。做成一本手冊反而在暗示
@@ -45,11 +55,6 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   .frame { width: 560px; height: 792px; }
   .frame > .sheet { transform: scale(.7053); }
   .lab-chrome { flex-direction: column; }
-}
-@media screen and (max-width: 620px) {
-  .lab { padding: 16px 12px 40px; }
-  .frame { width: 340px; height: 481px; }
-  .frame > .sheet { transform: scale(.4283); }
 }
 
 /* ========== A4 本體 ========== */
@@ -107,6 +112,79 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   margin-top: auto; padding-top: 4mm; border-top: 1px solid var(--border);
   display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm;
   font-size: 9.5pt; color: var(--text-muted);
+}
+
+/* ==========================================================
+   手機版（<620px）：不再是「縮小的 A4」，而是真正的手機頁
+
+   ⚠️ 為什麼一定要這樣做：A4 是 794px 寬，塞進 375px 的手機要縮到
+      0.428 倍——正文字級會變成 5.4px，等於正常字的三分之一，看不清。
+      放大到看得清又得左右滑動才能讀完一行。兩條路都不通。
+
+   📌 這裡的規則全部包在 @media screen 裡，列印那條路一個字都沒動。
+   ========================================================== */
+@media screen and (max-width: 620px) {
+  .lab { padding: 0; max-width: none; }
+
+  /* 外框的說明文字是寫給「轉貼的主管」看的，不是給員工看的。
+     員工從 app 點進來只想看怎麼用——但語言按鈕要留著 */
+  .lab-chrome { margin: 0; padding: 12px 14px 0; justify-content: flex-end; }
+  .lab-chrome h1, .lab-chrome p { display: none; }
+
+  /* 拿掉 A4 的固定尺寸與縮放，改成一般網頁 */
+  .frame {
+    width: auto; height: auto;
+    overflow: visible; border-radius: 0; box-shadow: none;
+  }
+  .frame > .sheet { transform: none; }
+  .sheet {
+    width: auto; height: auto;
+    padding: 16px 16px 40px;
+  }
+
+  .head { margin-bottom: 18px; }
+  .eyebrow { font-size: 11px; }
+
+  .title { font-size: 26px; line-height: 1.15; margin-bottom: 8px; }
+  .lede  { font-size: 15px; line-height: 1.6; margin-bottom: 4px; }
+
+  /* --- 四個步驟改上下堆疊，手機縮影靠左、文字靠右 --- */
+  .steps { flex-direction: column; gap: 0; margin-bottom: 20px; }
+
+  /* .shot / .n / .st / .sd 是四個並列的兄弟元素（HTML 沒有包起來），
+     用 grid 直接指定位置，就不必為了手機版去改結構 */
+  .stp {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    column-gap: 16px;
+    align-items: start;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+  }
+  .stp .shot { grid-column: 1; grid-row: 1 / span 3; width: 96px; margin: 0; align-self: center; }
+  .stp .n  { grid-column: 2; grid-row: 1; width: 26px; height: 26px; font-size: 14px; margin-bottom: 6px; }
+  .stp .st { grid-column: 2; grid-row: 2; font-size: 18px; margin-bottom: 4px; }
+  .stp .sd { grid-column: 2; grid-row: 3; font-size: 16px; line-height: 1.6; }
+
+  /* --- 查詢區 --- */
+  .check {
+    gap: 14px; padding: 16px; border-radius: 12px; margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .check .ic { width: 30px; margin-top: 2px; }
+  .check .ct { font-size: 16px; margin-bottom: 6px; }
+  .check .cd { font-size: 14.5px; line-height: 1.6; }
+
+  .tip {
+    font-size: 14.5px; line-height: 1.6;
+    border-left-width: 3px; padding: 4px 0 4px 12px; margin-bottom: 20px;
+  }
+
+  /* 頁尾在窄螢幕上左右並排會擠成兩行對兩行，改成上下 */
+  .foot {
+    flex-direction: column; align-items: flex-start; gap: 4px;
+    padding-top: 14px; font-size: 14px;
+  }
 }
 
 /* ========== 列印：一張 A4 ========== */

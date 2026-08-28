@@ -32,6 +32,7 @@ const I18N = {
     'home.reportDesc':  '有問題或建議，跟我們說',
     'home.query':       '查詢案件',
     'home.queryDesc':   '看看您的回報處理到哪了',
+    'home.help':        '怎麼使用？',
 
     // --- 回報表單 ---
     'form.title':        '提交回報',
@@ -396,6 +397,7 @@ const I18N = {
     'home.reportDesc':  'Ada masalah atau saran? Kasih tahu kami',
     'home.query':       'Cek Laporan',
     'home.queryDesc':   'Lihat laporan kamu sudah diproses belum',
+    'home.help':        'Gimana caranya?',
 
     // --- Formulir laporan ---
     'form.title':        'Lapor Masalah',

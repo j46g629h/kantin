@@ -365,6 +365,24 @@ body {
 
 /* 序號取代圖示：01 / 02。
    數字比圖示更能表達「先做這個，再做那個」的順序 */
+/* 操作說明入口。份量刻意比兩張卡片輕——它是「需要時才找」的東西，
+   不該跟主要動作搶注意力。但觸控目標仍然要 44px（手機上要用手指按） */
+.menu-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 10px 16px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+}
+.menu-help:active { background: var(--surface-alt); }
+.menu-help-icon { width: 20px; height: 20px; flex: none; display: block; }
+
 .menu-num {
   font-size: var(--fs-lg);
   font-weight: 700;
