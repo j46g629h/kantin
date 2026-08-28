@@ -366,22 +366,41 @@ body {
 /* 序號取代圖示：01 / 02。
    數字比圖示更能表達「先做這個，再做那個」的順序 */
 /* 操作說明入口。份量刻意比兩張卡片輕——它是「需要時才找」的東西，
-   不該跟主要動作搶注意力。但觸控目標仍然要 44px（手機上要用手指按） */
+   不該跟主要動作搶注意力。
+
+   ⚠️ 但「輕」曾經輕過頭：v3.6 之前是小一級的灰字 + 20px 圖示 + **無底無框**，
+      使用者實機回饋「圖示跟字都有點小」。真正的問題不是字小，是
+      **看不出來那是可以按的東西**——一段沒有邊界的灰字，長得像說明文字。
+
+   ⚠️ 所以 v3.7 補的是「邊界」而不只是「大小」：框線 + 淺底。
+      用**框線**不用陰影是刻意的——在這個系統裡陰影是卡片的語言
+      （`.menu-card` 用 --lift-1），框線是「輸入框 / 可按元件」的語言。
+      用陰影的話它會被看成第三張卡片，那正是當初刻意避開的事
+      （兩張卡片的份量差異是為了讓人兩秒內決定要做什麼）。
+
+   📌 它仍然不會被誤認成卡片：膠囊形、矮一截、置中、沒有編號也沒有箭頭。
+
+   ⚠️ 框線一定要用 --border-input，不可以用 --border / --border-strong。
+      後兩者是裝飾線（1.41:1），而這是**可點按元件的邊界**，
+      WCAG 1.4.11 要求 3:1——在工廠的爛光線下差別是「看得到」與「看不到」。 */
 .menu-help {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  margin-top: 4px;
-  padding: 10px 16px;
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 10px;
+  padding: 12px 20px;
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-weight: 600;
   text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-pill);
 }
 .menu-help:active { background: var(--surface-alt); }
-.menu-help-icon { width: 20px; height: 20px; flex: none; display: block; }
+.menu-help-icon { width: 24px; height: 24px; flex: none; display: block; }
 
 .menu-num {
   font-size: var(--fs-lg);
