@@ -8,15 +8,23 @@
 <!--
   員工端一頁圖解（第 6 階段 6-8）。
 
-  ⚠️ 這個檔案有**兩種版面**，同一份文字、同一批插圖：
+  ⚠️ 這個檔案有**三條路**，同一份文字、同一批插圖：
 
-     電腦 / 列印  →  一張 A4（給主管印出來、截圖丟 WhatsApp）
-     手機（<620px）→ 直式流動排版，只上下捲動
+     電腦（螢幕）  →  A4 預覽 + 置頂返回列 + 紙下方的行動按鈕
+     手機（<620px）→ 直式流動排版 + 置頂返回列 + 底部行動按鈕
                      （員工從 app 首頁的「怎麼使用？」點進來看的就是這個）
+     列印         →  **只有那張 A4**，返回列與按鈕都不印
 
-     ⚠️ 手機版**不需要列印**，所以 @media print 完全不必動——
-        screen 與 print 的規則永遠不會同時生效。
-        但**基礎樣式（沒有包在 media 裡的）是共用的**，改那裡就會連累列印。
+     ⚠️ 返回列（.mtop）與行動按鈕（.mcta）**電腦與手機都會出現**，
+        但**列印一定要藏**（見最下面的 @media print）。
+        漏掉的話：紙上多一條按不下去的「返回首頁」，
+        而按鈕會被擠成**第二頁**——A4 本來就剛好滿版。
+
+     ⚠️ 兩者都放在 A4（.frame > .sheet）**外面**，這是刻意的：
+        .sheet 高度寫死 297mm 且外框 overflow:hidden，
+        塞進去的東西會把頁尾**安靜地裁掉**，不會報錯。
+
+     ⚠️ 基礎樣式（沒有包在 media 裡的）三條路共用，改那裡會同時影響列印。
 
   ⚠️ 這**不是手冊**，是一張 A4。
 
@@ -114,13 +122,57 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   font-size: 9.5pt; color: var(--text-muted);
 }
 
-/* 置頂返回列與底部按鈕只在手機上出現。
-   預設隱藏，A4（電腦預覽與列印）完全看不到——紙上的按鈕沒有意義。
+/* ========== 置頂返回列（電腦與手機都有）==========
 
-   ⚠️ 這一行一定要放在下面的手機版 @media **前面**。
-      同權重下後寫的贏，放後面的話手機版的 display 會被這行蓋掉，
-      按鈕就永遠不會出現——這個順序問題在這個檔案已經踩過兩次了。 */
-.mtop, .mcta { display: none; }
+   ⚠️ 它放在 .lab **外面**，才能在電腦上橫跨整個視窗；
+      裡層 .mtop-inner 再收回跟內容一樣的 920px。
+   ⚠️ 列印時一定要藏起來（見最下面的 @media print）——
+      紙上的「返回首頁」按不下去。 */
+.mtop {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.mtop-inner {
+  max-width: 920px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 6px 20px;
+}
+.mtop-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: 44px; padding: 8px 12px 8px 6px;
+  color: var(--text); font-size: 16px; font-weight: 600;
+  text-decoration: none; border-radius: var(--radius-pill);
+}
+.mtop-back:hover  { background: var(--surface-alt); }
+.mtop-back:active { background: var(--surface-alt); }
+.mtop-back svg { width: 22px; height: 22px; flex: none; display: block; }
+/* 'ID' 只有兩個字母，寬度只有 38px——高度夠但寬度不夠，
+   WCAG 2.5.5 要的是 44x44 兩個方向都要 */
+.mtop .lang-btn { min-width: 44px; }
+
+/* ========== 底部行動按鈕（電腦與手機都有）==========
+
+   ⚠️ 它在 A4（.frame > .sheet）**外面**，這是刻意的，兩個理由：
+      ① A4 高度固定 297mm，多塞一塊會把頁尾擠出去被 overflow:hidden 裁掉
+      ② 印出來的紙上會多一顆按不下去的按鈕
+   所以電腦上它顯示在「那張紙的下方」，不是紙裡面。 */
+.mcta { margin: 26px auto 0; text-align: center; }
+.mcta-ask { font-size: 16px; color: var(--text-muted); margin-bottom: 10px; }
+/* 份量跟首頁的主要動作一樣（近黑實心 + 陰影），但置中、沒有編號——
+   它不是目錄裡的一個項目，是一句「現在就開始」 */
+.mcta-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  max-width: 340px; margin: 0 auto;
+  min-height: 56px; padding: 14px 20px;
+  background: var(--action); color: #F2F2EF;
+  font-size: 19px; font-weight: 700; letter-spacing: -.01em;
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 6px 18px rgba(0,0,0,.20), 0 2px 4px rgba(0,0,0,.10);
+}
+.mcta-btn:active { background: var(--action-press); }
+.mcta-btn svg { width: 22px; height: 22px; flex: none; display: block; }
 
 /* ==========================================================
    手機版（<620px）：不再是「縮小的 A4」，而是真正的手機頁
@@ -135,9 +187,8 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   .lab { padding: 0; max-width: none; }
 
   /* 外框的說明文字是寫給「轉貼的主管」看的，不是給員工看的。
-     員工從 app 點進來只想看怎麼用——但語言按鈕要留著 */
-  .lab-chrome { margin: 0; padding: 12px 14px 0; justify-content: flex-end; }
-  .lab-chrome h1, .lab-chrome p { display: none; }
+     語言按鈕已經搬到置頂列，所以這一整塊在手機上直接不要 */
+  .lab-chrome { display: none; }
 
   /* 拿掉 A4 的固定尺寸與縮放，改成一般網頁 */
   .frame {
@@ -147,7 +198,7 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   .frame > .sheet { transform: none; }
   .sheet {
     width: auto; height: auto;
-    padding: 16px 16px 40px;
+    padding: 16px 16px 24px;
   }
 
   .head { margin-bottom: 18px; }
@@ -194,56 +245,21 @@ html[data-lang="zh"] .tx-zh { display: revert; }
     padding-top: 14px; font-size: 14px;
   }
 
-  /* --- 置頂返回列 --- */
-  .mtop {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    position: sticky; top: 0; z-index: 10;
-    padding: 6px 12px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-  }
-  .mtop-back {
-    display: inline-flex; align-items: center; gap: 4px;
-    min-height: 44px; padding: 8px 12px 8px 6px;
-    color: var(--text); font-size: 16px; font-weight: 600;
-    text-decoration: none; border-radius: var(--radius-pill);
-  }
-  .mtop-back:active { background: var(--surface-alt); }
-  .mtop-back svg { width: 22px; height: 22px; flex: none; display: block; }
-  /* 'ID' 只有兩個字母，寬度只有 38px——高度夠但寬度不夠，
-     WCAG 2.5.5 要的是 44x44 兩個方向都要 */
-  .mtop .lang-btn { min-width: 44px; }
+  /* --- 置頂返回列：手機上貼齊螢幕左右邊緣 --- */
+  .mtop-inner { padding: 6px 12px; }
 
-  /* 置頂列已經有語言按鈕了，外框那組就不要重複出現 */
-  .lab-chrome { display: none; }
-
-  /* --- 底部行動按鈕 --- */
-  /* ⚠️ display 一定要寫——上面的預設是 display:none，這裡不覆蓋的話整塊不會出現。
-     （改版時把原本的 display:grid 拿掉就踩到了一次） */
-  .mcta { display: block; margin: 8px 0 22px; text-align: center; }
-  .mcta-ask {
-    font-size: 16px; color: var(--text-muted);
-    margin-bottom: 10px;
-  }
-  /* 份量跟首頁的主要動作一樣（近黑實心 + 陰影），但置中、沒有編號——
-     它不是目錄裡的一個項目，是一句「現在就開始」 */
-  .mcta-btn {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    min-height: 56px; padding: 14px 20px;
-    background: var(--action); color: #F2F2EF;
-    font-size: 19px; font-weight: 700; letter-spacing: -.01em;
-    text-decoration: none;
-    border-radius: var(--radius-pill);
-    box-shadow: 0 6px 18px rgba(0,0,0,.20), 0 2px 4px rgba(0,0,0,.10);
-  }
-  .mcta-btn:active { background: var(--action-press); }
-  .mcta-btn svg { width: 22px; height: 22px; flex: none; display: block; }
+  /* --- 底部行動按鈕：手機上拉成滿版比較好按 --- */
+  .mcta { margin: 4px 16px 26px; }
+  .mcta-btn { max-width: none; }
 }
 
 /* ========== 列印：一張 A4 ========== */
 @page { size: A4 portrait; margin: 0; }
 @media print {
   .lab-chrome { display: none !important; }
+  /* ⚠️ 這兩個不藏的話：紙上會多一條「返回首頁」列，
+     而按鈕會被擠成**第二頁**（A4 本來就剛好滿版） */
+  .mtop, .mcta { display: none !important; }
   .lab { max-width: none; padding: 0; }
   .frame { width: auto; height: auto; overflow: visible; border-radius: 0; box-shadow: none; }
   .frame > .sheet { transform: none; }
@@ -253,15 +269,15 @@ html[data-lang="zh"] .tx-zh { display: revert; }
 </head>
 <body>
 
-<div class="lab">
-
-  <!--
-    手機專用的置頂列：返回 + 語言。
-    ⚠️ 用**真的連結**指向 index.html，不用 history.back()——
-       從 WhatsApp 點進來的人，上一頁是 WhatsApp，退回去就離開 app 了。
-       不管從哪裡來，按下去都會到首頁，這是「直覺」該有的樣子。
-  -->
-  <div class="mtop">
+<!--
+  置頂列：返回 + 語言。電腦與手機都有。
+  ⚠️ 它在 .lab **外面**，這樣電腦上才能橫跨整個視窗（像真的頁首）。
+  ⚠️ 用**真的連結**指向 index.html，不用 history.back()——
+     從 WhatsApp 點進來的人，上一頁是 WhatsApp，退回去就離開 app 了。
+     不管從哪裡來，按下去都會到首頁，這是「直覺」該有的樣子。
+-->
+<div class="mtop">
+  <div class="mtop-inner">
     <a href="index.html" class="mtop-back" id="backLink">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -274,6 +290,9 @@ html[data-lang="zh"] .tx-zh { display: revert; }
       <button type="button" class="lang-btn" data-lang="zh">中文</button>
     </div>
   </div>
+</div>
+
+<div class="lab">
 
   <div class="lab-chrome">
     <div>
@@ -282,10 +301,6 @@ html[data-lang="zh"] .tx-zh { display: revert; }
         <span class="tx-id">Satu halaman A4. Bisa di-print, bisa juga di-screenshot terus dibagi di grup WhatsApp.</span>
         <span class="tx-zh">一張 A4。可以印出來，也可以直接截圖丟到 WhatsApp 群組。試辦時請部門主管轉貼這一頁。</span>
       </p>
-    </div>
-    <div class="lang-switch">
-      <button type="button" class="lang-btn active" data-lang="id">Bahasa Indonesia</button>
-      <button type="button" class="lang-btn" data-lang="zh">中文</button>
     </div>
   </div>
 
@@ -467,36 +482,36 @@ html[data-lang="zh"] .tx-zh { display: revert; }
         <span class="tx-zh"><b>不想每次都掃碼：</b>掃完之後選「加到主畫面」，下次直接打開就好，跟一般 app 一樣。</span>
       </p>
 
-      <!--
-        看完四個步驟就可以直接開始。
-
-        ⚠️ 只放「提交回報」一顆，不放「查詢案件」——
-           會捲到這裡的人是**想通報**才把說明看完的。
-           多一個選項只會讓他停下來想，而停下來就是流失。
-           想查進度的人在上面的「怎麼查進度」那一段已經知道怎麼做了。
-
-        ⚠️ 文字刻意**不跟首頁一樣**。首頁的「Lapor Masalah」是目錄裡的
-           一個項目；這裡是看完說明之後的一句邀請，語氣要往前推一把。
-
-        ⚠️ 只在手機上出現（列印與 A4 預覽都不顯示，紙上的按鈕沒有意義）。
-      -->
-      <div class="mcta">
-        <p class="mcta-ask" id="ctaAsk">Udah paham caranya?</p>
-        <a href="report.html" class="mcta-btn">
-          <span id="ctaGo">Yuk, lapor sekarang</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12h13M12 5.5l6.5 6.5-6.5 6.5" fill="none" stroke="currentColor"
-                  stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </a>
-      </div>
-
       <div class="foot">
         <span><span class="tx-id">Dikelola oleh PCI GA · Ext. 3690</span><span class="tx-zh">維護單位：PCI 總工務 · 分機 3690</span></span>
         <span><span class="tx-id">Kotak Saran Kantin Karyawan</span><span class="tx-zh">員工餐廳意見箱</span></span>
       </div>
 
     </section>
+  </div>
+
+  <!--
+    看完四個步驟就可以直接開始。
+
+    ⚠️ 只放「提交回報」一顆，不放「查詢案件」——
+       會捲到這裡的人是**想通報**才把說明看完的。
+       多一個選項只會讓他停下來想，而停下來就是流失。
+       想查進度的人在上面的「怎麼查進度」那一段已經知道怎麼做了。
+
+    ⚠️ 文字刻意**不跟首頁一樣**。首頁的「Lapor Masalah」是目錄裡的
+       一個項目；這裡是看完說明之後的一句邀請，語氣要往前推一把。
+
+    ⚠️ 它在 .frame（那張 A4）**外面**——理由見上面 .mcta 的 CSS 註解。
+  -->
+  <div class="mcta">
+    <p class="mcta-ask" id="ctaAsk">Udah paham caranya?</p>
+    <a href="report.html" class="mcta-btn">
+      <span id="ctaGo">Yuk, lapor sekarang</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 12h13M12 5.5l6.5 6.5-6.5 6.5" fill="none" stroke="currentColor"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
   </div>
 </div>
 
