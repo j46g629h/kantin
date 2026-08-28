@@ -114,6 +114,14 @@ html[data-lang="zh"] .tx-zh { display: revert; }
   font-size: 9.5pt; color: var(--text-muted);
 }
 
+/* 置頂返回列與底部按鈕只在手機上出現。
+   預設隱藏，A4（電腦預覽與列印）完全看不到——紙上的按鈕沒有意義。
+
+   ⚠️ 這一行一定要放在下面的手機版 @media **前面**。
+      同權重下後寫的贏，放後面的話手機版的 display 會被這行蓋掉，
+      按鈕就永遠不會出現——這個順序問題在這個檔案已經踩過兩次了。 */
+.mtop, .mcta { display: none; }
+
 /* ==========================================================
    手機版（<620px）：不再是「縮小的 A4」，而是真正的手機頁
 
@@ -185,6 +193,34 @@ html[data-lang="zh"] .tx-zh { display: revert; }
     flex-direction: column; align-items: flex-start; gap: 4px;
     padding-top: 14px; font-size: 14px;
   }
+
+  /* --- 置頂返回列 --- */
+  .mtop {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    position: sticky; top: 0; z-index: 10;
+    padding: 6px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .mtop-back {
+    display: inline-flex; align-items: center; gap: 4px;
+    min-height: 44px; padding: 8px 12px 8px 6px;
+    color: var(--text); font-size: 16px; font-weight: 600;
+    text-decoration: none; border-radius: var(--radius-pill);
+  }
+  .mtop-back:active { background: var(--surface-alt); }
+  .mtop-back svg { width: 22px; height: 22px; flex: none; display: block; }
+  /* 'ID' 只有兩個字母，寬度只有 38px——高度夠但寬度不夠，
+     WCAG 2.5.5 要的是 44x44 兩個方向都要 */
+  .mtop .lang-btn { min-width: 44px; }
+
+  /* 置頂列已經有語言按鈕了，外框那組就不要重複出現 */
+  .lab-chrome { display: none; }
+
+  /* --- 底部行動按鈕 --- */
+  .mcta { display: grid; gap: 10px; margin: 4px 0 20px; }
+  .mcta .menu-card { padding: 14px 16px; }
+  .mcta .menu-title { font-size: 17px; }
 }
 
 /* ========== 列印：一張 A4 ========== */
@@ -201,6 +237,26 @@ html[data-lang="zh"] .tx-zh { display: revert; }
 <body>
 
 <div class="lab">
+
+  <!--
+    手機專用的置頂列：返回 + 語言。
+    ⚠️ 用**真的連結**指向 index.html，不用 history.back()——
+       從 WhatsApp 點進來的人，上一頁是 WhatsApp，退回去就離開 app 了。
+       不管從哪裡來，按下去都會到首頁，這是「直覺」該有的樣子。
+  -->
+  <div class="mtop">
+    <a href="index.html" class="mtop-back" id="backLink">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="backText">Beranda</span>
+    </a>
+    <div class="lang-switch lang-switch-compact">
+      <button type="button" class="lang-btn active" data-lang="id">ID</button>
+      <button type="button" class="lang-btn" data-lang="zh">中文</button>
+    </div>
+  </div>
 
   <div class="lab-chrome">
     <div>
@@ -394,6 +450,28 @@ html[data-lang="zh"] .tx-zh { display: revert; }
         <span class="tx-zh"><b>不想每次都掃碼：</b>掃完之後選「加到主畫面」，下次直接打開就好，跟一般 app 一樣。</span>
       </p>
 
+      <!--
+        看完說明就可以直接開始——刻意做成跟首頁**一模一樣**的兩張卡片。
+        員工在首頁已經看過這個樣子，這裡不該再學一次新東西。
+        ⚠️ 只在手機上出現（列印與 A4 預覽都不顯示，紙上的按鈕沒有意義）。
+      -->
+      <div class="mcta">
+        <a href="report.html" class="menu-card menu-card-primary">
+          <span class="menu-num">01</span>
+          <span class="menu-text">
+            <span class="menu-title" id="ctaReport">Lapor Masalah</span>
+          </span>
+          <span class="menu-arrow">→</span>
+        </a>
+        <a href="query.html" class="menu-card">
+          <span class="menu-num">02</span>
+          <span class="menu-text">
+            <span class="menu-title" id="ctaQuery">Cek Laporan</span>
+          </span>
+          <span class="menu-arrow">→</span>
+        </a>
+      </div>
+
       <div class="foot">
         <span><span class="tx-id">Dikelola oleh PCI GA · Ext. 3690</span><span class="tx-zh">維護單位：PCI 總工務 · 分機 3690</span></span>
         <span><span class="tx-id">Kotak Saran Kantin Karyawan</span><span class="tx-zh">員工餐廳意見箱</span></span>
@@ -415,6 +493,14 @@ function setLang(lang) {
   document.querySelectorAll('.lang-btn').forEach(function (btn) {
     btn.classList.toggle('active', btn.dataset.lang === value);
   });
+
+  // 置頂列與底部按鈕的文字（這一頁不吃 js/i18n.js，字串就寫在這裡）
+  const words = value === 'zh'
+    ? { back: '首頁', report: '提交回報', query: '查詢案件' }
+    : { back: 'Beranda', report: 'Lapor Masalah', query: 'Cek Laporan' };
+  document.getElementById('backText').textContent  = words.back;
+  document.getElementById('ctaReport').textContent = words.report;
+  document.getElementById('ctaQuery').textContent  = words.query;
   try { localStorage.setItem(LANG_KEY, value); } catch (e) { /* 無痕視窗 */ }
 }
 
