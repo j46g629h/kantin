@@ -373,20 +373,65 @@ check('收尾還原成功', evalIn('getReportRecipients()').length, 2);
 
 console.log('\n===== 空信規則與失敗處理 =====\n');
 
-// 沒有未處理案件時不寄信（規格 §10.1）——
-// 每天寄一封「今天沒事」，兩星期後就沒有人會打開它了
-reset();
-const savedRows = sandbox.__ROWS;
-evalIn(`__ROWS = __ROWS.map(function (r) { r[12] = 'ST_DONE'; return r; })`);
-const emptyResult = evalIn('sendDailyReport()');
-check('沒有未處理案件 → 不寄信',   sandbox.__SENT__.length, 0);
-check('並且說明原因',              emptyResult.indexOf('不寄信') >= 0, true);
-sandbox.__ROWS = savedRows;
-evalIn(`__ROWS = ${JSON.stringify(ROWS_SPEC)}.map(function (row) {
+/**
+ * 沒有未處理案件時要不要寄，由 REPORT.DAILY_SEND_WHEN_EMPTY 決定。
+ *
+ * ⚠️ **兩種模式都要測，不能只測目前設定的那一種。**
+ *    這個開關是「隨階段調整」的（試辦 true → 全廠上線 false），
+ *    只測其中一邊的話，哪天把它改掉，測試會莫名其妙紅掉，
+ *    而那跟功能對不對完全無關——這個專案已經在版本號與顏色上踩過兩次了。
+ */
+const restoreRows = () => evalIn(`__ROWS = ${JSON.stringify(ROWS_SPEC)}.map(function (row) {
   return row.map(function (v) {
     return (typeof v === 'string' && v.indexOf('@ISO:') === 0) ? new Date(v.slice(5)) : v;
   });
 })`);
+
+/** 把所有案件都設成已結案 → 未處理 0 件 */
+const makeAllDone = () => evalIn(`__ROWS = __ROWS.map(function (r) { r[12] = 'ST_DONE'; return r; })`);
+
+// --- 模式 false：完全不寄（規格 §10.1 的原始設計）---
+// 每天寄一封「今天沒事」，兩星期後就沒有人會打開它了
+reset();
+makeAllDone();
+evalIn('REPORT.DAILY_SEND_WHEN_EMPTY = false');
+const emptyResult = evalIn('sendDailyReport()');
+check('關掉時：沒有未處理案件 → 不寄信', sandbox.__SENT__.length, 0);
+check('關掉時：並且說明原因',            emptyResult.indexOf('不寄信') >= 0, true);
+
+// --- 模式 true：改寄「心跳信」---
+reset();
+evalIn('REPORT.DAILY_SEND_WHEN_EMPTY = true');
+const beatResult = evalIn('sendDailyReport()');
+check('打開時：沒有案件也照樣寄',        sandbox.__SENT__.length, 2);
+check('打開時：執行紀錄說明是心跳信',    beatResult.indexOf('心跳信') >= 0, true);
+check('打開時：紀錄告訴你怎麼關掉',
+  beatResult.indexOf('DAILY_SEND_WHEN_EMPTY') >= 0, true);
+
+const beat = sandbox.__SENT__[0];
+// 主旨要能一眼跟「有事」的日報分開，否則永遠寄的信會把真正有事的那幾封淹掉
+check('心跳信主旨用 OK 開頭',           beat.subject.indexOf('[Kantin PCI] OK ·') === 0, true);
+check('心跳信主旨寫系統正常',           beat.subject.indexOf('系統正常') >= 0, true);
+check('心跳信主旨不含 belum diproses',  beat.subject.indexOf('belum diproses') >= 0, false);
+// 主旨與內容都不放符號：這封信每天寄，符號會增加被外部信箱判成垃圾信的機會
+check('心跳信主旨沒有符號或表情',       /[^\x00-\x7F一-鿿·]/.test(beat.subject), false);
+
+check('心跳信說系統運作正常',           beat.htmlBody.indexOf('系統運作正常') >= 0, true);
+// 這一行是整封信唯一有資訊量的地方：停住不動的日期掃過去就會被發現
+check('心跳信有「上次收到回報」的日期',  beat.htmlBody.indexOf('2026-08-19') >= 0, true);
+check('心跳信算得出過了幾天',           beat.htmlBody.indexOf('1 天前') >= 0, true);
+check('心跳信說明沒收到就是有問題',
+  beat.htmlBody.indexOf('哪一天沒收到') >= 0, true);
+
+// --- 一筆案件都沒有的情況（上線第一天就是這樣）---
+reset();
+evalIn('__ROWS = []');
+evalIn('sendDailyReport()');
+check('完全沒有案件時：照樣寄得出去',    sandbox.__SENT__.length, 2);
+check('完全沒有案件時：不會印出空日期',
+  sandbox.__SENT__[0].htmlBody.indexOf('目前還沒有收到任何回報') >= 0, true);
+
+restoreRows();
 
 // 一個人寄失敗，其他人照樣要收得到
 reset();

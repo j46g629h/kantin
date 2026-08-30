@@ -41,13 +41,17 @@ function sendDailyReport() {
   try {
     const report = buildDailyReport();
 
+    const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
     if (report.total === 0) {
-      const msg = '目前沒有未處理案件，依規格不寄信。';
-      Logger.log(msg);
-      return msg;
+      if (!REPORT.DAILY_SEND_WHEN_EMPTY) {
+        const msg = '目前沒有未處理案件，依規格不寄信。';
+        Logger.log(msg);
+        return msg;
+      }
+      return sendDailyHeartbeat(report, today);
     }
 
-    const today   = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
     const subject = '[Kantin PCI] ' + report.total + ' laporan belum diproses'
                   + (report.overdue > 0 ? ' (' + report.overdue + ' terlambat)' : '')
                   + ' · 未處理 ' + report.total + ' 件';
@@ -96,6 +100,100 @@ function sendDailyReportNow() {
 
 
 /**
+ * 沒有未處理案件時的「心跳信」（REPORT.DAILY_SEND_WHEN_EMPTY 為 true 時才會走到這裡）。
+ *
+ * ⚠️ 它的用途**不是報告，是證明系統還活著**。所以設計上刻意跟一般日報相反：
+ *
+ *   一般日報 → 內容很重要，因為有事要處理
+ *   心跳信   → **內容不重要，「它有沒有來」才重要**
+ *
+ * 因此主旨開頭用 `OK ·` 而不是件數，一眼就分得出來，也能設信箱規則自動歸檔。
+ *
+ * ⚠️ 主旨與內容都**不要放符號或表情**。這封信每天都寄，
+ *    而符號會增加被外部信箱（Hotmail / Outlook）判成垃圾信的機會——
+ *    一封被歸類成垃圾信的心跳信，比不寄還糟：它會讓人以為系統是好的。
+ */
+function sendDailyHeartbeat(report, today) {
+  const subject = '[Kantin PCI] OK · 系統正常 · 0 件待處理';
+
+  const result = sendToRecipients(subject, function () {
+    return buildDailyHeartbeatHtml(report, today);
+  }, 'sendDailyReport');
+
+  const lines = [
+    '沒有未處理案件，已寄出心跳信 ' + result.sent + ' 封（失敗 ' + result.failed + ' 封）。'
+      + '（要關掉請把 Config.js 的 REPORT.DAILY_SEND_WHEN_EMPTY 改成 false）',
+  ];
+
+  if (result.auth_error) {
+    lines.push('');
+    lines.push('⚠️ 一封都沒寄出，原因是「寄信權限尚未授權」。');
+    lines.push('   請再執行一次這支函式，這次會跳出授權畫面，允許之後就正常了。');
+    lines.push('');
+    lines.push('   原始訊息：' + result.auth_error);
+  }
+
+  const msg = lines.join(String.fromCharCode(10));
+  Logger.log(msg);
+  return msg;
+}
+
+
+/**
+ * 心跳信的內容。**刻意很短**——它是拿來掃一眼的，不是拿來讀的。
+ *
+ * 📌 「上次收到回報」這一行是整封信唯一有資訊量的地方。
+ *    人對「沒發生的事」很不敏感：連續三天沒收到信，多數人不會察覺；
+ *    但一個**停住不動的日期**掃過去就會發現。
+ *    它把「被動的沒信」變成「主動的數字」。
+ */
+function buildDailyHeartbeatHtml(report, today) {
+  const hasAny = report.last_submit_days >= 0;
+
+  const sinceText = hasAny
+    ? (report.last_submit + '（' + report.last_submit_days + ' hari lalu · ' +
+       report.last_submit_days + ' 天前）')
+    : 'Belum ada laporan sama sekali · 目前還沒有收到任何回報';
+
+  const body = [
+    '<div style="background:#E7F5EE;border:1px solid #BFE3D3;border-radius:8px;',
+    '            padding:14px 16px;margin-bottom:20px;">',
+    '  <div style="font-size:16px;font-weight:bold;color:#046C4E;">',
+    '    Sistem berjalan normal · 系統運作正常',
+    '  </div>',
+    '  <div style="margin-top:6px;">',
+    '    Tidak ada laporan yang perlu diproses · 目前沒有需要處理的案件',
+    '  </div>',
+    '</div>',
+
+    buildEmailTable(
+      ['', ''],
+      [
+        { cells: ['Belum diproses · 未處理', '<strong>0</strong>'] },
+        { cells: ['Laporan terakhir · 上次收到回報', escapeForHtml(sinceText)] },
+      ]
+    ),
+
+    '<div style="margin-top:16px;color:#53535A;font-size:13px;line-height:1.7;">',
+    '  Email ini dikirim setiap hari, walaupun tidak ada laporan.',
+    '  <b>Kalau email ini tidak datang, berarti sistemnya bermasalah.</b>',
+    '  <br>',
+    '  這封信每天都會寄，就算沒有案件也一樣。',
+    '  <b>哪一天沒收到，就代表排程或寄信出了問題。</b>',
+    '</div>',
+  ].join('\n');
+
+  return buildEmailHtml(
+    'Sistem Normal · 系統正常',
+    today,
+    body,
+    'Buka daftar laporan · 開啟案件列表',
+    SITE_URL + 'admin-cases.html'
+  );
+}
+
+
+/**
  * 整理出「還沒處理的案件」。
  *
  * 排序刻意用「放最久的排最前面」，不是提交時間倒序——
@@ -108,7 +206,11 @@ function buildDailyReport() {
   const sheet   = getSheet(SHEETS.FEEDBACK);
   const lastRow = sheet.getLastRow();
 
-  if (lastRow < 2) return { cases: [], total: 0, overdue: 0 };
+  // ⚠️ 每一條 return 路徑的欄位都要一樣。少一個的話呼叫端拿到 undefined，
+  //    而 undefined 在畫面上只會少一行字，不會報錯（心跳信就是這樣用它的）
+  if (lastRow < 2) {
+    return { cases: [], total: 0, overdue: 0, last_submit: '', last_submit_days: -1 };
+  }
 
   const colMap     = getFeedbackColumnMap();
   const now        = new Date();
@@ -117,10 +219,25 @@ function buildDailyReport() {
 
   const cases = [];
 
+  /**
+   * 最近一筆回報的提交時間。
+   *
+   * ⚠️ 它算的是**所有還在的案件**，包含處理中與已結案——
+   *    跟下面 cases 只收「未處理」不同。
+   *    因為它要回答的是「這個系統最近還有人在用嗎」，
+   *    而一件已經被結掉的案子同樣證明有人用過。
+   */
+  let lastSubmit = null;
+
   rows.forEach(function (values) {
     // 軟刪除的案件不算（設計約定第 4 條）
     if (isTrue(values[colMap.is_deleted - 1])) return;
     if (!str(values[colMap.case_id - 1])) return;      // 略過空白列
+
+    const rawSubmit = values[colMap.submit_time - 1];
+    if (rawSubmit instanceof Date && (lastSubmit === null || rawSubmit > lastSubmit)) {
+      lastSubmit = rawSubmit;
+    }
 
     const item = buildAdminCase(values, colMap, now, handlerMap);
 
@@ -137,6 +254,14 @@ function buildDailyReport() {
     cases:   cases,
     total:   cases.length,
     overdue: cases.filter(function (c) { return c.is_overdue; }).length,
+
+    /** 心跳信用的：最近一筆回報是什麼時候（沒有任何案件時是 '' 與 -1）*/
+    last_submit:      lastSubmit
+      ? Utilities.formatDate(lastSubmit, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : '',
+    last_submit_days: lastSubmit
+      ? Math.floor((now - lastSubmit) / 86400000)
+      : -1,
   };
 }
 
