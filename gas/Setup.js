@@ -755,6 +755,25 @@ function checkEmployeeRoster() {
     return empty;
   }
 
+  /**
+   * 這一格是不是「純文字」格式？
+   *
+   * ⚠️ **不可以只比對 `'@'`。** Google Sheets 的純文字格式有**兩種寫法**：
+   *
+   *    '@'         程式用 setNumberFormat('@') 設的
+   *    '@STRING@'  **使用者從介面**〔格式 → 數值 → 純文字〕設的
+   *
+   * 只認 `'@'` 的話，使用者明明照建議設好了，報告還是說「1213 個沒設純文字」——
+   * 2026-08-31 實際發生過。
+   *
+   * 🔴 **這種 bug 比看起來嚴重**：一個永遠喊「有問題」的檢查，
+   *    會訓練看報告的人跳過那一行。等哪天真的有問題，他也不會看見。
+   */
+  function isPlainTextFormat(fmt) {
+    const f = String(fmt === null || fmt === undefined ? '' : fmt).trim().toUpperCase();
+    return f === '@' || f === '@STRING@';
+  }
+
   const count = lastRow - 1;
   const range = sheet.getRange(2, 1, count, 3);
   const values = range.getValues();
@@ -767,6 +786,7 @@ function checkEmployeeRoster() {
   // 儲存格若是「數字」型別，0012345 會被存成 12345
   let numericCells = 0;
   let nonTextFormat = 0;
+  let sampleNonTextFormat = '';   // 抓第一個不合格的格式字串，報告會印出來（見下方說明）
   const idLengths = {};
   const idRowsByLength = {};     // 長度 → 列號，用來指出「跟大家不一樣的那幾筆」
   const emptyIdRows = [];
@@ -779,7 +799,10 @@ function checkEmployeeRoster() {
     const raw = row[0];
 
     if (typeof raw === 'number') numericCells++;
-    if (formats[i][0] !== '@') nonTextFormat++;
+    if (!isPlainTextFormat(formats[i][0])) {
+      nonTextFormat++;
+      if (!sampleNonTextFormat) sampleNonTextFormat = String(formats[i][0]);
+    }
 
     const id = String(raw === null || raw === undefined ? '' : raw);
     if (!id.trim()) {
@@ -819,6 +842,15 @@ function checkEmployeeRoster() {
     report.push('    ⚠️ 目前的值都還是文字，**資料沒有壞，不需要重貼**。');
     report.push('       但下次貼新名冊或手動編輯時可能被轉成數字。');
     report.push('       建議把 A 欄設成「格式 → 數值 → 純文字」（只改格式，不會動到現有的值）。');
+  }
+
+  // 📌 印出實際看到的格式字串。
+  //    2026-08-31 踩過一次：使用者明明設好了純文字，報告卻說 1213 個沒設——
+  //    因為介面設的是 '@STRING@'，而程式只認 '@'。
+  //    當時**光看報告完全查不出原因**，只能靠猜。
+  //    多印這一行，下次同類問題三秒就看得出來是哪個字串沒被認得。
+  if (nonTextFormat > 0 && sampleNonTextFormat) {
+    report.push('    （實際讀到的格式字串：「' + sampleNonTextFormat + '」）');
   }
 
   const lengthKeys = Object.keys(idLengths).sort(function (a, b) { return a - b; });

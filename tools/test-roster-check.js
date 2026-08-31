@@ -87,6 +87,30 @@ check('說資料沒問題', r.indexOf('✅ 資料沒有問題') >= 0, true);
 check('沒有建議',     r.indexOf('另有') < 0, true);
 check('沒有任何 ⚠️',  r.indexOf('⚠️') < 0, true);
 
+/**
+ * 🔴 Google Sheets 的純文字格式有**兩種寫法**，兩種都要認得：
+ *
+ *    '@'         程式用 setNumberFormat('@') 設的
+ *    '@STRING@'  **使用者從介面**〔格式 → 數值 → 純文字〕設的
+ *
+ * 2026-08-31 實際踩過：使用者照建議把 A 欄設成純文字了，
+ * 報告卻還是說「1213 個格式不是純文字」——因為程式只認 '@'。
+ *
+ * ⚠️ 這種 bug 比看起來嚴重：**一個永遠喊「有問題」的檢查，
+ *    會訓練看報告的人跳過那一行**，等哪天真的有問題他也不會看見。
+ */
+console.log('\n【1-b】介面設的純文字（@STRING@）也要算數');
+setRoster([['0012345', 'Budi', 'ACTIVE'], ['0012346', 'Siti', 'ACTIVE']], '@STRING@');
+r = report();
+check('@STRING@ 視為純文字',   r.indexOf('格式不是「純文字」的儲存格：0 個') >= 0, true);
+check('不會叫人再去設一次',     r.indexOf('建議把 A 欄設成') < 0, true);
+check('結論沒有多餘的建議',     r.indexOf('另有') < 0, true);
+
+// 大小寫不同也要認得（介面語言或版本不同時可能有差異）
+setRoster([['0012345', 'Budi', 'ACTIVE']], '@string@');
+check('小寫 @string@ 也算數',
+  report().indexOf('格式不是「純文字」的儲存格：0 個') >= 0, true);
+
 console.log('\n【2】⚠️ 格式不是純文字、但值還是文字 → 不可以叫人重貼');
 setRoster([['0012345', 'Budi', 'ACTIVE'], ['0012346', 'Siti', 'ACTIVE']], '0');
 r = report();
@@ -95,6 +119,8 @@ check('⚠️ 沒有出現「重貼」的指示', /先把 A 欄設成.*再重貼
 check('有建議設成純文字', r.indexOf('格式 → 數值 → 純文字') >= 0, true);
 check('結論仍然是資料沒問題', r.indexOf('✅ 資料沒有問題') >= 0, true);
 check('但有列出建議',     r.indexOf('另有 1 項建議') >= 0, true);
+// 光看「N 個沒設純文字」查不出「到底是哪個字串沒被認得」——2026-08-31 就卡在這裡
+check('印出實際讀到的格式字串', r.indexOf('實際讀到的格式字串：「0」') >= 0, true);
 
 console.log('\n【3】值真的被存成數字 → 這時才要說「重貼」');
 setRoster([[12345, 'Budi', 'ACTIVE'], ['0012346', 'Siti', 'ACTIVE']], '0');
