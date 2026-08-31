@@ -181,8 +181,8 @@ figcaption {
           <span class="tx-zh">管理者操作手冊 — PCI 員工餐廳回饋系統</span>
         </h1>
         <p class="doc-meta">
-          <span class="tx-id">Untuk aplikasi versi v3.7 · Diperbarui 29 Agustus 2026</span>
-          <span class="tx-zh">對應 app 版本 v3.7 · 2026 年 8 月 29 日更新</span>
+          <span class="tx-id">Untuk aplikasi versi v3.7 · Diperbarui 31 Agustus 2026</span>
+          <span class="tx-zh">對應 app 版本 v3.7 · 2026 年 8 月 31 日更新</span>
         </p>
       </div>
     </div>
@@ -788,9 +788,21 @@ figcaption {
   <section class="chapter" id="bab4">
     <h2><span class="num">4</span><span class="tx-id">Email otomatis harian &amp; bulanan</span><span class="tx-zh">每天 / 每月的自動信</span></h2>
     <p class="intro">
-      <span class="tx-id">Sistem kirim dua jenis email sendiri. Kamu nggak perlu setting apa-apa — <b>asal kolom Email di akun kamu terisi</b>.</span>
-      <span class="tx-zh">系統會自動寄兩種信，你不用做任何設定——<b>只要你的帳號有填 Email</b>。</span>
+      <span class="tx-id">Sistem kirim dua jenis email sendiri, tapi <b>cuma ke Super Admin</b>.</span>
+      <span class="tx-zh">系統會自動寄兩種信，但<b>只寄給超級管理者</b>。</span>
     </p>
+
+    <!--
+      ⚠️ 這一段原本寫「只要你的帳號有填 Email 就會收到」——那是**錯的**。
+         gas/Notify.js:55 只挑 role === SUPER 的人，一般管理者的 Email 欄
+         目前沒有任何用途。錯的說明比沒有說明更糟：
+         一般管理者會坐在那裡等一封永遠不會來的信，而案件就這樣放著。
+    -->
+    <div class="box warn">
+      <span class="tag"><span class="tx-id">Admin Biasa</span><span class="tx-zh">一般管理者</span></span>
+      <span class="tx-id">Kalau kamu <b>Admin Biasa</b>, kamu <b>nggak akan dapat email ini</b> — walaupun kolom Email kamu terisi. Jadi <b>buka sendiri daftar laporannya</b>, jangan nunggu email. Kalau mau ikut dapat, minta Super Admin masukkan email kamu ke daftar penerima tambahan.</span>
+      <span class="tx-zh">你如果是<b>「一般管理者」</b>，<b>不會收到這兩封信</b>——就算 Email 欄有填也一樣。所以請<b>自己打開案件列表看</b>，不要等信。想收到的話，請超級管理者把你的 Email 加進額外收件人名單。</span>
+    </div>
 
     <div class="step">
       <div class="step-head">
@@ -802,10 +814,25 @@ figcaption {
           <span class="tx-id">Sekitar <b>jam 8 pagi</b>. Isinya laporan yang belum diproses, yang terlambat ditandai merah.</span>
           <span class="tx-zh">大約<b>早上 8 點</b>。內容是還沒處理的案件，逾期的會標紅。</span>
         </p>
+        <!--
+          ⚠️ 這一段跟 gas/Config.js 的 REPORT.DAILY_SEND_WHEN_EMPTY 綁在一起。
+             改那個常數就要回來改這裡，否則手冊會教出錯的判斷方式——
+             而這一段教的正是「怎麼看出系統壞了」，錯了最傷。
+        -->
         <p>
-          <span class="tx-id"><b>Kalau nggak ada yang belum diproses, emailnya nggak dikirim sama sekali.</b> Jadi kalau paginya nggak ada email, artinya semuanya beres — bukan sistemnya rusak.</span>
-          <span class="tx-zh"><b>沒有未處理案件的話，這封信完全不會寄。</b>所以早上沒收到信 = 全部處理完了，不是系統壞掉。</span>
+          <span class="tx-id">Kalau <b>nggak ada</b> yang belum diproses, kamu tetap dapat email pendek judulnya <b>“OK · 系統正常”</b>. Isinya cuma: sistem jalan normal, dan kapan laporan terakhir masuk.</span>
+          <span class="tx-zh">如果<b>沒有</b>未處理案件，還是會收到一封很短的信，主旨是 <b>「OK · 系統正常」</b>。內容只有兩件事：系統運作正常、上次收到回報是什麼時候。</span>
         </p>
+        <p>
+          <span class="tx-id">Jadi <b>tiap pagi pasti ada email</b> — yang panjang berarti ada kerjaan, yang pendek berarti aman.</span>
+          <span class="tx-zh">所以<b>每天早上一定會有一封信</b>——長的那封代表有事要做，短的那封代表沒事。</span>
+        </p>
+
+        <div class="box warn">
+          <span class="tag"><span class="tx-id">Penting</span><span class="tx-zh">重要</span></span>
+          <span class="tx-id">Karena tiap pagi pasti ada email, <b>kalau suatu pagi nggak ada email sama sekali, berarti sistemnya bermasalah</b> — bukan berarti lagi sepi. Tolong langsung kasih tahu.</span>
+          <span class="tx-zh">正因為每天早上一定有信，<b>哪一天早上完全沒收到，就代表系統出了問題</b>，不是「今天剛好沒事」。請直接反映。</span>
+        </div>
       </div>
     </div>
 
@@ -880,8 +907,8 @@ figcaption {
 
       <div class="box warn">
         <span class="tag"><span class="tx-id">Kalau nggak dapat email</span><span class="tx-zh">收不到信的話</span></span>
-        <span class="tx-id">Cek dulu tiga hal: <b>(1)</b> kolom Email di akun kamu ada isinya nggak (lihat di halaman Kelola Akun), <b>(2)</b> emailnya nyasar ke folder spam nggak, <b>(3)</b> khusus yang harian — mungkin memang lagi nggak ada laporan yang belum diproses.</span>
-        <span class="tx-zh">先確認三件事：<b>(1)</b> 你的帳號有沒有填 Email（在帳號管理頁看得到）、<b>(2)</b> 信有沒有跑到垃圾信件匣、<b>(3)</b> 如果是日報——很可能真的沒有未處理案件。</span>
+        <span class="tx-id"><b>(1)</b> Kamu Admin Biasa? Kalau iya, memang nggak dapat — itu normal, bukan rusak. <b>(2)</b> Kamu Super Admin? Cek dulu folder spam. <b>(3)</b> Masih nggak ada? Berarti sistemnya bermasalah — tiap pagi seharusnya <b>selalu</b> ada email. Cek di Apps Script bagian “Executions”, cari <code>sendDailyReport</code> pagi itu.</span>
+        <span class="tx-zh"><b>(1)</b> 你是一般管理者嗎？是的話<b>本來就收不到</b>，那是正常的，不是壞掉。<b>(2)</b> 你是超級管理者嗎？先看垃圾信件匣。<b>(3)</b> 還是沒有？那就是系統有問題——每天早上<b>一定</b>會有信。到 Apps Script 的〔執行項目〕找那天早上的 <code>sendDailyReport</code>。</span>
       </div>
     </div>
   </section>
