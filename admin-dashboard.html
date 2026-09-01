@@ -16,13 +16,13 @@
     ⚠️ 那個 PNG 是**直角滿版**的：iOS 與 Android 會自己套圓角遮罩，
        圖檔自己再帶圓角的話會變成「圓角疊圓角」，四個角出現缺口。
   -->
-  <link rel="icon" href="favicon.svg?v=3.8" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3.8">
-  <link rel="manifest" href="manifest.json?v=3.8">
+  <link rel="icon" href="favicon.svg?v=3.9" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3.9">
+  <link rel="manifest" href="manifest.json?v=3.9">
   <style>html{background:#EFEFED}</style>
   <meta name="robots" content="noindex, nofollow">
   <title>Data Laporan · Kantin PCI</title>
-  <link rel="stylesheet" href="css/style.css?v=3.8">
+  <link rel="stylesheet" href="css/style.css?v=3.9">
 </head>
 <body>
 
@@ -58,7 +58,10 @@
         ⚠️ 放在 mainView 外面：它要用 position:fixed 鋪在每一頁的背景，
            放進 mainView 裡的話會跟著內容捲動與分頁。
       -->
-      <div class="print-watermark" aria-hidden="true">PCI KANTIN</div>
+      <div class="print-watermark" aria-hidden="true">
+        <div class="wm-l1">PCI 總務內部報告</div>
+        <div class="wm-l2">Laporan internal GA PCI</div>
+      </div>
 
       <div id="mainView" class="hidden">
 
@@ -144,12 +147,12 @@
 
   </div>
 
-  <script src="js/config.js?v=3.8"></script>
-  <script src="js/i18n.js?v=3.8"></script>
-  <script src="js/ui.js?v=3.8"></script>
-  <script src="js/api.js?v=3.8"></script>
-  <script src="js/admin-session.js?v=3.8"></script>
-  <script src="js/admin-dashboard.js?v=3.8"></script>
+  <script src="js/config.js?v=3.9"></script>
+  <script src="js/i18n.js?v=3.9"></script>
+  <script src="js/ui.js?v=3.9"></script>
+  <script src="js/api.js?v=3.9"></script>
+  <script src="js/admin-session.js?v=3.9"></script>
+  <script src="js/admin-dashboard.js?v=3.9"></script>
 
 </body>
 </html>

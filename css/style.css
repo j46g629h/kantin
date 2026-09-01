@@ -2712,10 +2712,28 @@ input[type="date"] {
     transform: translate(-50%, -50%) rotate(-30deg);
     z-index: 0;
 
-    font-size: 54pt;
+    /*
+     * 兩行：中文主標 + 印尼文副標（v3.9）。
+     *
+     * ⚠️ **字級不是隨便挑的，是量出來的。** 限制在於「最長的那一行」——
+     *    `Laporan internal GA PCI` 有 23 個字元，它決定了整體能多大。
+     *
+     *    實測（A4 可用寬度 703px，旋轉 30 度後的外框）：
+     *      兩行都 54pt   → 1039px  🔴 超出 336px，會被裁掉還可能多一張空白頁
+     *      34pt / 17pt   →  372px  ✅ 目前採用
+     *      46pt / 23pt   →  498px  ✅ 也可以（跟舊版單行的 507px 幾乎一樣）
+     *
+     *    所以要放大的話，**上限大約在 46/23 那一組**，再大就要縮短印尼文那一行。
+     *
+     * ⚠️ 中文那行需要 CJK 字型。字型堆疊裡的 "Noto Sans TC" 並沒有被載入
+     *    （這個專案刻意不載外部字型），所以實際上是掉到系統的 CJK 字型。
+     *    在沒有中文字型的電腦上列印會變成方框——但那台電腦本來也看不懂這份報表。
+     */
     font-weight: 800;
-    letter-spacing: .14em;
+    letter-spacing: .12em;
+    line-height: 1.3;
     white-space: nowrap;
+    text-align: center;
     color: var(--text);
     /*
      * 淡到不影響閱讀，但轉 PDF 或影印之後仍看得出來。
@@ -2724,9 +2742,20 @@ input[type="date"] {
      *    低於 4% 之後很多雷射印表機會直接把它當成白色不印。
      *    真的印出來看不到的話，把這裡調回 .06～.07。
      */
-    opacity: .05;
+    opacity: .08;
     pointer-events: none;
   }
+
+  .print-watermark div { white-space: nowrap; }
+  .wm-l1 { font-size: 34pt; }
+
+  /*
+   * 副標再淡一階。
+   * ⚠️ opacity 會**相乘**：外層 .08 × 這裡的 .85 = 實際約 6.8%，
+   *    仍高於「低於 4% 印表機會直接不印」的下限。
+   *    要再淡的話改外層那個值，不要動這裡——這裡是兩行之間的層次，不是整體濃度。
+   */
+  .wm-l2 { font-size: 17pt; letter-spacing: .10em; opacity: .85; }
 
   /* 內容壓在浮水印上面 */
   #mainView { position: relative; z-index: 1; }
