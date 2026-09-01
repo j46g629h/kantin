@@ -141,6 +141,22 @@ function makeSheet(rows, headers) {
     getLastRow: () => rows.length + 1,        // +1 是表頭
     getLastColumn: () => headers.length,
 
+    /**
+     * 刪列。**一定要真的把那一筆從陣列拿掉、讓後面的往上移**——
+     * 那才是 Apps Script 的行為。
+     *
+     * ⚠️ 如果這裡只是把該列清空（留一列空白），
+     *    「刪完之後其他人的資料有沒有錯位」就永遠測不出來——
+     *    而錯位正是刪列唯一真正危險的地方。
+     *    （同一個教訓：假的服務對錯誤太寬容，測試就成了裝飾品。）
+     */
+    deleteRow(row) {
+      if (!row || row < 2 || row - 2 >= rows.length) {
+        throw new Error('deleteRow 收到不合法的列號: ' + row);
+      }
+      rows.splice(row - 2, 1);
+    },
+
     getRange(row, col, numRows) {
       const n = numRows || 1;
 
@@ -742,6 +758,87 @@ check('別人的時間不受影響',
   callAs(SUPER_SESSION, { op:'list' }).data.admins.find(a => a.account === 'hua@pci').password_changed_at, '');
 check('列表仍然不含密碼雜湊',
   Object.keys(callAs(SUPER_SESSION, { op:'list' }).data.admins[0]).indexOf('password_hash'), -1);
+
+
+/**
+ * ===== delete：永久刪除帳號 =====
+ *
+ * ⚠️ 這是這一支 API 唯一**救不回來**的動作，所以測試的重點刻意放在
+ *    「**不該被刪的有沒有被刪掉**」，而不是「刪得掉沒有」。
+ *    刪不掉頂多是不方便；刪錯了是回不來的。
+ *    （跟 tools/test-retention-api.js 同一個原則。）
+ */
+console.log('\n===== delete：不該刪的一個都不能刪 =====\n');
+
+const beforeDelete = callAs(SUPER_SESSION, { op:'list' }).data.admins.length;
+
+check('沒帶帳號 → 擋下',
+  callAs(SUPER_SESSION, { op:'delete', password:'Super1234' }).error, 'ADMIN_ACCOUNT_REQUIRED');
+check('沒帶密碼 → 擋下',
+  callAs(SUPER_SESSION, { op:'delete', account:'ming@pci' }).error, 'ADMIN_PASSWORD_REQUIRED');
+
+// 不能刪自己：訊息要講「不能刪自己」，不可以講成「請先停用」——那會誤導
+check('不能刪自己',
+  callAs(SUPER_SESSION, { op:'delete', account:'super@pci', password:'Super1234' }).error,
+  'ADMIN_SELF_DELETE');
+
+// 🔴 最重要的一條：啟用中的帳號一律擋，這同時消滅了「手滑點錯列」
+callAs(SUPER_SESSION, { op:'setStatus', account:'ming@pci', status:'ACTIVE' });
+check('啟用中的帳號 → 必須先停用',
+  callAs(SUPER_SESSION, { op:'delete', account:'ming@pci', password:'Super1234' }).error,
+  'ADMIN_MUST_DISABLE_FIRST');
+check('被擋下時那個人還在',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.some(a => a.account === 'ming@pci'), true);
+
+// 停用之後、但密碼打錯 → 還是不能刪
+callAs(SUPER_SESSION, { op:'setStatus', account:'ming@pci', status:'DISABLED' });
+check('密碼錯 → 擋下',
+  callAs(SUPER_SESSION, { op:'delete', account:'ming@pci', password:'WrongPw123' }).error,
+  'ADMIN_PASSWORD_WRONG');
+check('密碼錯時那個人還在',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.some(a => a.account === 'ming@pci'), true);
+check('到這裡為止一個都沒被刪掉',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.length, beforeDelete);
+
+check('查無此帳號 → 擋下',
+  callAs(SUPER_SESSION, { op:'delete', account:'nobody@pci', password:'Super1234' }).error,
+  'ADMIN_NOT_FOUND');
+
+// 一般管理者完全碰不到這支。
+// ⚠️ 一定要走 withAuth，不能用 callAs——callAs 是直接呼叫 manageAdmin，
+//    而角色檢查在 withAuth 的第三個參數裡（設計約定第 8 條）。
+//    用 callAs 測的話，通過的是「op 自己擋下來」而不是「權限擋下來」，
+//    那等於根本沒測到把關
+const adminToken2 = evalIn(`createSession(${JSON.stringify(ADMIN_SESSION)})`);
+check('一般管理者不能刪帳號',
+  evalIn(`withAuth({token:${JSON.stringify(adminToken2)}, op:'delete', account:'ming@pci', password:'Hua123456'},
+                   function(s){return manageAdmin({op:'delete', account:'ming@pci', password:'Hua123456'}, s);}, true).error`),
+  'FORBIDDEN');
+
+console.log('\n===== delete：條件都滿足時才真的刪 =====\n');
+
+// 先讓他有一支登入中的 token，確認刪除會一併作廢
+const mingToken4 = evalIn(`createSession({account:'ming@pci', name:'王小明', role:'ADMIN'})`);
+
+const del = callAs(SUPER_SESSION, { op:'delete', account:'ming@pci', password:'Super1234' });
+check('停用 + 密碼正確 → 成功',   del.ok, true);
+check('回傳姓名（訊息要能說出刪了誰）', del.data.name, '王小明');
+check('一併作廢他的登入',          del.data.revoked_sessions, 1);
+check('他的 token 真的失效',       evalIn(`readSession(${JSON.stringify(mingToken4)}) === null`), true);
+check('名單少一列',                callAs(SUPER_SESSION, { op:'list' }).data.admins.length, beforeDelete - 1);
+check('名單上找不到他了',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.some(a => a.account === 'ming@pci'), false);
+check('他再也登不進去',            login('ming@pci', 'Ming12345').error, 'LOGIN_FAILED');
+
+// ⚠️ 刪列會讓後面的列往上移。沒有一路用帳號查找的話，這裡就會錯位
+check('別人的資料沒有被錯位動到',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.find(a => a.account === 'hua@pci').name, '李美華');
+check('超級管理者自己也完好',
+  callAs(SUPER_SESSION, { op:'list' }).data.admins.find(a => a.account === 'super@pci').name, '系統管理者');
+
+check('刪過之後再刪一次 → 查無此帳號（不是無聲成功）',
+  callAs(SUPER_SESSION, { op:'delete', account:'ming@pci', password:'Super1234' }).error,
+  'ADMIN_NOT_FOUND');
 
 
 console.log('\n===== revokeSessionsForAccount：只砍該砍的 =====\n');

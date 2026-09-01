@@ -650,7 +650,8 @@ textarea:focus {
 /* ===== 按鈕 ===== */
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-danger {
   display: block;
   width: 100%;
   margin-top: var(--gap);
@@ -690,6 +691,23 @@ textarea:focus {
   border: 1px solid var(--border-input);
   box-shadow: var(--lift-1);
 }
+
+/* 破壞性動作（目前只有「刪除管理者帳號」）。
+   ⚠️ 刻意做成**淺底 + 紅字 + 紅框**，不是紅色實心：
+      紅色實心的份量會超過同一排的其他按鈕，變成整頁最搶眼的東西——
+      而它是最不該被順手按到的那一顆。
+      顏色只負責「這個不一樣」，份量仍然是次要動作。
+   ⚠️ 框線用 --danger 本身（對底色 6.1:1），不是 --danger-border（那是裝飾線，
+      對比不足以當互動元件的邊界，WCAG 1.4.11 要 3:1）。 */
+.btn-danger {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  box-shadow: none;
+}
+.btn-danger:active   { background: var(--danger-tag); }
+.btn-danger:disabled { color: var(--text-subtle); background: var(--surface-alt);
+                       border-color: var(--border-input); cursor: not-allowed; }
 
 
 /* ===== 訊息 ===== */

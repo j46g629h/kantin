@@ -58,6 +58,7 @@ function manageAdmin(params, session) {
     resetpassword: adminOpResetPassword,
     setrole:       adminOpSetRole,
     setprofile:    adminOpSetProfile,
+    delete:        adminOpDelete,
   };
 
   const operation = operations[op];
@@ -456,6 +457,83 @@ function findPasswordClash(password, targetAccount) {
     }
   }
   return selfMatch ? 'self' : '';
+}
+
+
+// ===== delete：永久刪除一個管理者帳號 =====
+
+/**
+ * 把一列從「管理者名單」真的刪掉（不是停用）。
+ *
+ * ⚠️ **為什麼這裡可以真的刪列，而「回報資料」必須軟刪除：**
+ *    管理者的所有查找都走 `findAdminByAccount()`（用帳號比對），
+ *    **沒有任何地方依賴列號**。案件那邊則不同，所以那裡只能標記 `is_deleted`。
+ *
+ * ⚠️ **刪掉之後救不回來。** 案件上的「最後更新者」存的是**姓名字串**，
+ *    所以稽核紀錄本身不會壞（案件照樣寫著「王小明 結案」）——
+ *    但你再也查不到王小明的帳號、Email、建立時間、當時是什麼角色。
+ *
+ * 三道關卡：
+ *
+ *   1. 不能刪自己
+ *   2. **必須先停用**——這一條同時消滅了「手滑點錯列」：
+ *      啟用中的帳號按了也沒用，而能刪的那些你早就刻意停用過一次了
+ *   3. 要再輸入一次**操作者自己的密碼**
+ *
+ * 📌 **第 3 條擋的是「意外」，不是「攻擊」。** 說清楚免得日後誤會：
+ *    拿到有效 session 的人本來就能用 `create` 幫自己開一個新的超級管理者帳號，
+ *    而那一支**沒有**密碼確認。所以這裡多問一次密碼並沒有提高安全層級，
+ *    它的作用是「讓你在按下不可逆的動作前停一秒」。
+ *    也因為如此，**這裡刻意不接上登入失敗鎖定**——
+ *    自己密碼打錯五次就被鎖在門外 15 分鐘，代價遠大於它擋得住的東西。
+ *
+ * ⚠️ 密碼參數名一定要叫 `password`：`gas/Main.js` 的 SENSITIVE_PARAMS
+ *    只遮 `password` / `old_password` / `new_password` / `token` 這幾個名字。
+ *    換一個名字，出錯時明文密碼會被寫進「錯誤日誌」分頁。
+ */
+function adminOpDelete(params, session) {
+  const account  = str(params.account).toLowerCase();
+  const password = str(params.password);
+  const me       = str(session.account).toLowerCase();
+
+  if (!account)  return fail('ADMIN_ACCOUNT_REQUIRED', '請指定要刪除的帳號');
+  if (!password) return fail('ADMIN_PASSWORD_REQUIRED', '請輸入你自己的密碼');
+
+  // 1. 不能刪自己。
+  //    （第 2 關其實已經擋掉了——沒有人能停用自己——但這一條要明講，
+  //      不然錯誤訊息會變成「請先停用」，那對使用者是誤導）
+  if (account === me) {
+    return fail('ADMIN_SELF_DELETE', '不能刪除自己的帳號');
+  }
+
+  const target = findAdminByAccount(account);
+  if (!target) return fail('ADMIN_NOT_FOUND', '查無此帳號');
+
+  // 2. 必須是停用狀態。
+  //    ⚠️ 不必再檢查「最後一位啟用中的超級管理者」——
+  //       停用中的帳號依定義就不是「啟用中」的，那一關自動成立
+  if (normalizeAdminStatus(target.status) !== ADMIN_STATUS.DISABLED) {
+    return fail('ADMIN_MUST_DISABLE_FIRST', '請先把這個帳號停用，才能刪除');
+  }
+
+  // 3. 驗證操作者自己的密碼
+  const operator = findAdminByAccount(me);
+  if (!operator) return fail('ACCOUNT_NOT_FOUND', '查無此帳號');
+  if (hashPassword(password, str(operator.password_salt)) !== str(operator.password_hash)) {
+    return fail('ADMIN_PASSWORD_WRONG', '密碼不正確');
+  }
+
+  // 先作廢 token 再刪列。
+  // 反過來的話，刪完列才作廢失敗，那個人手上的 token 會變成
+  // 「指向一個已經不存在的帳號」——而 withAuth 只讀 token 裡的快照，不會回查 Sheet
+  const revoked = revokeSessionsForAccount(account);
+  getSheet(SHEETS.ADMINS).deleteRow(target.row);
+
+  return ok({
+    account:          account,
+    name:             str(target.name),
+    revoked_sessions: revoked,
+  });
 }
 
 

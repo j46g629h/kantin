@@ -743,6 +743,22 @@ function renderRow(admin) {
                 ${isActive && lockReason ? `title="${escapeHtml(lockReason)}"` : ''}>
           ${escapeHtml(isBusy ? t('accounts.working') : t(isActive ? 'accounts.disable' : 'accounts.enable'))}
         </button>
+        ${
+          /*
+            刪除。**只有停用中的帳號才看得到這顆按鈕**——
+            啟用中的根本不渲染，而不是渲染出來再變灰。
+
+            理由：變灰的按鈕還是會被點、還是會讓人想「為什麼不能按」。
+            而「要刪就先停用」是這個功能的核心規則，
+            讓按鈕在停用之後才出現，規則本身就講完了，不必再解釋。
+          */
+          isActive || isSelf ? '' : `
+        <button type="button" class="btn-danger btn-small js-delete"
+                data-account="${escapeHtml(admin.account)}"
+                ${isBusy ? 'disabled' : ''}>
+          ${escapeHtml(isBusy ? t('accounts.working') : t('accounts.delete'))}
+        </button>`
+        }
       </div>
     </div>`;
 }
@@ -763,6 +779,111 @@ function bindRowButtons() {
     btn.addEventListener('click', function () {
       renameAdmin(btn.dataset.account);
     });
+  });
+  el.adminList.querySelectorAll('.js-delete').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      deleteAdmin(btn.dataset.account);
+    });
+  });
+}
+
+
+/**
+ * 永久刪除一個管理者帳號。
+ *
+ * ⚠️ **這是這一頁唯一救不回來的動作。** 其他每一個都可以還原：
+ *    停用可以再啟用、降級可以再升回去、密碼可以再重設一次。
+ *
+ * 所以彈窗刻意做三件事：
+ *
+ *   1. 把**姓名與帳號並排顯示**——按錯列的人在這裡會看見不是他要刪的那個
+ *   2. 明說「刪掉之後查不回來」，而不是只寫「確定嗎？」
+ *   3. 要求輸入**操作者自己的密碼**（後端會驗）
+ *
+ * 📌 按鈕本身只在**停用中的帳號**上出現（見 renderRow），
+ *    所以走到這一步的帳號，你早就刻意停用過一次了。
+ */
+function deleteAdmin(account) {
+  const admin = findAdmin(account);
+  if (!admin || state.busy) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <form class="pw-box pw-box-form" id="delForm" novalidate>
+      <h2 class="pw-title">${escapeHtml(t('accounts.deleteTitle'))}</h2>
+      <p class="pw-who">${escapeHtml(admin.name || '')}　${escapeHtml(admin.account)}</p>
+
+      <div class="result error" style="margin-top:12px;">
+        ${escapeHtml(t('accounts.deleteWarn'))}
+      </div>
+
+      <label class="filter-label" for="delPw" style="margin-top:14px;display:block;">
+        ${escapeHtml(t('accounts.deletePwLabel'))}
+      </label>
+      <input type="password" id="delPw" autocomplete="current-password">
+
+      <div id="delError" class="result error hidden"></div>
+
+      <div class="pw-actions">
+        <button type="submit" class="btn-danger btn-inline" id="delGo">
+          ${escapeHtml(t('accounts.deleteConfirm'))}
+        </button>
+        <button type="button" class="btn-secondary btn-inline" id="delCancel">
+          ${escapeHtml(t('cancel'))}
+        </button>
+      </div>
+    </form>`;
+
+  document.body.appendChild(overlay);
+
+  const input    = overlay.querySelector('#delPw');
+  const errorBox = overlay.querySelector('#delError');
+  const goBtn    = overlay.querySelector('#delGo');
+  const close    = function () { overlay.remove(); state.busy = ''; renderList(); };
+
+  input.focus();
+  overlay.querySelector('#delCancel').addEventListener('click', close);
+
+  overlay.querySelector('#delForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const password = input.value;
+    if (!password) {
+      show(errorBox, t('err.ADMIN_PASSWORD_REQUIRED'));
+      input.focus();
+      return;
+    }
+
+    goBtn.disabled = true;
+    goBtn.textContent = t('accounts.deleting');
+    hide(errorBox);
+    state.busy = account;
+
+    try {
+      const result = await Api.deleteAdmin(AdminSession.token(), account, password);
+
+      if (!result.ok) {
+        show(errorBox, errorMessage(result));
+        goBtn.disabled = false;
+        goBtn.textContent = t('accounts.deleteConfirm');
+        // 密碼打錯是最常見的一種，游標留在那裡讓他直接重打
+        if (result.error === 'ADMIN_PASSWORD_WRONG') { input.select(); input.focus(); }
+        state.busy = '';
+        return;
+      }
+
+      overlay.remove();
+      state.busy = '';
+      setNote('accounts.deleted', admin.name || account, false);
+      await loadAdmins();
+
+    } catch (err) {
+      show(errorBox, t('err.NETWORK'));
+      goBtn.disabled = false;
+      goBtn.textContent = t('accounts.deleteConfirm');
+      state.busy = '';
+    }
   });
 }
 

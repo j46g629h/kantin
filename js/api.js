@@ -307,6 +307,23 @@ const Api = {
   },
 
   /**
+   * 永久刪除一個管理者帳號。
+   *
+   * ⚠️ **不可重試**（`post` 的第二個參數不要開）：它不是冪等的。
+   *    雖然重送一次只會拿到「查無此帳號」，但真正的問題是
+   *    **超時重送時你不知道第一次到底成功了沒**，而這個動作救不回來。
+   *
+   * ⚠️ `password` 是**操作者自己**的密碼，不是被刪那個人的。
+   *    欄位名一定要是 `password`——後端的錯誤日誌只遮罩
+   *    password / old_password / new_password / token 這幾個名字。
+   *
+   * 📌 後端要求那個帳號**必須已經是停用狀態**，否則回 ADMIN_MUST_DISABLE_FIRST。
+   */
+  deleteAdmin(token, account, password) {
+    return this.post({ action: 'manageAdmin', token, op: 'delete', account, password });
+  },
+
+  /**
    * 調整角色。
    * 目前頁面上沒有這個按鈕（一般管理者不會升降級，交接改用「建新的 + 停用舊的」），
    * 後端與這支包裝先留著，日後要開放時前端加個按鈕即可。
